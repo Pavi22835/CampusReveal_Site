@@ -205,7 +205,7 @@ const Hero = ({ setSearchQuery }) => {
             <div className="filter-item">
               <label>College Type</label>
               <div className="filter-pills">
-                {['Engineering', 'Arts', 'Medical', 'Management'].map(type => (
+                {['Engineering', 'Arts', 'Management'].map(type => (
                   <button 
                     key={type}
                     onClick={() => handleCheckbox(type)}
@@ -249,7 +249,7 @@ const Hero = ({ setSearchQuery }) => {
         <div className="popular-tags">
           <span className="tags-label">Popular searches:</span>
           <div className="tags-container">
-            {['Engineering', 'Medical', 'Management', 'Chennai', 'Coimbatore', 'IIT Madras', 'Anna University'].map((tag) => (
+            {['Engineering', 'Management', 'Chennai', 'Coimbatore', 'IIT Madras', 'Anna University'].map((tag) => (
               <button
                 key={tag}
                 onClick={() => handleTagClick(tag)}

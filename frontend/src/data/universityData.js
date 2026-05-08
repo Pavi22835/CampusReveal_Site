@@ -48,7 +48,7 @@ export const universitiesData = [
   },
   {
     id: 3,
-    name: "Saveetha Institute of Medical and Technical Sciences",
+    name: "Saveetha Institute of Technical Sciences",
     location: "Chennai, Tamil Nadu",
     city: "Chennai",
     state: "Tamil Nadu",
@@ -61,7 +61,7 @@ export const universitiesData = [
     acceptanceRate: "35%",
     medianSalary: "₹10,50,000",
     financialAid: "Partial scholarships",
-    category: "Medical & Engineering",
+    category: "Engineering",
     ratings: [
       { category: "Academics", score: 4.5 },
       { category: "Placements", score: 4.3 },

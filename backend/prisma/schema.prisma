@@ -100,7 +100,7 @@ model University {
   
   // ==================== NEW FILTER FIELDS FOR COLLEGE SEARCH ====================
   
-  // ACADEMIC STREAM - Engineering, Medical, Arts, Commerce, Science, Law, Management
+// ACADEMIC STREAM - Engineering, Arts, Commerce, Science, Law, Management
   academicStream  String?   @map("academic_stream")
   
   // ACADEMIC LEVEL - UG, PG, Diploma, PhD, Certificate
@@ -109,13 +109,13 @@ model University {
   // DEPARTMENT - Computer Science, Mechanical, Civil, Electronics, Business, Economics
   department      String?   @map("department")
   
-  // COURSES OFFERED - Array of courses (B.Tech, MBBS, BBA, MBA, etc.)
+  // COURSES OFFERED - Array of courses (B.Tech, BBA, MBA, etc.)
   offeredCourses  String[]  @default([]) @map("offered_courses")
-  
+
   // TRANSPORT SCORE - 0-100 for transit connectivity
   transportScore  Int?      @default(0) @map("transport_score")
   
-  // ENTRANCE EXAM REQUIRED - JEE, NEET, CAT, etc.
+  // ENTRANCE EXAM REQUIRED - JEE, CAT, etc.
   entranceExam    String?   @map("entrance_exam")
   
   // SCHOLARSHIP AVAILABLE
@@ -153,10 +153,10 @@ model University {
 // NEW: Course model for proper relationship
 model Course {
   id          String   @id @default(cuid())
-  name        String   @unique // B.Tech Computer Science, MBBS, etc.
-  code        String?  // CS101, MBBS001, etc.
+  name        String   @unique // B.Tech Computer Science, BBA, etc.
+  code        String?  // CS101, BBA101, etc.
   level       String?  // UG, PG, Diploma, PhD
-  stream      String?  // Engineering, Medical, Arts, Commerce
+  stream      String?  // Engineering, Arts, Commerce
   department  String?  // Computer Science, Mechanical, etc.
   duration    Int?     // in years
   description String?
@@ -189,7 +189,7 @@ model Department {
   id          String   @id @default(cuid())
   name        String   @unique // Computer Science, Mechanical Engineering, etc.
   code        String?  // CS, ME, etc.
-  stream      String?  // Engineering, Medical, Arts
+  stream      String?  // Engineering, Arts
   description String?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

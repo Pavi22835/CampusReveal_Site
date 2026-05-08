@@ -125,13 +125,11 @@ const AddUniversity = () => {
   const academicStreams = [
     { value: '', label: 'Select Academic Stream' },
     { value: 'Engineering', label: 'Engineering' },
-    { value: 'Medical', label: 'Medical' },
     { value: 'Arts', label: 'Arts' },
     { value: 'Commerce', label: 'Commerce' },
     { value: 'Science', label: 'Science' },
     { value: 'Law', label: 'Law' },
     { value: 'Management', label: 'Management' },
-    { value: 'Pharmacy', label: 'Pharmacy' },
     { value: 'Agriculture', label: 'Agriculture' },
     { value: 'Design', label: 'Design' },
     { value: 'Architecture', label: 'Architecture' }
@@ -159,22 +157,19 @@ const AddUniversity = () => {
     { value: 'Physics', label: 'Physics' },
     { value: 'Chemistry', label: 'Chemistry' },
     { value: 'Mathematics', label: 'Mathematics' },
-    { value: 'Medicine', label: 'Medicine' },
     { value: 'Law', label: 'Law' }
   ];
 
   const allCourses = [
-    'B.Tech', 'M.Tech', 'MBBS', 'BDS', 'BBA', 'MBA', 'BCA', 'MCA',
+    'B.Tech', 'M.Tech', 'BBA', 'MBA', 'BCA', 'MCA',
     'B.Com', 'M.Com', 'BA', 'MA', 'B.Sc', 'M.Sc', 'LLB', 'LLM',
-    'B.Arch', 'B.Des', 'B.Pharm', 'M.Pharm', 'B.Ed', 'M.Ed'
+    'B.Arch', 'B.Des', 'B.Ed', 'M.Ed'
   ];
 
   const entranceExams = [
     { value: '', label: 'Select Entrance Exam' },
     { value: 'JEE Main', label: 'JEE Main' },
     { value: 'JEE Advanced', label: 'JEE Advanced' },
-    { value: 'NEET', label: 'NEET (UG)' },
-    { value: 'NEET PG', label: 'NEET PG' },
     { value: 'CAT', label: 'CAT' },
     { value: 'MAT', label: 'MAT' },
     { value: 'XAT', label: 'XAT' },
@@ -430,7 +425,6 @@ const AddUniversity = () => {
                     <option value="">Select Category</option>
                     <option value="Engineering">Engineering</option>
                     <option value="Arts & Science">Arts & Science</option>
-                    <option value="Medical">Medical</option>
                     <option value="Law">Law</option>
                     <option value="Management">Management</option>
                   </select>

@@ -12,15 +12,15 @@ const domains = ['All Domains', 'Artificial Intelligence', 'Web 3.0', 'Biotech',
 const projects = [
   {
     id: 1,
-    title: "NeuralSieve: Algorithmic Bias Mitigation in Medical Diagnostics",
-    description: "A framework designed to identify and correct systematic biases in radiological image analysis, ensuring equitable healthcare outcomes.",
+    title: "NeuralSieve: Algorithmic Bias Mitigation in Diagnostics",
+    description: "A framework designed to identify and correct systematic biases in imaging analysis, ensuring equitable outcomes.",
     domain: "Artificial Intelligence",
     impact: "94% Accuracy Gain",
     difficulty: "High Complexity",
     facultySupport: 4.9,
     author: "Alex Rivera",
     image: "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?w=800&h=600&fit=crop",
-    tags: ["AI & Ethics", "Healthcare"]
+    tags: ["AI & Ethics", "Diagnostics"]
   },
   {
     id: 2,
@@ -105,7 +105,7 @@ export default function ProjectsShowcase() {
               Where Rigor Meets <span className="text-gradient">Applied.</span>
             </h1>
             <p className="text-slate-500 font-medium text-lg mb-12">
-              A curated archive of student-led breakthroughs, from algorithmic medical guards to modular biotechnology.
+              A curated archive of student-led breakthroughs, from algorithmic bias mitigation to modular biotechnology.
             </p>
             
             {/* Domain Filters */}

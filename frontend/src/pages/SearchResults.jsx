@@ -21,7 +21,7 @@ import {
 import { api } from '../services/api';
 
 const FILTER_TYPES = ['4-year', '2-year', 'Private', 'Public', 'Community', 'Trade', 'Other'];
-const AREA_OPTIONS = ['Engineering', 'Medical', 'Design', 'Business', 'Arts & Science', 'STEM'];
+const AREA_OPTIONS = ['Engineering', 'Design', 'Business', 'Arts & Science', 'STEM'];
 
 export default function SearchResults() {
   const location = useLocation();

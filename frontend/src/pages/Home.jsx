@@ -534,7 +534,7 @@ export default function Home() {
 
             {/* Popular Search Tags */}
             <div className="flex flex-wrap justify-center gap-2 mt-5">
-              {['Engineering', 'Medical', 'Management', 'Chennai', 'Coimbatore', 'IIT Madras', 'Anna University'].map((tag) => (
+              {['Engineering', 'Management', 'Chennai', 'Coimbatore', 'IIT Madras', 'Anna University'].map((tag) => (
                 <button
                   key={tag}
                   onClick={() => {
