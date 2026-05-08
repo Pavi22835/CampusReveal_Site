@@ -18,7 +18,7 @@ import './WriteReview.css';
 export default function WriteReview() {
   const { id: routeId } = useParams();
   const navigate = useNavigate();
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, openAuthModal } = useAuth();
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -72,9 +72,9 @@ export default function WriteReview() {
 
   useEffect(() => {
     if (!isAuthenticated && !token) {
-      navigate('/login');
+      openAuthModal();
     }
-  }, [isAuthenticated, token, navigate]);
+  }, [isAuthenticated, token, openAuthModal]);
 
   useEffect(() => {
     const fetchUniversities = async () => {

@@ -26,29 +26,19 @@ export const AuthProvider = ({ children }) => {
     const authStatus = localStorage.getItem('isAuthenticated');
     const userData = localStorage.getItem('user');
     const storedToken = localStorage.getItem('token');
-    
+
     if (storedToken) {
       setToken(storedToken);
       if (userData) {
         setUser(JSON.parse(userData));
         setIsOtpAuthenticated(true);
       }
-      setLoading(false);
     } else if (authStatus === 'true' && userData) {
       setUser(JSON.parse(userData));
       setIsOtpAuthenticated(true);
-      setLoading(false);
-      // Show OTP modal after a short delay
-      setTimeout(() => {
-        setShowAuthModal(true);
-      }, 500);
-    } else {
-      setLoading(false);
-      // Show OTP modal after a short delay
-      setTimeout(() => {
-        setShowAuthModal(true);
-      }, 500);
     }
+
+    setLoading(false);
   }, []);
 
   const loadUser = async () => {
@@ -159,8 +149,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     setIsOtpAuthenticated(false);
-    // Show OTP modal again
-    setShowAuthModal(true);
+    setShowAuthModal(false);
   };
 
   const requireAuth = (callback) => {
@@ -170,6 +159,10 @@ export const AuthProvider = ({ children }) => {
       setPendingAction(() => callback);
       setShowAuthModal(true);
     }
+  };
+
+  const openAuthModal = () => {
+    setShowAuthModal(true);
   };
 
   const closeModal = () => {

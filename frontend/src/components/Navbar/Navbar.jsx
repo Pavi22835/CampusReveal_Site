@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, openAuthModal } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -71,7 +71,7 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     setShowProfileMenu(false);
-    navigate('/login');
+    navigate('/');
   };
 
   // Function to scroll to University Explorer section
@@ -243,7 +243,7 @@ export default function Navbar() {
             // Logged Out: Show Login and Sign Up buttons
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate('/login')}
+                onClick={openAuthModal}
                 className="px-4 py-2 border border-indigo-500/50 text-indigo-400 rounded-xl font-bold text-sm hover:bg-indigo-500/10 transition-colors"
               >
                 Login
@@ -379,7 +379,7 @@ export default function Navbar() {
                     <button
                       onClick={() => {
                         setShowMobileMenu(false);
-                        navigate('/login');
+                        openAuthModal();
                       }}
                       className="w-full px-4 py-3 border border-indigo-500/50 text-indigo-400 rounded-xl font-bold text-sm hover:bg-indigo-500/10 transition-colors"
                     >
