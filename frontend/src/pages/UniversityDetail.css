@@ -1,0 +1,866 @@
+/* University Detail Page - Complete Mobile Responsive */
+
+.university-detail-page {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.uni-detail-main {
+  padding: 80px 0 40px;
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ============================================ */
+/* BREADCRUMB - Mobile Responsive */
+/* ============================================ */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-size: 11px;
+  color: #64748b;
+  flex-wrap: wrap;
+}
+
+.breadcrumb a {
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.breadcrumb a:hover {
+  color: #5b6cff;
+}
+
+.breadcrumb .current {
+  color: #5b6cff;
+  font-weight: 500;
+}
+
+/* ============================================ */
+/* HERO SECTION - Mobile Responsive */
+/* ============================================ */
+
+.uni-hero {
+  margin-bottom: 20px;
+}
+
+.uni-hero-content h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #1a1a2e;
+  line-height: 1.3;
+}
+
+.uni-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.uni-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* ============================================ */
+/* ACTION BUTTONS - Mobile Responsive */
+/* ============================================ */
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+
+.write-review-btn {
+  background: linear-gradient(135deg, #5b6cff, #4a5be6);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 40px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: center;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #64748b;
+}
+
+/* ============================================ */
+/* PHOTO GALLERY - Mobile Responsive */
+/* ============================================ */
+
+.photo-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.gallery-main {
+  width: 100%;
+  height: 200px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.gallery-main img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery-side {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.gallery-side img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+/* ============================================ */
+/* QUICK STATS CARDS - Mobile Responsive */
+/* ============================================ */
+
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 14px;
+  text-align: center;
+  border: 1px solid #eef2ff;
+  transition: all 0.3s ease;
+}
+
+.stat-icon {
+  color: #5b6cff;
+  margin-bottom: 6px;
+}
+
+.stat-card .stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.stat-card .stat-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================ */
+/* CONTENT GRID - Mobile Responsive */
+/* ============================================ */
+
+.uni-content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ============================================ */
+/* STUDENT VERDICT SECTION - Mobile Responsive */
+/* ============================================ */
+
+.verdict-section {
+  background: white;
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 24px;
+  border: 1px solid #eef2ff;
+}
+
+.verdict-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.verdict-section h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+}
+
+.overall-rating .rating-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #5b6cff;
+}
+
+.overall-rating .rating-stars {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.ratings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rating-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rating-label {
+  width: 90px;
+  font-weight: 500;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.rating-bar {
+  flex: 1;
+  height: 5px;
+  background: #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  min-width: 100px;
+}
+
+.rating-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #5b6cff, #a855f7);
+  border-radius: 10px;
+}
+
+.rating-value {
+  width: 35px;
+  font-weight: 700;
+  color: #5b6cff;
+  font-size: 12px;
+  text-align: right;
+}
+
+/* ============================================ */
+/* TABS SECTION - Mobile Responsive */
+/* ============================================ */
+
+.tabs-section {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #eef2ff;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.tabs-header {
+  display: flex;
+  gap: 2px;
+  padding: 0 12px;
+  border-bottom: 1px solid #eef2ff;
+  background: white;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tab-btn {
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  color: #5b6cff;
+}
+
+.tab-btn.active {
+  color: #5b6cff;
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #5b6cff;
+}
+
+.tabs-content {
+  padding: 16px;
+}
+
+/* Tab Content Sections */
+.about-section p {
+  color: #475569;
+  line-height: 1.6;
+  font-size: 13px;
+}
+
+.highlights-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.highlight-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #334155;
+  padding: 6px 0;
+}
+
+.courses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.course-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.course-name {
+  font-weight: 600;
+  color: #1a1a2e;
+  font-size: 13px;
+}
+
+.facilities-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.facility-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #334155;
+}
+
+/* ============================================ */
+/* REVIEW CARD - Mobile Responsive */
+/* ============================================ */
+
+.review-card {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eef2ff;
+}
+
+.review-card:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.review-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.reviewer-avatar {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #5b6cff, #a855f7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.reviewer-info h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #1a1a2e;
+}
+
+.reviewer-info p {
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.review-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.verified-badge {
+  background: #e9ecff;
+  color: #5b6cff;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.rating-badge {
+  background: #f1f5f9;
+  color: #1a1a2e;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.review-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #1a1a2e;
+}
+
+.review-content {
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.review-pros-cons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.pros ul, .cons ul {
+  list-style: none;
+  padding: 0;
+}
+
+.pros li {
+  color: #10b981;
+  font-size: 12px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cons li {
+  color: #ef4444;
+  font-size: 12px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.view-more-reviews {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #5b6cff;
+  font-weight: 600;
+  font-size: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 12px;
+}
+
+/* ============================================ */
+/* RIGHT SIDEBAR - Mobile Responsive */
+/* ============================================ */
+
+.uni-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.location-card, .fast-facts-card, .mentors-card, .write-review-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #eef2ff;
+}
+
+.location-card h3, .fast-facts-card h3, .mentors-card h3, .write-review-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: #1a1a2e;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Map Placeholder */
+.map-placeholder {
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+  margin-bottom: 16px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* Address Details */
+.address-details {
+  margin-bottom: 16px;
+}
+
+.address-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.address-row svg {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+/* Action Buttons for Map */
+.map-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.directions-btn, .view-map-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 40px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.directions-btn {
+  background: #5b6cff;
+  color: white;
+  border: none;
+}
+
+.view-map-btn {
+  background: white;
+  color: #5b6cff;
+  border: 1px solid #c7d2fe;
+}
+
+.location-unavailable {
+  background: #f1f5f9;
+  padding: 12px;
+  text-align: center;
+  border-radius: 12px;
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+/* Fast Facts */
+.facts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #eef2ff;
+  gap: 10px;
+}
+
+.fact:last-child {
+  border-bottom: none;
+}
+
+.fact span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.fact strong {
+  color: #1a1a2e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Write Review Card */
+.write-review-card {
+  background: linear-gradient(135deg, #5b6cff, #4a5be6);
+  color: white;
+  text-align: center;
+}
+
+.write-review-card h3 {
+  color: white;
+  justify-content: center;
+}
+
+.write-review-card p {
+  font-size: 12px;
+  margin-bottom: 16px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.write-review-link {
+  display: block;
+  background: white;
+  color: #5b6cff;
+  text-align: center;
+  padding: 10px;
+  border-radius: 40px;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+/* ============================================ */
+/* RESPONSIVE BREAKPOINTS */
+/* ============================================ */
+
+@media (min-width: 768px) {
+  .container {
+    padding: 0 32px;
+  }
+  
+  .uni-detail-main {
+    padding: 100px 0 60px;
+  }
+  
+  .uni-hero-content h1 {
+    font-size: 32px;
+  }
+  
+  .photo-gallery {
+    flex-direction: row;
+    height: 350px;
+  }
+  
+  .gallery-main {
+    flex: 1.5;
+    height: 100%;
+  }
+  
+  .gallery-side {
+    flex: 1;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .gallery-side img {
+    height: 100%;
+  }
+  
+  .quick-stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .uni-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 32px;
+  }
+  
+  .verdict-header {
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+  }
+  
+  .verdict-section h2 {
+    margin-bottom: 0;
+  }
+  
+  .overall-rating .rating-stars {
+    justify-content: flex-end;
+  }
+  
+  .ratings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .highlights-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .review-pros-cons {
+    flex-direction: row;
+    gap: 20px;
+  }
+  
+  .pros, .cons {
+    flex: 1;
+  }
+  
+  .action-buttons {
+    justify-content: flex-start;
+  }
+  
+  .write-review-btn {
+    flex: 0 0 auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding: 0 40px;
+  }
+  
+  .uni-hero-content h1 {
+    font-size: 42px;
+  }
+  
+  .uni-content-grid {
+    grid-template-columns: 1fr 360px;
+    gap: 48px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    padding: 0 80px;
+  }
+}
+
+/* For very small screens */
+@media (max-width: 480px) {
+  .container {
+    padding: 0 16px;
+  }
+  
+  .gallery-side {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .quick-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .stat-card {
+    padding: 10px;
+  }
+  
+  .stat-card .stat-value {
+    font-size: 16px;
+  }
+  
+  .tabs-header {
+    padding: 0 8px;
+  }
+  
+  .tab-btn {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+  
+  .facilities-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .map-actions {
+    flex-direction: column;
+  }
+  
+  .directions-btn, .view-map-btn {
+    width: 100%;
+  }
+  
+  .fact {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}

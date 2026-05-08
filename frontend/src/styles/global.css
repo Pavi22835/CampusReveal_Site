@@ -1,0 +1,22 @@
+/* global.css */
+@import "../index.css";
+
+footer {
+  background: #ffffff;
+  color: var(--text-primary);
+}
+
+footer .footer-brand h3,
+footer .link-group h4 {
+  color: var(--text-primary);
+}
+
+footer .footer-brand p,
+footer .link-group a,
+footer .footer-bottom {
+  color: var(--text-secondary);
+}
+
+footer .link-group a:hover {
+  color: var(--color-primary);
+}

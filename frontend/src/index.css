@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  
+  --color-primary: #667eea;
+  --color-primary-dark: #764ba2;
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    background-color: #faf4ff;
+    color: #1a1a2e;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, .logo {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  button {
+    cursor: pointer;
+    font-family: inherit;
+    min-width: 0;
+  }
+
+  img,
+  svg,
+  video,
+  iframe,
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
+  input,
+  textarea,
+  select {
+    min-width: 0;
+  }
+
+  .app-container {
+    width: 100%;
+    min-height: 100vh;
+    padding-top: 4rem;
+  }
+
+  .container {
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 1rem;
+    max-width: 100%;
+  }
+
+  /* Smooth transitions */
+  a, button {
+    transition: all 0.3s ease;
+  }
+
+  /* Selection color */
+  ::selection {
+    background: #5b6cff;
+    color: white;
+  }
+}
+
+:root {
+  --primary: #667eea;
+  --primary-dark: #764ba2;
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a5568;
+  --text-tertiary: #718096;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --border: #e2e8f0;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+  --radius: 12px;
+  --radius-lg: 20px;
+}

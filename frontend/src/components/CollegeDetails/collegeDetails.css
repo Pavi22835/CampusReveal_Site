@@ -1,0 +1,815 @@
+/* collegeDetails.css - Full Updated Version */
+
+.college-details-page {
+  background: #fbfbfc;
+  min-height: 100vh;
+}
+
+.details-header-banner {
+  position: relative;
+  height: 500px;
+  width: 100%;
+  color: white;
+  overflow: hidden;
+  background: linear-gradient(135deg, #312950, #1f1a3e);
+}
+
+.banner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(0deg, rgba(26, 26, 58, 0.9) 0%, rgba(26, 26, 58, 0.4) 60%, rgba(26, 26, 58, 0) 100%);
+  z-index: 1;
+}
+
+.header-content-container {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 40px;
+  z-index: 2;
+}
+
+.back-btn {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 32px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.header-main-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.header-left h1 {
+  font-size: 3.5rem;
+  font-weight: 900;
+  letter-spacing: -2px;
+  margin: 12px 0;
+}
+
+.badge-row {
+  display: flex;
+  gap: 12px;
+}
+
+.premium-badge {
+  background: #ff8a00;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.verified-badge {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.location-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.8);
+  flex-wrap: wrap;
+}
+
+.rating-card {
+  background: white;
+  padding: 20px 32px;
+  border-radius: 16px;
+  text-align: center;
+  color: #1a1a3a;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+.rating-value {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 2rem;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.rating-count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.details-container {
+  max-width: 1200px;
+  margin: -40px auto 100px;
+  padding: 0 40px;
+  position: relative;
+  z-index: 10;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 48px;
+}
+
+.details-main-content section {
+  background: white;
+  border-radius: 24px;
+  padding: 40px;
+  margin-bottom: 32px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.details-main-content h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1a1a3a;
+  margin-bottom: 24px;
+}
+
+.about-section p {
+  font-size: 1.05rem;
+  color: #64748b;
+  line-height: 1.8;
+  margin-bottom: 32px;
+}
+
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding-top: 32px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.ratings-wrapper {
+  margin-bottom: 32px;
+}
+
+.reviews-list-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.section-header h2 {
+  margin-bottom: 0 !important;
+}
+
+.text-btn {
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.text-btn:hover {
+  text-decoration: underline;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-val {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #6366f1;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.sidebar-card {
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  margin-bottom: 32px;
+}
+
+.action-card h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.action-card p {
+  color: #64748b;
+  margin-bottom: 24px;
+  font-size: 0.9rem;
+}
+
+.primary-btn-wide {
+  width: 100%;
+  background: #6366f1;
+  color: white;
+  border: none;
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primary-btn-wide:hover {
+  background: #4f46e5;
+  transform: translateY(-2px);
+}
+
+.secondary-btn-wide {
+  width: 100%;
+  background: #f8fafc;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondary-btn-wide:hover {
+  background: #f1f5f9;
+}
+
+.action-footer {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.icon-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.icon-action-btn:hover {
+  color: #1e293b;
+}
+
+.loading-state, .error-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+/* ============================================ */
+/* NEW STYLES - Featured Review & Fast Facts    */
+/* ============================================ */
+
+/* Rating badge in header */
+.rating-badge-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-left: 12px;
+}
+
+/* Featured Review Section */
+.featured-review-section {
+  background: white;
+  border-radius: 24px;
+  padding: 40px;
+  margin-bottom: 32px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.featured-review-card {
+  position: relative;
+  padding: 20px 0 10px 0;
+}
+
+.quote-icon {
+  font-size: 4rem;
+  font-family: Georgia, serif;
+  color: #6366f1;
+  opacity: 0.3;
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  line-height: 1;
+}
+
+.featured-review-quote {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1a1a3a;
+  margin-bottom: 20px;
+  line-height: 1.3;
+  letter-spacing: -0.5px;
+  padding-left: 20px;
+}
+
+.featured-review-content {
+  font-size: 1rem;
+  color: #475569;
+  line-height: 1.7;
+  margin-bottom: 24px;
+  padding-left: 20px;
+}
+
+.review-author-detail {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-left: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.author-avatar-large {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.author-info-detail strong {
+  display: block;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.author-info-detail span {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.review-rating {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #fef3c7;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  color: #d97706;
+}
+
+.review-navigation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-arrow {
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  color: #64748b;
+}
+
+.nav-arrow:hover {
+  background: #6366f1;
+  color: white;
+}
+
+.review-counter {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* Pros & Cons inside Featured Review */
+.review-pros-cons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding-left: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 8px;
+}
+
+.pros-section .section-label,
+.cons-section .section-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pros-section .section-label {
+  color: #10b981;
+}
+
+.cons-section .section-label {
+  color: #ef4444;
+}
+
+.cons-icon {
+  font-weight: 800;
+}
+
+.pros-section ul,
+.cons-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pros-section li,
+.cons-section li {
+  font-size: 0.85rem;
+  padding: 6px 0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pros-section li::before {
+  content: "✓";
+  color: #10b981;
+  font-weight: 700;
+}
+
+.cons-section li::before {
+  content: "✗";
+  color: #ef4444;
+  font-weight: 700;
+}
+
+/* Fast Facts Compact Card */
+.facts-card h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: #1a1a3a;
+}
+
+.facts-list-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.fact-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.fact-row:last-child {
+  border-bottom: none;
+}
+
+.fact-label {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.fact-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* Quick Links styling */
+.quick-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.quick-links li {
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-links li:hover {
+  color: #6366f1;
+  transform: translateX(4px);
+}
+
+.quick-links li:last-child {
+  border-bottom: none;
+}
+
+/* ============================================ */
+/* RESPONSIVE DESIGN                           */
+/* ============================================ */
+
+@media (max-width: 1024px) {
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-left h1 {
+    font-size: 2.2rem;
+  }
+  
+  .featured-review-section {
+    padding: 24px;
+  }
+  
+  .featured-review-quote {
+    font-size: 1.2rem;
+  }
+  
+  .review-pros-cons {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .review-author-detail {
+    flex-wrap: wrap;
+  }
+  
+  .review-rating {
+    margin-left: 0;
+  }
+  
+  .rating-badge-header {
+    display: block;
+    margin-left: 0;
+    margin-top: 8px;
+    width: fit-content;
+  }
+  
+  .stats-strip {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .details-main-content section {
+    padding: 24px;
+  }
+  
+  .details-container {
+    padding: 0 20px;
+  }
+  
+  .sidebar-card {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-main-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  
+  .header-left h1 {
+    font-size: 1.8rem;
+  }
+  
+  .rating-card {
+    padding: 12px 20px;
+  }
+  
+  .rating-value {
+    font-size: 1.5rem;
+  }
+  
+  .featured-review-quote {
+    font-size: 1rem;
+  }
+  
+  .quote-icon {
+    font-size: 2.5rem;
+    top: -5px;
+  }
+}
+
+/* ============================================ */
+/* ERROR STYLES                                 */
+/* ============================================ */
+
+.error-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+  padding: 40px;
+  background: #f8fafc;
+}
+
+.error-card {
+  background: white;
+  border-radius: 32px;
+  padding: 48px;
+  text-align: center;
+  max-width: 500px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
+}
+
+.error-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.error-card h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.error-card p {
+  color: #64748b;
+  margin-bottom: 32px;
+  font-size: 1rem;
+}
+
+.error-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.error-btn {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.error-btn.primary {
+  background: #6366f1;
+  color: white;
+}
+
+.error-btn.primary:hover {
+  background: #4f46e5;
+  transform: translateY(-2px);
+}
+
+.error-btn.secondary {
+  background: #f8fafc;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+}
+
+.error-btn.secondary:hover {
+  background: #f1f5f9;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 16px;
+}
+
+.loading-state .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f1f5f9;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.loading-state p {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty state for no reviews */
+.no-reviews {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 24px;
+  border: 2px dashed #e2e8f0;
+}
+
+.no-reviews p {
+  color: #94a3b8;
+  margin-bottom: 16px;
+}
+
+.no-reviews button {
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Animation for featured review transitions */
+.featured-review-card {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

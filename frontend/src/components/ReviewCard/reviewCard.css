@@ -1,0 +1,128 @@
+.review-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f1f5f9;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.review-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+.review-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.author-avatar {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 1.125rem;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+}
+
+.author-info strong {
+  display: block;
+  color: #1e293b;
+  margin-bottom: 2px;
+  font-size: 0.95rem;
+}
+
+.author-info span {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.review-title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+  color: #1a1a3a;
+  letter-spacing: -0.3px;
+}
+
+.review-text {
+  color: #475569;
+  line-height: 1.7;
+  margin-bottom: 24px;
+  font-size: 0.95rem;
+}
+
+.review-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #94a3b8;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pros ul, .cons ul {
+  list-style: none;
+  font-size: 0.875rem;
+  padding: 0;
+  margin: 0;
+}
+
+.pros li, .cons li {
+  margin-bottom: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.pros li {
+  color: #10b981;
+}
+
+.cons li {
+  color: #ef4444;
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 1024px) {
+  .review-card {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .review-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+  
+  .author-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+  
+  .review-stats {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}

@@ -1,0 +1,105 @@
+.rating-bars {
+  background: white;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.rating-bars h3 {
+  font-size: 1.5rem;
+  margin-bottom: 24px;
+  color: #1a1a3a;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.rating-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.rating-label {
+  width: 120px;
+  font-weight: 600;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.rating-bar-container {
+  flex: 1;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.rating-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #a855f7);
+  border-radius: 10px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rating-score {
+  width: 40px;
+  font-weight: 800;
+  color: #6366f1;
+  text-align: right;
+  font-size: 1rem;
+}
+
+/* RESPONSIVE DESIGN */
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+  .rating-bars {
+    padding: 24px;
+  }
+  
+  .rating-bars h3 {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+  }
+  
+  .rating-item {
+    margin-bottom: 16px;
+  }
+}
+
+/* Mobile (768px and below) */
+@media (max-width: 768px) {
+  .rating-bars {
+    padding: 20px;
+    border-radius: 16px;
+  }
+  
+  .rating-bars h3 {
+    font-size: 1.25rem;
+    margin-bottom: 16px;
+  }
+  
+  .rating-item {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  
+  .rating-label {
+    width: 100%;
+    font-size: 0.85rem;
+  }
+  
+  .rating-bar-container {
+    width: 100%;
+    height: 6px;
+    order: 2;
+  }
+  
+  .rating-score {
+    width: auto;
+    font-size: 0.95rem;
+    order: 1;
+    margin-left: auto;
+  }
+}

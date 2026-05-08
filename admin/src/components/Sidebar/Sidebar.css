@@ -1,0 +1,21 @@
+.admin-sidebar {
+  width: 240px;
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+.sidebar-brand {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+.sidebar-nav a {
+  display: block;
+  color: var(--text-color);
+  text-decoration: none;
+  margin-bottom: 16px;
+}
+.sidebar-nav a:hover {
+  color: var(--primary);
+}
