@@ -134,10 +134,10 @@ export default function Navbar() {
             Colleges
           </button>
           <Link 
-            to="/compare" 
+            to="/reviews" 
             className="text-[13px] font-bold text-slate-300 hover:text-indigo-400 transition-colors tracking-tight"
           >
-            Compare
+            Explore
           </Link>
           <Link 
             to="/community" 
