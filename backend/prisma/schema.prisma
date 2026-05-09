@@ -33,7 +33,6 @@ model User {
   comments       Comment[]
   discussions    Discussion[]
   mentor         Mentor?
-  projects       Project[]
   reviews        Review[]
   university     University?  @relation(fields: [universityId], references: [id])
 
@@ -93,29 +92,30 @@ model University {
   vision          String?
   website         String?
   imageUrl        String?   @map("image_url")
+  logoUrl         String?   @map("logo_url")  // College logo URL for display in cards
   
   // SOFT DELETE / TRASH FIELDS
   isTrashed       Boolean   @default(false) @map("is_trashed")
   trashedAt       DateTime? @map("trashed_at")
   
-  // ==================== NEW FILTER FIELDS FOR COLLEGE SEARCH ====================
+  // ==================== COLLEGE SEARCH & FILTER FIELDS ====================
   
-// ACADEMIC STREAM - Engineering, Arts, Commerce, Science, Law, Management
+  // ACADEMIC STREAM - Engineering, Arts, Commerce, Science, Law, Management, Medical
   academicStream  String?   @map("academic_stream")
   
-  // ACADEMIC LEVEL - UG, PG, Diploma, PhD, Certificate
+  // ACADEMIC LEVEL - UG, PG, Diploma, PhD, Certificate, Integrated
   academicLevel   String?   @map("academic_level")
   
   // DEPARTMENT - Computer Science, Mechanical, Civil, Electronics, Business, Economics
   department      String?   @map("department")
   
-  // COURSES OFFERED - Array of courses (B.Tech, BBA, MBA, etc.)
+  // COURSES OFFERED - Array of courses (B.Tech, BBA, MBA, B.Sc, B.Com, etc.)
   offeredCourses  String[]  @default([]) @map("offered_courses")
 
   // TRANSPORT SCORE - 0-100 for transit connectivity
   transportScore  Int?      @default(0) @map("transport_score")
   
-  // ENTRANCE EXAM REQUIRED - JEE, CAT, etc.
+  // ENTRANCE EXAM REQUIRED - JEE, CAT, NEET, GATE, etc.
   entranceExam    String?   @map("entrance_exam")
   
   // SCHOLARSHIP AVAILABLE
@@ -130,7 +130,24 @@ model University {
   // RELIGIOUS AFFILIATION
   religiousAffiliation String? @map("religious_affiliation")
   
-  projects        Project[]
+  // CAMPUS AREA (in acres)
+  campusArea      Int?      @map("campus_area")
+  
+  // LIBRARY RESOURCES
+  libraryBooks    Int?      @map("library_books")
+  
+  // SPORTS FACILITIES RATING (0-5)
+  sportsRating    Float?    @default(0) @map("sports_rating")
+  
+  // PLACEMENT PERCENTAGE
+  placementPercent Float?   @default(0) @map("placement_percent")
+  
+  // HIGHEST PACKAGE
+  highestPackage  String?   @map("highest_package")
+  
+  // AVERAGE PACKAGE
+  averagePackage  String?   @map("average_package")
+  
   reviews         Review[]
   users           User[]
   
@@ -147,10 +164,11 @@ model University {
   @@index([academicLevel])
   @@index([department])
   @@index([transportScore])
+  @@index([placementPercent])
   @@map("universities")
 }
 
-// NEW: Course model for proper relationship
+// Course model for proper relationship
 model Course {
   id          String   @id @default(cuid())
   name        String   @unique // B.Tech Computer Science, BBA, etc.
@@ -173,7 +191,7 @@ model Course {
   @@map("courses")
 }
 
-// NEW: Many-to-many relation between University and Course
+// Many-to-many relation between University and Course
 model UniversityCourse {
   universityId String
   courseId     String
@@ -184,7 +202,7 @@ model UniversityCourse {
   @@map("university_courses")
 }
 
-// NEW: Department model
+// Department model
 model Department {
   id          String   @id @default(cuid())
   name        String   @unique // Computer Science, Mechanical Engineering, etc.
@@ -231,29 +249,6 @@ model Review {
   @@index([createdAt])
   @@index([isTrashed])
   @@map("reviews")
-}
-
-model Project {
-  id             String     @id @default(cuid())
-  title          String
-  description    String
-  domain         String
-  difficulty     String?
-  impact         String?
-  usefulness     String?
-  facultySupport Float?     @map("faculty_support")
-  tags           String[]   @default([])
-  universityId   String     @map("university_id")
-  authorId       String     @map("author_id")
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
-  author         User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  university     University @relation(fields: [universityId], references: [id], onDelete: Cascade)
-
-  @@index([universityId])
-  @@index([authorId])
-  @@index([domain])
-  @@map("projects")
 }
 
 model Discussion {
@@ -319,27 +314,6 @@ model Mentor {
   @@index([availability])
   @@index([isTrashed])
   @@map("mentors")
-}
-
-model Event {
-  id           String   @id @default(cuid())
-  title        String
-  description  String
-  date         DateTime
-  location     String
-  type         String   @default("WORKSHOP")
-  maxAttendees Int?     @map("max_attendees")
-  attendees    Int      @default(0)
-  createdAt    DateTime @default(now()) @map("created_at")
-  
-  // SOFT DELETE / TRASH FIELDS
-  isTrashed    Boolean  @default(false) @map("is_trashed")
-  trashedAt    DateTime? @map("trashed_at")
-
-  @@index([date])
-  @@index([type])
-  @@index([isTrashed])
-  @@map("events")
 }
 
 model OTP {
