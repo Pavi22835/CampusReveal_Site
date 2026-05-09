@@ -37,10 +37,13 @@ export default function Community() {
     };
     checkAdmin();
     fetchPosts();
+  }, [user]);
+
+  useEffect(() => {
     if (isAdmin) {
       fetchTrashedPosts();
     }
-  }, [user, isAdmin]);
+  }, [isAdmin]);
 
   // Format date for display
   const formatTimestamp = (dateString) => {
@@ -88,14 +91,13 @@ export default function Community() {
               isAdmin: discussion.author?.role === 'ADMIN'
             },
             likes: discussion.likes || 0,
-            comments: discussion._count?.comments || 0,
+            commentCount: discussion._count?.comments || 0,
+            commentsList: [],
             timestamp: discussion.createdAt,
             liked: false,
             isTrashed: false,
             tags: discussion.tags || [],
-            commentsList: [],
-            views: discussion.views || 0,
-            replies: discussion.replies || 0
+            views: discussion.views || 0
           }));
         setPosts(activePosts);
       } else {
@@ -129,15 +131,13 @@ export default function Community() {
             isAdmin: discussion.author?.role === 'ADMIN'
           },
           likes: discussion.likes || 0,
-          comments: discussion._count?.comments || 0,
+          commentCount: discussion._count?.comments || 0,
           timestamp: discussion.createdAt,
           liked: false,
           isTrashed: true,
           trashedAt: discussion.trashedAt,
           tags: discussion.tags || [],
-          commentsList: [],
-          views: discussion.views || 0,
-          replies: discussion.replies || 0
+          views: discussion.views || 0
         }));
         setTrashedPosts(formattedTrashed);
       }
@@ -147,12 +147,13 @@ export default function Community() {
     }
   };
 
-  // Fetch comments for a specific post
+  // Fetch comments for a specific post and update comment count
   const fetchComments = async (postId) => {
     try {
       const result = await api.getDiscussionById(postId);
       if (result.success && result.data) {
-        const formattedComments = result.data.comments?.map(comment => ({
+        const comments = result.data.comments || [];
+        const formattedComments = comments.map(comment => ({
           id: comment.id,
           user: {
             username: comment.author?.name?.toLowerCase().replace(/\s/g, '_') || 'anonymous',
@@ -165,12 +166,23 @@ export default function Community() {
           likes: comment.likes || 0,
           liked: false,
           replies: []
-        })) || [];
+        }));
         
-        // Update posts with comments
+        // Update posts with comments and update comment count
         setPosts(prev => prev.map(post => 
           post.id === postId 
-            ? { ...post, commentsList: formattedComments, comments: formattedComments.length }
+            ? { 
+                ...post, 
+                commentsList: formattedComments, 
+                commentCount: comments.length 
+              }
+            : post
+        ));
+        
+        // Also update trashed posts if needed
+        setTrashedPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { ...post, commentCount: comments.length }
             : post
         ));
       }
@@ -188,7 +200,7 @@ export default function Community() {
 
     try {
       const result = await api.createDiscussion({
-        title: '', // Empty title to avoid duplication
+        title: '',
         content: newPostContent,
         tags: []
       }, token);
@@ -214,9 +226,17 @@ export default function Community() {
     try {
       const result = await api.addComment(postId, newComment, token);
       if (result.success) {
+        // Refresh comments to get the updated list
         await fetchComments(postId);
         setNewComment('');
         setActivePostId(null);
+        
+        // Update comment count in the post preview
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { ...post, commentCount: (post.commentCount || 0) + 1 }
+            : post
+        ));
       } else {
         alert('Failed to add comment');
       }
@@ -277,8 +297,20 @@ export default function Community() {
       try {
         const result = await api.softDeleteDiscussion?.(postId, token);
         if (result?.success) {
-          await fetchPosts();
-          await fetchTrashedPosts();
+          // Remove from active posts
+          const deletedPost = posts.find(p => p.id === postId);
+          setPosts(prev => prev.filter(p => p.id !== postId));
+          
+          // Add to trashed posts with proper structure
+          if (deletedPost) {
+            setTrashedPosts(prev => [{
+              ...deletedPost,
+              isTrashed: true,
+              trashedAt: new Date().toISOString()
+            }, ...prev]);
+          } else {
+            await fetchTrashedPosts();
+          }
           alert('Post moved to trash');
         } else {
           alert('Failed to move post to trash');
@@ -297,8 +329,20 @@ export default function Community() {
       try {
         const result = await api.restoreDiscussion?.(postId, token);
         if (result?.success) {
-          await fetchPosts();
-          await fetchTrashedPosts();
+          // Remove from trashed posts
+          const restoredPost = trashedPosts.find(p => p.id === postId);
+          setTrashedPosts(prev => prev.filter(p => p.id !== postId));
+          
+          // Add back to active posts
+          if (restoredPost) {
+            setPosts(prev => [{
+              ...restoredPost,
+              isTrashed: false,
+              trashedAt: undefined
+            }, ...prev]);
+          } else {
+            await fetchPosts();
+          }
           alert('Post restored');
         } else {
           alert('Failed to restore post');
@@ -317,7 +361,7 @@ export default function Community() {
       try {
         const result = await api.permanentDeleteDiscussion?.(postId, token);
         if (result?.success) {
-          await fetchTrashedPosts();
+          setTrashedPosts(prev => prev.filter(p => p.id !== postId));
           alert('Post permanently deleted');
         } else {
           alert('Failed to delete post');
@@ -335,21 +379,26 @@ export default function Community() {
       alert('Only admins can delete comments');
       return;
     }
-    if (window.confirm('Move this comment to trash?')) {
-      setPosts(prev => prev.map(post => 
-        post.id === postId 
-          ? { 
-              ...post, 
-              commentsList: post.commentsList.filter(c => c.id !== commentId),
-              comments: Math.max(0, (post.comments || 0) - 1)
-            }
-          : post
-      ));
-      
+    if (window.confirm('Delete this comment?')) {
       try {
-        await api.softDeleteComment?.(commentId, token);
+        const result = await api.deleteComment?.(commentId, token);
+        if (result?.success) {
+          // Remove comment from the list and decrement count
+          setPosts(prev => prev.map(post => 
+            post.id === postId 
+              ? { 
+                  ...post, 
+                  commentsList: post.commentsList.filter(c => c.id !== commentId),
+                  commentCount: Math.max(0, (post.commentCount || 0) - 1)
+                }
+              : post
+          ));
+        } else {
+          alert('Failed to delete comment');
+        }
       } catch (error) {
-        console.error('API soft delete comment error:', error);
+        console.error('Delete comment error:', error);
+        alert('Error deleting comment');
       }
     }
   };
@@ -493,7 +542,7 @@ export default function Community() {
                   )}
                 </div>
 
-                {/* Post Content - Only show content once */}
+                {/* Post Content */}
                 <div className="ig-post-content">
                   <p>{post.content}</p>
                 </div>
@@ -514,6 +563,13 @@ export default function Community() {
                     <div className="ig-likes">
                       {post.likes.toLocaleString()} likes
                     </div>
+
+                    {/* Comments Count - THIS IS THE FIXED PART */}
+                    {post.commentCount > 0 && (
+                      <div className="ig-comments-count" onClick={() => toggleComments(post.id)}>
+                        View all {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
+                      </div>
+                    )}
 
                     {/* Comments Section */}
                     {activePostId === post.id && (

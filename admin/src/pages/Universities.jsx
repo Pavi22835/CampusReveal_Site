@@ -152,11 +152,17 @@ const Universities = () => {
     }
   };
 
+  const handleEdit = (id) => {
+    // Navigate to edit page with the university ID
+    navigate(`/admin/universities/edit/${id}`);
+  };
+
   const currentList = activeTab === 'all' ? universities : trashedUniversities;
   
   const filteredList = currentList.filter(uni =>
     uni.name.toLowerCase().includes(search.toLowerCase()) ||
-    (uni.location && uni.location.toLowerCase().includes(search.toLowerCase()))
+    (uni.location && uni.location.toLowerCase().includes(search.toLowerCase())) ||
+    (uni.city && uni.city.toLowerCase().includes(search.toLowerCase()))
   );
 
   const totalPages = Math.ceil(filteredList.length / itemsPerPage);
@@ -197,6 +203,16 @@ const Universities = () => {
     return pages;
   };
 
+  // Format date helper
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   // Mobile Card Component
   const UniversityCard = ({ uni, isTrashedView }) => (
     <div className={`university-card ${uni.isTrashed ? 'trashed-card' : ''}`}>
@@ -227,7 +243,7 @@ const Universities = () => {
         </div>
         <div className="detail-item">
           <Calendar size={14} />
-          <span>ID: {uni.id?.slice(-8)}</span>
+          <span>Updated: {formatDate(uni.updatedAt || uni.createdAt)}</span>
         </div>
       </div>
       
@@ -237,9 +253,9 @@ const Universities = () => {
         </button>
         {!uni.isTrashed && (
           <>
-            <Link to={`/admin/universities/edit/${uni.id}`} className="action-btn edit-btn" title="Edit">
+            <button onClick={() => handleEdit(uni.id)} className="action-btn edit-btn" title="Edit">
               <Edit size={16} />
-            </Link>
+            </button>
             <button onClick={() => handleSoftDelete(uni.id, uni.name)} className="action-btn trash-btn" title="Move to Trash">
               <Trash2 size={16} />
             </button>
@@ -273,7 +289,7 @@ const Universities = () => {
               <div className="university-image-wrapper">
                 <div className="university-detail-image">
                   <img 
-                    src={getUniversityImage(selectedUniversity.name)} 
+                    src={selectedUniversity.logoUrl || selectedUniversity.imageUrl || getUniversityImage(selectedUniversity.name)} 
                     alt={selectedUniversity.name}
                     onError={(e) => {
                       e.target.onerror = null;
@@ -285,6 +301,10 @@ const Universities = () => {
               <div className="detail-row-compact">
                 <div className="detail-label-compact">University Name</div>
                 <div className="detail-value-compact">{selectedUniversity.name}</div>
+              </div>
+              <div className="detail-row-compact">
+                <div className="detail-label-compact">Short Name</div>
+                <div className="detail-value-compact">{selectedUniversity.shortName || 'Not specified'}</div>
               </div>
               <div className="detail-row-compact">
                 <div className="detail-label-compact">Location</div>
@@ -313,6 +333,16 @@ const Universities = () => {
               </div>
               <div className="detail-row-compact two-col">
                 <div className="detail-col">
+                  <div className="detail-label-compact">Established</div>
+                  <div className="detail-value-compact">{selectedUniversity.established || 'Not specified'}</div>
+                </div>
+                <div className="detail-col">
+                  <div className="detail-label-compact">Type</div>
+                  <div className="detail-value-compact">{selectedUniversity.type || 'Not specified'}</div>
+                </div>
+              </div>
+              <div className="detail-row-compact two-col">
+                <div className="detail-col">
                   <div className="detail-label-compact">Rating</div>
                   <div className="detail-value-compact rating">
                     <Star size={14} fill="#fbbf24" color="#fbbf24" />
@@ -333,11 +363,32 @@ const Universities = () => {
                   <div className="detail-value-compact">{selectedUniversity._count?.reviews || 0} reviews</div>
                 </div>
                 <div className="detail-col">
-                  <div className="detail-label-compact">Created At</div>
-                  <div className="detail-value-compact">
-                    <Calendar size={14} />
-                    {selectedUniversity.createdAt ? new Date(selectedUniversity.createdAt).toLocaleDateString() : 'N/A'}
-                  </div>
+                  <div className="detail-label-compact">Average Package</div>
+                  <div className="detail-value-compact">{selectedUniversity.medianSalary || 'N/A'}</div>
+                </div>
+              </div>
+              <div className="detail-row-compact two-col">
+                <div className="detail-col">
+                  <div className="detail-label-compact">Academic Stream</div>
+                  <div className="detail-value-compact">{selectedUniversity.academicStream || 'Not specified'}</div>
+                </div>
+                <div className="detail-col">
+                  <div className="detail-label-compact">Academic Level</div>
+                  <div className="detail-value-compact">{selectedUniversity.academicLevel || 'Not specified'}</div>
+                </div>
+              </div>
+              <div className="detail-row-compact">
+                <div className="detail-label-compact">Created At</div>
+                <div className="detail-value-compact">
+                  <Calendar size={14} />
+                  {formatDate(selectedUniversity.createdAt)}
+                </div>
+              </div>
+              <div className="detail-row-compact">
+                <div className="detail-label-compact">Last Updated</div>
+                <div className="detail-value-compact">
+                  <Calendar size={14} />
+                  {formatDate(selectedUniversity.updatedAt)}
                 </div>
               </div>
               {selectedUniversity.description && (
@@ -352,9 +403,9 @@ const Universities = () => {
             <div className="modal-footer-compact">
               <button className="modal-edit-btn" onClick={() => {
                 setShowViewModal(false);
-                navigate(`/admin/universities/edit/${selectedUniversity.id}`);
+                handleEdit(selectedUniversity.id);
               }}>
-                <Edit size={14} /> Edit
+                <Edit size={14} /> Edit University
               </button>
               <button className="modal-close-btn" onClick={() => setShowViewModal(false)}>Close</button>
             </div>
@@ -399,7 +450,7 @@ const Universities = () => {
             <Search size={18} />
             <input
               type="text"
-              placeholder="Search by name or location..."
+              placeholder="Search by name, location, or city..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -437,6 +488,7 @@ const Universities = () => {
                   <th>Rating</th>
                   <th>Students</th>
                   <th>Reviews</th>
+                  <th>Updated</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -458,15 +510,16 @@ const Universities = () => {
                       </td>
                       <td>{uni.studentCount?.toLocaleString() || 'N/A'}</td>
                       <td>{uni._count?.reviews || 0}</td>
+                      <td className="updated-date">{formatDate(uni.updatedAt || uni.createdAt)}</td>
                       <td className="actions">
                         <button onClick={() => handleView(uni.id)} className="view-btn" title="View">
                           <Eye size={16} />
                         </button>
                         {!uni.isTrashed && (
                           <>
-                            <Link to={`/admin/universities/edit/${uni.id}`} className="edit-btn" title="Edit">
+                            <button onClick={() => handleEdit(uni.id)} className="edit-btn" title="Edit">
                               <Edit size={16} />
-                            </Link>
+                            </button>
                             <button onClick={() => handleSoftDelete(uni.id, uni.name)} className="trash-btn" title="Move to Trash">
                               <Trash2 size={16} />
                             </button>
@@ -487,7 +540,7 @@ const Universities = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="no-results">
+                    <td colSpan="8" className="no-results">
                       {activeTab === 'all' 
                         ? `No universities found matching "${search}"`
                         : `Trash is empty`}
@@ -510,23 +563,21 @@ const Universities = () => {
                 Previous
               </button>
 
-              {totalPages > 1 && (
-                <div className="page-numbers">
-                  {getPageNumbers().map((page, index) => (
-                    page === '...' ? (
-                      <span key={`dots-${index}`} className="page-dots">...</span>
-                    ) : (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`page-number ${currentPage === page ? 'active' : ''}`}
-                      >
-                        {page}
-                      </button>
-                    )
-                  ))}
-                </div>
-              )}
+              <div className="page-numbers">
+                {getPageNumbers().map((page, index) => (
+                  page === '...' ? (
+                    <span key={`dots-${index}`} className="page-dots">...</span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`page-number ${currentPage === page ? 'active' : ''}`}
+                    >
+                      {page}
+                    </button>
+                  )
+                ))}
+              </div>
 
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
