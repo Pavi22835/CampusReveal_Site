@@ -286,10 +286,6 @@ const getUniversityById = async (req, res) => {
             }
           }
         },
-        projects: {
-          take: 5,
-          orderBy: { createdAt: 'desc' }
-        },
         _count: {
           select: { reviews: true, users: true }
         }
