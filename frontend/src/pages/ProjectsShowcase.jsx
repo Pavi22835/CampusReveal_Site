@@ -19,7 +19,6 @@ const projects = [
     difficulty: "High Complexity",
     facultySupport: 4.9,
     author: "Alex Rivera",
-    image: "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?w=800&h=600&fit=crop",
     tags: ["AI & Ethics", "Diagnostics"]
   },
   {
@@ -31,7 +30,6 @@ const projects = [
     difficulty: "Medium Complexity",
     facultySupport: 4.2,
     author: "Sarah Chen",
-    image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc51?w=800&h=600&fit=crop",
     tags: ["Web3", "Networking"]
   },
   {
@@ -43,7 +41,6 @@ const projects = [
     difficulty: "Extreme Challenge",
     facultySupport: 4.5,
     author: "Marcus Thorne",
-    image: "https://images.unsplash.com/photo-1532187863486-abf9d39d6627?w=800&h=600&fit=crop",
     tags: ["Environment", "Materials"]
   },
   {
@@ -55,7 +52,6 @@ const projects = [
     difficulty: "Doctoral Level",
     facultySupport: 4.8,
     author: "Dr. Elena Vance",
-    image: "https://images.unsplash.com/photo-1532187643603-ba119ca4109e?w=800&h=600&fit=crop",
     tags: ["Bioinformatics", "Quantum"]
   }
 ];
@@ -151,14 +147,16 @@ export default function ProjectsShowcase() {
                 className="group relative bg-white rounded-[3rem] overflow-hidden border border-slate-100 hover:shadow-2xl hover:shadow-indigo-100/50 transition-all duration-700 h-[600px] cursor-pointer ring-1 ring-slate-100"
               >
                 <div className="absolute inset-0 overflow-hidden">
-                  <motion.img 
-                    animate={{ scale: hoveredId === project.id ? 1.05 : 1 }}
-                    transition={{ duration: 1.2 }}
-                    src={project.image} 
-                    alt={project.title}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
+                  {project.image ? (
+                    <motion.img 
+                      animate={{ scale: hoveredId === project.id ? 1.05 : 1 }}
+                      transition={{ duration: 1.2 }}
+                      src={project.image} 
+                      alt={project.title}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent opacity-90" />
                 </div>
 
@@ -219,9 +217,9 @@ export default function ProjectsShowcase() {
         <div className="pointer-events-auto glass px-8 py-4 rounded-3xl flex items-center gap-8 shadow-2xl ring-1 ring-slate-100">
           <div className="flex items-center gap-3">
             <div className="flex -space-x-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-slate-100">
-                  <img src={`https://i.pravatar.cc/100?img=${i+40}`} alt="user" />
+              {['AR', 'SC', 'MT'].map((initials, index) => (
+                <div key={initials} className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-700">
+                  {initials}
                 </div>
               ))}
             </div>

@@ -40,7 +40,6 @@ const Colleges = () => {
       }
 
       try {
-        // CHANGED: limit from 200 to 1000 to fetch all colleges
         const params = { limit: 1000 };
         if (searchParam) {
           params.search = searchParam;
@@ -51,6 +50,7 @@ const Colleges = () => {
             ...college,
             id: college.id,
             name: college.name,
+            logoUrl: college.logoUrl || college.imageUrl || null,
             location: college.location || college.city || 'India',
             description: college.description || 'A premier institution dedicated to academic excellence.',
             students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
@@ -60,7 +60,7 @@ const Colleges = () => {
             rating: college.rating || 0
           }));
           setColleges(transformed);
-          console.log(`✅ Loaded ${transformed.length} colleges`); // Added for debugging
+          console.log(`✅ Loaded ${transformed.length} colleges`);
         } else {
           setApiError(result.error || 'Unable to fetch colleges.');
         }
@@ -261,8 +261,34 @@ const Colleges = () => {
               className="college-card"
               onClick={() => navigate(`/university/${college.id}`)}
             >
-              <h3 className="college-name">{college.name}</h3>
-              <div className="college-location">{college.location}</div>
+              {/* Logo on Left, Name on Right - Flex Row */}
+              <div className="college-header-row">
+                <div className="college-logo">
+                  {college.logoUrl ? (
+                    <img 
+                      src={college.logoUrl} 
+                      alt={`${college.name} logo`}
+                      className="college-logo-img"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div className="college-logo-placeholder" style={{ display: college.logoUrl ? 'none' : 'flex' }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                      <path d="M6 12v5c3 2 6 2 9 0v-5" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="college-header-info">
+                  <h3 className="college-name">{college.name}</h3>
+                  <div className="college-location">{college.location}</div>
+                </div>
+              </div>
+              
               <p className="college-description">{college.description}</p>
               
               <div className="college-stats">

@@ -7,7 +7,8 @@ import {
   ArrowRight, ExternalLink, ChevronRight, MessageSquare,
   CheckCircle, XCircle, Plus, Minus, Zap, Wifi, Dumbbell,
   Library, Bus, Utensils, Coffee, Award, TrendingUp, Calendar,
-  Mail, Phone, Linkedin, Twitter, Facebook, Computer, Navigation
+  Mail, Phone, Linkedin, Twitter, Facebook, Computer, Navigation,
+  DollarSign, Home, Video, Heart as HeartIcon
 } from 'lucide-react';
 import { api } from '../services/api';
 import './UniversityDetail.css';
@@ -80,42 +81,53 @@ export default function UniversityDetail() {
     return [];
   };
 
-  // Use university images only, no fallback images
+  // Get gallery images from university data
   const galleryImages = Array.from(new Set([
     ...(university?.images || []),
     university?.imageUrl,
     university?.image
   ].filter(Boolean)));
 
-  // Only show images if they exist, otherwise show a placeholder
   const galleryDisplay = galleryImages.length > 0 ? galleryImages.slice(0, 4) : [];
 
-  const ratingsMetadata = university?.ratings?.metadata || {};
+  // Get facilities list
+  const facilityList = university?.campusFacilities?.length
+    ? university.campusFacilities
+    : [];
 
-  const courseList = parseArrayField(university?.courses);
-  const facilityList = university?.facilities?.length
-    ? university.facilities
-    : [...parseArrayField(university?.sports), ...parseArrayField(university?.clubs)].slice(0, 8);
+  // Get academic streams
+  const academicStreams = university?.academicStreams || [];
+  const academicLevels = university?.academicLevels || [];
+  const departments = university?.departments || [];
+  const offeredCourses = university?.offeredCourses || [];
 
-  const overviewHighlights = [
-    ratingsMetadata.accreditation ? `🏆 ${ratingsMetadata.accreditation}` : null,
-    ratingsMetadata.placementRate ? `💼 ${ratingsMetadata.placementRate}` : null,
-    ratingsMetadata.facultyCount ? `👨‍🏫 ${ratingsMetadata.facultyCount} faculty` : null,
-    university?.established ? `📍 Established ${university.established}` : null,
-    university?.category ? `🎓 ${university.category}` : null,
-    university?.type ? `🏛️ ${university.type}` : null,
-    university?.isFeatured ? '🌟 Featured campus' : null
-  ].filter(Boolean);
+  // Get mission and vision
+  const mission = university?.mission;
+  const vision = university?.vision;
 
-  const fastFacts = [
-    { label: 'Acceptance Rate', value: university?.acceptanceRate || ratingsMetadata.acceptanceRate || 'N/A' },
-    { label: 'Student-Faculty Ratio', value: university?.studentCount && university?.facultyCount ? `1:${Math.max(1, Math.round(university.studentCount / university.facultyCount))}` : 'N/A' },
-    { label: 'Average Package', value: university?.medianSalary || ratingsMetadata.medianSalary || 'N/A' },
-    { label: 'Total Reviews', value: reviews.length > 0 ? `${reviews.length} reviews` : university?._count?.reviews ? `${university._count.reviews} reviews` : '0 reviews' }
-  ];
+  // Get placement data
+  const placementRate = university?.placementRate;
+  const averagePackage = university?.averagePackage;
+  const highestPackage = university?.highestPackage;
+  const topRecruiters = university?.topRecruiters;
 
+  // Get fees data
+  const tuitionFee = university?.tuitionFee;
+  const hostelFee = university?.hostelFee;
+  const scholarshipAvailable = university?.scholarshipAvailable;
+
+  // Get contact info
+  const website = university?.website;
+  const phone = university?.phone;
+  const email = university?.email;
+  const instagram = university?.instagram;
+  const linkedin = university?.linkedin;
+  const facebook = university?.facebook;
+  const youtube = university?.youtube;
+
+  // Get location info
   const addressText = university?.location || [university?.city, university?.state].filter(Boolean).join(', ');
-  const locationLink = university?.googleMapsLink || university?.locationLink || '';
+  const locationLink = university?.googleMapsLink || '';
   const hasLocationLink = Boolean(locationLink);
 
   const createEmbedUrl = (link, address) => {
@@ -133,96 +145,7 @@ export default function UniversityDetail() {
   const mapEmbedUrl = hasLocationLink ? createEmbedUrl(locationLink, addressText) : null;
   const mapLinkUrl = locationLink || `https://maps.google.com/?q=${encodeURIComponent(addressText)}`;
 
-  useEffect(() => {
-    if (id) fetchUniversityData();
-  }, [id]);
-
-  const fetchUniversityData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const uniResult = await api.getUniversity(id);
-      
-      if (uniResult.success && uniResult.data) {
-        setUniversity(uniResult.data);
-      } else {
-        setError(uniResult.message || 'University not found');
-      }
-
-      try {
-        const reviewsResult = await api.getReviews(id);
-        
-        let reviewsData = [];
-        if (reviewsResult && reviewsResult.success && Array.isArray(reviewsResult.data)) {
-          reviewsData = reviewsResult.data;
-        } else if (reviewsResult && Array.isArray(reviewsResult.data)) {
-          reviewsData = reviewsResult.data;
-        } else if (reviewsResult && Array.isArray(reviewsResult)) {
-          reviewsData = reviewsResult;
-        }
-        
-        setReviews(reviewsData);
-        
-        if (reviewsData.length > 0) {
-          calculateAverageRatings(reviewsData);
-        } else {
-          const emptyRatings = {};
-          Object.keys(averageRatings).forEach(key => {
-            emptyRatings[key] = 0;
-          });
-          setAverageRatings(emptyRatings);
-          setOverallRating(university?.rating || 0);
-        }
-      } catch (reviewErr) {
-        console.error('Error fetching reviews:', reviewErr);
-        setReviews([]);
-      }
-    } catch (err) {
-      console.error('Fetch error:', err);
-      setError('Failed to load university details');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const calculateAverageRatings = (reviewsData) => {
-    if (!reviewsData || reviewsData.length === 0) return;
-    
-    const ratingsSum = {};
-    let count = 0;
-    let totalRatingSum = 0;
-
-    Object.keys(averageRatings).forEach(key => {
-      ratingsSum[key] = 0;
-    });
-
-    reviewsData.forEach(review => {
-      if (review.ratings && typeof review.ratings === 'object') {
-        count++;
-        totalRatingSum += review.rating || 0;
-        
-        Object.keys(ratingsSum).forEach(key => {
-          if (review.ratings[key] && typeof review.ratings[key] === 'number') {
-            ratingsSum[key] += review.ratings[key];
-          }
-        });
-      } else if (review.rating) {
-        count++;
-        totalRatingSum += review.rating;
-      }
-    });
-
-    if (count === 0) return;
-
-    const newAverages = {};
-    Object.keys(ratingsSum).forEach(key => {
-      newAverages[key] = ratingsSum[key] > 0 ? parseFloat((ratingsSum[key] / count).toFixed(1)) : 0;
-    });
-
-    setAverageRatings(newAverages);
-    setOverallRating(parseFloat((totalRatingSum / count).toFixed(1)));
-  };
-
+  // Verdict Categories
   const verdictCategories = [
     { 
       label: "Academics", 
@@ -274,13 +197,116 @@ export default function UniversityDetail() {
     }
   ];
 
-  const openGoogleMaps = () => {
-    window.open(mapLinkUrl, '_blank');
+  // Overview highlights
+  const overviewHighlights = [
+    university?.naacGrade ? `🏆 NAAC ${university.naacGrade} Grade` : null,
+    placementRate ? `💼 Placement Rate: ${placementRate}` : null,
+    university?.facultyCount ? `👨‍🏫 ${university.facultyCount} Faculty Members` : null,
+    university?.established ? `📍 Established ${university.established}` : null,
+    university?.category ? `🎓 Category: ${university.category}` : null,
+    university?.type ? `🏛️ Type: ${university.type}` : null,
+    academicStreams.length > 0 ? `📚 Streams: ${academicStreams.slice(0, 3).join(', ')}${academicStreams.length > 3 ? '...' : ''}` : null,
+    scholarshipAvailable ? '💰 Scholarships Available' : null,
+    university?.hostelAvailable ? '🏠 Hostel Available' : null,
+    university?.transportAvailable ? '🚌 Transport Available' : null
+  ].filter(Boolean);
+
+  // Fast Facts
+  const fastFacts = [
+    { label: 'Established', value: university?.established || 'N/A' },
+    { label: 'Type', value: university?.type || 'N/A' },
+    { label: 'NAAC Grade', value: university?.naacGrade || 'N/A' },
+    { label: 'Approved By', value: university?.approvedBy || 'N/A' },
+    { label: 'Affiliation', value: university?.affiliation || 'N/A' },
+    { label: 'Total Students', value: university?.studentCount ? university.studentCount.toLocaleString() : 'N/A' },
+    { label: 'Total Faculty', value: university?.facultyCount ? university.facultyCount.toLocaleString() : 'N/A' },
+    { label: 'Placement Rate', value: placementRate || 'N/A' },
+    { label: 'Average Package', value: averagePackage || 'N/A' },
+    { label: 'Highest Package', value: highestPackage || 'N/A' },
+    { label: 'Tuition Fee', value: tuitionFee || 'N/A' },
+    { label: 'Hostel Fee', value: hostelFee || 'N/A' }
+  ];
+
+  useEffect(() => {
+    if (id) fetchUniversityData();
+  }, [id]);
+
+  const fetchUniversityData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const uniResult = await api.getUniversity(id);
+      
+      if (uniResult.success && uniResult.data) {
+        setUniversity(uniResult.data);
+        setOverallRating(uniResult.data.rating || 0);
+      } else {
+        setError(uniResult.message || 'University not found');
+      }
+
+      try {
+        const reviewsResult = await api.getReviews(id);
+        
+        let reviewsData = [];
+        if (reviewsResult && reviewsResult.success && Array.isArray(reviewsResult.data)) {
+          reviewsData = reviewsResult.data;
+        } else if (reviewsResult && Array.isArray(reviewsResult)) {
+          reviewsData = reviewsResult;
+        }
+        
+        setReviews(reviewsData);
+        
+        if (reviewsData.length > 0) {
+          calculateAverageRatings(reviewsData);
+        }
+      } catch (reviewErr) {
+        console.error('Error fetching reviews:', reviewErr);
+        setReviews([]);
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError('Failed to load university details');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const openDirections = () => {
-    const destination = encodeURIComponent(addressText);
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank');
+  const calculateAverageRatings = (reviewsData) => {
+    if (!reviewsData || reviewsData.length === 0) return;
+    
+    const ratingsSum = {};
+    let count = 0;
+    let totalRatingSum = 0;
+
+    Object.keys(averageRatings).forEach(key => {
+      ratingsSum[key] = 0;
+    });
+
+    reviewsData.forEach(review => {
+      if (review.ratings && typeof review.ratings === 'object') {
+        count++;
+        totalRatingSum += review.rating || 0;
+        
+        Object.keys(ratingsSum).forEach(key => {
+          if (review.ratings[key] && typeof review.ratings[key] === 'number') {
+            ratingsSum[key] += review.ratings[key];
+          }
+        });
+      } else if (review.rating) {
+        count++;
+        totalRatingSum += review.rating;
+      }
+    });
+
+    if (count === 0) return;
+
+    const newAverages = {};
+    Object.keys(ratingsSum).forEach(key => {
+      newAverages[key] = ratingsSum[key] > 0 ? parseFloat((ratingsSum[key] / count).toFixed(1)) : 0;
+    });
+
+    setAverageRatings(newAverages);
+    setOverallRating(parseFloat((totalRatingSum / count).toFixed(1)));
   };
 
   const renderStars = (rating) => {
@@ -326,7 +352,32 @@ export default function UniversityDetail() {
     return 'Today';
   };
 
+  const openGoogleMaps = () => {
+    window.open(mapLinkUrl, '_blank');
+  };
+
+  const openDirections = () => {
+    const destination = encodeURIComponent(addressText);
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank');
+  };
+
   const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
+
+  // Helper function to get facility icon
+  const getFacilityIcon = (facility) => {
+    const icons = {
+      library: <Library size={18} />,
+      canteen: <Utensils size={18} />,
+      wifi: <Wifi size={18} />,
+      sports: <Dumbbell size={18} />,
+      gym: <HeartIcon size={18} />,
+      labs: <Computer size={18} />,
+      auditorium: <Video size={18} />,
+      parking: <MapPin size={18} />,
+      smartClassrooms: <Video size={18} />
+    };
+    return icons[facility] || <CheckCircle size={18} />;
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
@@ -369,11 +420,12 @@ export default function UniversityDetail() {
           <div>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-black text-slate-900 leading-tight tracking-tight mb-3">
               {university.name}
+              {university.shortName && <span className="text-lg text-slate-400 ml-2">({university.shortName})</span>}
             </h1>
             <div className="flex flex-wrap items-center gap-3 text-slate-500">
               <div className="flex items-center gap-1.5">
                 <MapPin size={16} className="text-rose-500" />
-                <span className="text-sm font-medium">{addressText || 'Coimbatore, Tamil Nadu'}</span>
+                <span className="text-sm font-medium">{addressText || 'Location not specified'}</span>
               </div>
               <div className="w-1 h-1 bg-slate-300 rounded-full" />
               <div className="flex items-center gap-1">
@@ -384,8 +436,17 @@ export default function UniversityDetail() {
               <div className="w-1 h-1 bg-slate-300 rounded-full" />
               <div className="flex items-center gap-1">
                 <GraduationCap size={16} className="text-indigo-500" />
-                <span className="text-sm font-medium text-slate-600">Est. {university.established || '2003'}</span>
+                <span className="text-sm font-medium text-slate-600">Est. {university.established || 'N/A'}</span>
               </div>
+              {university.naacGrade && (
+                <>
+                  <div className="w-1 h-1 bg-slate-300 rounded-full" />
+                  <div className="flex items-center gap-1">
+                    <Award size={16} className="text-emerald-500" />
+                    <span className="text-sm font-medium text-slate-600">NAAC {university.naacGrade}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
@@ -425,8 +486,8 @@ export default function UniversityDetail() {
             <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
               {[
                 { icon: Users, label: 'Total Students', value: university?.studentCount ? university.studentCount.toLocaleString() : 'N/A' },
-                { icon: GraduationCap, label: 'Faculty', value: university?.facultyCount ? university.facultyCount.toLocaleString() : 'N/A' },
-                { icon: Award, label: 'Placement Rate', value: university?.placementRate || ratingsMetadata.placementRate || 'N/A' },
+                { icon: GraduationCap, label: 'Total Faculty', value: university?.facultyCount ? university.facultyCount.toLocaleString() : 'N/A' },
+                { icon: TrendingUp, label: 'Placement Rate', value: placementRate || 'N/A' },
                 { icon: Building2, label: 'Category', value: university?.category || university?.type || 'N/A' }
               ].map((stat, i) => (
                 <div key={i} className="bg-white rounded-xl p-4 text-center shadow-sm border border-slate-100">
@@ -437,7 +498,7 @@ export default function UniversityDetail() {
               ))}
             </section>
 
-            {/* Student Verdict Section */}
+            {/* Student Verdict Section - RESTORED */}
             {reviews.length > 0 && (
               <section className="mb-10">
                 <div className="flex items-center justify-between mb-6">
@@ -484,7 +545,7 @@ export default function UniversityDetail() {
 
             {/* Tabs */}
             <div className="flex gap-6 border-b border-slate-200 mb-6 overflow-x-auto pb-0.5">
-              {['Overview', 'Courses', 'Facilities', 'Placements', 'Reviews'].map((tab) => (
+              {['Overview', 'Academics', 'Facilities', 'Placements', 'Fees', 'Reviews'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -508,13 +569,39 @@ export default function UniversityDetail() {
               >
                 {activeTab === 'Overview' && (
                   <>
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
-                      <h3 className="text-lg font-black text-slate-800 mb-3">About</h3>
-                      <p className="text-slate-600 leading-relaxed text-sm">
-                        {university.description || university.about || 'No description available.'}
-                      </p>
-                    </div>
+                    {/* Description */}
+                    {university.description && (
+                      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+                        <h3 className="text-lg font-black text-slate-800 mb-3">About</h3>
+                        <p className="text-slate-600 leading-relaxed text-sm">{university.description}</p>
+                      </div>
+                    )}
 
+                    {/* Mission & Vision */}
+                    {(mission || vision) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        {mission && (
+                          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+                            <h3 className="text-lg font-black text-slate-800 mb-3 flex items-center gap-2">
+                              <Sparkles size={18} className="text-indigo-500" />
+                              Mission
+                            </h3>
+                            <p className="text-slate-600 leading-relaxed text-sm">{mission}</p>
+                          </div>
+                        )}
+                        {vision && (
+                          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+                            <h3 className="text-lg font-black text-slate-800 mb-3 flex items-center gap-2">
+                              <Zap size={18} className="text-amber-500" />
+                              Vision
+                            </h3>
+                            <p className="text-slate-600 leading-relaxed text-sm">{vision}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Key Highlights */}
                     {overviewHighlights.length > 0 && (
                       <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
                         <h3 className="text-lg font-black text-slate-800 mb-4">Key Highlights</h3>
@@ -531,61 +618,215 @@ export default function UniversityDetail() {
                   </>
                 )}
 
-                {activeTab === 'Courses' && (
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-black text-slate-800 mb-4">Popular Courses</h3>
-                    <div className="space-y-3">
-                      {courseList.length > 0 ? courseList.map((course, i) => (
-                        <div key={i} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-indigo-50 transition-colors">
-                          <div>
-                            <h4 className="font-bold text-slate-800 text-sm">{course}</h4>
-                            <div className="flex gap-3 mt-1">
-                              <span className="text-xs text-slate-500">Duration varies</span>
-                              <span className="text-xs font-bold text-indigo-600">Details on website</span>
+                {activeTab === 'Academics' && (
+                  <div className="space-y-6">
+                    {/* Academic Streams & Levels */}
+                    {(academicStreams.length > 0 || academicLevels.length > 0) && (
+                      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+                        <h3 className="text-lg font-black text-slate-800 mb-4">Academic Structure</h3>
+                        {academicStreams.length > 0 && (
+                          <div className="mb-4">
+                            <span className="text-sm font-semibold text-slate-700 block mb-2">Academic Streams:</span>
+                            <div className="flex flex-wrap gap-2">
+                              {academicStreams.map(stream => (
+                                <span key={stream} className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-medium">
+                                  {stream}
+                                </span>
+                              ))}
                             </div>
                           </div>
-                          <ArrowRight size={16} className="text-slate-400" />
+                        )}
+                        {academicLevels.length > 0 && (
+                          <div className="mb-4">
+                            <span className="text-sm font-semibold text-slate-700 block mb-2">Academic Levels:</span>
+                            <div className="flex flex-wrap gap-2">
+                              {academicLevels.map(level => (
+                                <span key={level} className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs font-medium">
+                                  {level}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Departments */}
+                    {departments.length > 0 && (
+                      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+                        <h3 className="text-lg font-black text-slate-800 mb-4">Departments</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {departments.map(dept => (
+                            <span key={dept} className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">
+                              {dept}
+                            </span>
+                          ))}
                         </div>
-                      )) : (
-                        <div className="p-4 rounded-xl bg-slate-50 text-slate-500 text-sm">No course data available.</div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
+                    {/* Courses Offered */}
+                    {offeredCourses.length > 0 && (
+                      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+                        <h3 className="text-lg font-black text-slate-800 mb-4">Courses Offered</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {offeredCourses.map(course => (
+                            <span key={course} className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-xs font-medium">
+                              {course}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Specializations */}
+                    {university?.specializations && (
+                      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+                        <h3 className="text-lg font-black text-slate-800 mb-4">Specializations</h3>
+                        <p className="text-slate-600 text-sm">{university.specializations}</p>
+                      </div>
+                    )}
+
+                    {/* Approval & Affiliation */}
+                    {(university?.affiliation || university?.approvedBy) && (
+                      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+                        <h3 className="text-lg font-black text-slate-800 mb-4">Accreditation Details</h3>
+                        {university.affiliation && (
+                          <div className="mb-3">
+                            <span className="text-sm font-semibold text-slate-700">Affiliation:</span>
+                            <p className="text-slate-600 text-sm mt-1">{university.affiliation}</p>
+                          </div>
+                        )}
+                        {university.approvedBy && (
+                          <div>
+                            <span className="text-sm font-semibold text-slate-700">Approved By:</span>
+                            <p className="text-slate-600 text-sm mt-1">{university.approvedBy}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {activeTab === 'Facilities' && (
                   <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
                     <h3 className="text-lg font-black text-slate-800 mb-4">Campus Facilities</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {(facilityList.length > 0 ? facilityList : []).map((facility, i) => (
-                        <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                          <CheckCircle size={18} className="text-indigo-500" />
-                          <span className="text-sm font-medium text-slate-700">{facility}</span>
+                    
+                    {/* Campus Facilities Grid */}
+                    {facilityList.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                        {facilityList.map((facility, i) => (
+                          <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                            {getFacilityIcon(facility)}
+                            <span className="text-sm font-medium text-slate-700">
+                              {facility.charAt(0).toUpperCase() + facility.slice(1).replace(/([A-Z])/g, ' $1')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Hostel Information */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                      {university.hostelAvailable && (
+                        <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg">
+                          <Home size={18} className="text-indigo-600" />
+                          <div>
+                            <div className="text-sm font-bold text-slate-800">Hostel Available</div>
+                            {university.hostelType && <div className="text-xs text-slate-500">{university.hostelType}</div>}
+                          </div>
                         </div>
-                      ))}
-                      {facilityList.length === 0 && (
-                        <div className="p-4 rounded-xl bg-slate-50 text-slate-500 text-sm col-span-2 text-center">
-                          No facilities data available.
+                      )}
+                      {university.transportAvailable && (
+                        <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg">
+                          <Bus size={18} className="text-emerald-600" />
+                          <div>
+                            <div className="text-sm font-bold text-slate-800">Transport Available</div>
+                            <div className="text-xs text-slate-500">Campus bus service</div>
+                          </div>
+                        </div>
+                      )}
+                      {scholarshipAvailable && (
+                        <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg">
+                          <Award size={18} className="text-amber-600" />
+                          <div>
+                            <div className="text-sm font-bold text-slate-800">Scholarships Available</div>
+                            <div className="text-xs text-slate-500">Financial aid options</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {facilityList.length === 0 && !university.hostelAvailable && !university.transportAvailable && !scholarshipAvailable && (
+                      <div className="p-4 rounded-xl bg-slate-50 text-slate-500 text-sm text-center">
+                        No facilities data available.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'Placements' && (
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+                      <h3 className="text-lg font-black text-slate-800 mb-4">Placement Statistics</h3>
+                      <div className="grid grid-cols-2 gap-4 mb-6">
+                        {placementRate && (
+                          <div className="text-center p-4 bg-indigo-50 rounded-xl">
+                            <div className="text-2xl font-black text-indigo-600">{placementRate}</div>
+                            <div className="text-xs text-slate-500 mt-1">Placement Rate</div>
+                          </div>
+                        )}
+                        {averagePackage && (
+                          <div className="text-center p-4 bg-emerald-50 rounded-xl">
+                            <div className="text-2xl font-black text-emerald-600">{averagePackage}</div>
+                            <div className="text-xs text-slate-500 mt-1">Average Package</div>
+                          </div>
+                        )}
+                        {highestPackage && (
+                          <div className="text-center p-4 bg-amber-50 rounded-xl">
+                            <div className="text-2xl font-black text-amber-600">{highestPackage}</div>
+                            <div className="text-xs text-slate-500 mt-1">Highest Package</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {topRecruiters && (
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-800 mb-3">Top Recruiters</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {topRecruiters.split(',').map((recruiter, i) => (
+                              <span key={i} className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">
+                                {recruiter.trim()}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
                 )}
 
-                {activeTab === 'Placements' && (
+                {activeTab === 'Fees' && (
                   <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-black text-slate-800 mb-4">Placement Highlights</h3>
+                    <h3 className="text-lg font-black text-slate-800 mb-4">Fee Structure</h3>
                     <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-3 bg-indigo-50 rounded-lg">
-                          <div className="text-2xl font-black text-indigo-600">{university?.placementRate || ratingsMetadata.placementRate || 'N/A'}</div>
-                          <div className="text-xs text-slate-500">Placement Rate</div>
+                      {tuitionFee && (
+                        <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
+                          <span className="text-sm font-semibold text-slate-700">Tuition Fee (per year)</span>
+                          <span className="text-lg font-black text-indigo-600">{tuitionFee}</span>
                         </div>
-                        <div className="text-center p-3 bg-emerald-50 rounded-lg">
-                          <div className="text-2xl font-black text-emerald-600">{university?.medianSalary || ratingsMetadata.medianSalary || 'N/A'}</div>
-                          <div className="text-xs text-slate-500">Average Package</div>
+                      )}
+                      {hostelFee && (
+                        <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
+                          <span className="text-sm font-semibold text-slate-700">Hostel Fee (per year)</span>
+                          <span className="text-lg font-black text-indigo-600">{hostelFee}</span>
                         </div>
-                      </div>
+                      )}
+                      {!tuitionFee && !hostelFee && (
+                        <div className="p-4 rounded-xl bg-slate-50 text-slate-500 text-sm text-center">
+                          Fee information not available.
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -615,7 +856,7 @@ export default function UniversityDetail() {
                               <div className="text-slate-700 text-xs mt-3 pt-3 border-t border-slate-100">
                                 {review.pros?.length > 0 && (
                                   <div className="mb-1">
-                                    <span className="font-semibold text-emerald-600">Pros:</span> {review.pros.join(', ')}
+                                    <span className="font-semibeld text-emerald-600">Pros:</span> {review.pros.join(', ')}
                                   </div>
                                 )}
                                 {review.cons?.length > 0 && (
@@ -656,7 +897,7 @@ export default function UniversityDetail() {
           <aside className="col-span-12 lg:col-span-4 space-y-6">
             
             {/* Contact Information with Map */}
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 sticky top-24">
               <h3 className="text-base font-black text-slate-800 mb-4 flex items-center gap-2">
                 <MapPin size={18} className="text-indigo-600" />
                 Contact & Location
@@ -667,7 +908,7 @@ export default function UniversityDetail() {
                   <iframe
                     title="University Location Map"
                     width="100%"
-                    height="200"
+                    height="180"
                     style={{ border: 0 }}
                     loading="lazy"
                     allowFullScreen
@@ -676,7 +917,7 @@ export default function UniversityDetail() {
                   />
                 </div>
               ) : (
-                <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-500 text-center">
+                <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 text-center">
                   🗺️ Map will appear here once a valid location link is added.
                 </div>
               )}
@@ -684,23 +925,57 @@ export default function UniversityDetail() {
               <div className="space-y-3 text-sm mb-4">
                 <div className="flex items-start gap-3">
                   <MapPin size={16} className="text-slate-400 shrink-0 mt-0.5" />
-                  <span className="text-slate-600">{addressText || 'Coimbatore, Tamil Nadu'}</span>
+                  <span className="text-slate-600">{addressText || 'Location not specified'}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Phone size={16} className="text-slate-400" />
-                  <span className="text-slate-600">{university?.phone || ratingsMetadata.phone || 'Not available'}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Mail size={16} className="text-slate-400" />
-                  <span className="text-slate-600">{university?.email || ratingsMetadata.email || 'Not available'}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Globe size={16} className="text-slate-400" />
-                  <a href={university?.website || ratingsMetadata.website ? `https://${(university?.website || ratingsMetadata.website).replace(/^https?:\/\//, '')}` : '#'} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline break-all">
-                    {university?.website || ratingsMetadata.website || 'Not available'}
-                  </a>
-                </div>
+                {phone && (
+                  <div className="flex items-center gap-3">
+                    <Phone size={16} className="text-slate-400" />
+                    <a href={`tel:${phone}`} className="text-slate-600 hover:text-indigo-600">{phone}</a>
+                  </div>
+                )}
+                {email && (
+                  <div className="flex items-center gap-3">
+                    <Mail size={16} className="text-slate-400" />
+                    <a href={`mailto:${email}`} className="text-slate-600 hover:text-indigo-600 break-all">{email}</a>
+                  </div>
+                )}
+                {website && (
+                  <div className="flex items-center gap-3">
+                    <Globe size={16} className="text-slate-400" />
+                    <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline break-all">
+                      {website.replace(/^https?:\/\//, '')}
+                    </a>
+                  </div>
+                )}
               </div>
+              
+              {/* Social Media Links */}
+              {(instagram || linkedin || facebook || youtube) && (
+                <div className="mb-4 pt-2 border-t border-slate-100">
+                  <div className="flex gap-3 justify-center">
+                    {instagram && (
+                      <a href={instagram} target="_blank" rel="noopener noreferrer" className="p-2 bg-pink-50 text-pink-600 rounded-full hover:bg-pink-100 transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                      </a>
+                    )}
+                    {linkedin && (
+                      <a href={linkedin} target="_blank" rel="noopener noreferrer" className="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors">
+                        <Linkedin size={16} />
+                      </a>
+                    )}
+                    {facebook && (
+                      <a href={facebook} target="_blank" rel="noopener noreferrer" className="p-2 bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition-colors">
+                        <Facebook size={16} />
+                      </a>
+                    )}
+                    {youtube && (
+                      <a href={youtube} target="_blank" rel="noopener noreferrer" className="p-2 bg-red-50 text-red-600 rounded-full hover:bg-red-100 transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
               
               <div className="flex gap-3">
                 {hasLocationLink ? (

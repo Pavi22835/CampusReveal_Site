@@ -1,10 +1,10 @@
 /* global.css */
-@import "../index.css";
 
 footer {
   background: #ffffff;
   color: var(--text-primary);
 }
+
 
 footer .footer-brand h3,
 footer .link-group h4 {

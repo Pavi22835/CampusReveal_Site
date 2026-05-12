@@ -18,7 +18,6 @@ const request = async (endpoint, options = {}) => {
     // Handle 401 Unauthorized - return empty data for public endpoints
     if (res.status === 401) {
       console.warn(`⚠️ 401 Unauthorized: ${endpoint}`);
-      // Return empty/fallback data for reviews and public endpoints
       if (endpoint.includes('/reviews') || endpoint.includes('/universities')) {
         return { success: true, data: [] };
       }
@@ -96,10 +95,9 @@ export const api = {
 
   getUniversities: async (params = {}) => {
     try {
-      // Set a high limit to get all universities (default to 1000)
       const queryParams = {
         page: params.page || 1,
-        limit: params.limit || 1000, // Increased from default to fetch all
+        limit: params.limit || 1000,
         ...params
       };
       
@@ -120,7 +118,6 @@ export const api = {
         return { success: false, data: [], error: data?.message };
       }
 
-      // Handle different response structures
       if (data.data && Array.isArray(data.data)) {
         console.log(`✅ Fetched ${data.data.length} universities (Total: ${data.total || data.data.length})`);
         return { 
@@ -149,8 +146,7 @@ export const api = {
     try {
       console.log("📡 Fetching ALL universities...");
       
-      // First, try to get count
-      let total = 1000; // Default high limit
+      let total = 1000;
       try {
         const countRes = await fetch(`${API_URL}/universities/count`, {
           method: "GET",
@@ -168,7 +164,6 @@ export const api = {
         console.warn("Could not fetch count, using high limit");
       }
       
-      // Fetch with high limit
       const res = await fetch(`${API_URL}/universities?page=1&limit=${total}`, {
         method: "GET",
         headers: {
@@ -182,7 +177,6 @@ export const api = {
         return { success: false, data: [], error: data?.message };
       }
       
-      // Extract universities array
       let universities = [];
       if (data.data && Array.isArray(data.data)) {
         universities = data.data;
@@ -215,10 +209,88 @@ export const api = {
         return { success: false, data: null, error: data?.message };
       }
 
-      return data.data ? data : { success: true, data };
+      return data.data ? data : { success: true, data: data };
     } catch (error) {
       console.error("❌ Error fetching university:", error);
       return { success: false, error: error.message || "Unable to fetch university.", data: null };
+    }
+  },
+
+  // CREATE UNIVERSITY with all 9 sections
+  createUniversity: async (data, token) => {
+    try {
+      console.log("📡 POST → /universities (Creating new university)");
+      
+      // Log the data being sent (excluding large images for readability)
+      const logData = { ...data };
+      if (logData.images && logData.images.length > 0) {
+        logData.images = [`${logData.images.length} images`];
+      }
+      if (logData.logoUrl && logData.logoUrl.length > 100) {
+        logData.logoUrl = `${logData.logoUrl.substring(0, 50)}...`;
+      }
+      console.log("📦 Request data:", JSON.stringify(logData, null, 2));
+      
+      const res = await fetch(`${API_URL}/universities`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(token),
+        },
+        body: JSON.stringify(data),
+      });
+
+      const responseData = await res.json();
+      
+      if (!res.ok) {
+        console.error("❌ Create university failed:", responseData);
+        return { success: false, message: responseData.message || "Failed to create university" };
+      }
+      
+      console.log("✅ University created successfully!");
+      return responseData;
+    } catch (error) {
+      console.error("❌ Create university error:", error);
+      return { success: false, message: error.message || "Network error" };
+    }
+  },
+
+  // UPDATE UNIVERSITY with all 9 sections
+  updateUniversity: async (id, data, token) => {
+    try {
+      console.log(`📡 PUT → /universities/${id} (Updating university)`);
+      
+      // Log the data being sent (excluding large images for readability)
+      const logData = { ...data };
+      if (logData.images && logData.images.length > 0) {
+        logData.images = [`${logData.images.length} images`];
+      }
+      if (logData.logoUrl && logData.logoUrl.length > 100) {
+        logData.logoUrl = `${logData.logoUrl.substring(0, 50)}...`;
+      }
+      console.log("📦 Update data:", JSON.stringify(logData, null, 2));
+      
+      const res = await fetch(`${API_URL}/universities/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(token),
+        },
+        body: JSON.stringify(data),
+      });
+
+      const responseData = await res.json();
+      
+      if (!res.ok) {
+        console.error("❌ Update university failed:", responseData);
+        return { success: false, message: responseData.message || "Failed to update university" };
+      }
+      
+      console.log("✅ University updated successfully!");
+      return responseData;
+    } catch (error) {
+      console.error("❌ Update university error:", error);
+      return { success: false, message: error.message || "Network error" };
     }
   },
 
@@ -226,7 +298,7 @@ export const api = {
     try {
       const params = new URLSearchParams();
       if (query) params.append('q', query);
-      params.append('limit', 1000); // Add high limit for search results
+      params.append('limit', 1000);
       const res = await fetch(`${API_URL}/universities/search?${params.toString()}`, {
         method: 'GET',
         headers: {
@@ -249,7 +321,7 @@ export const api = {
   searchUniversitiesAdvanced: async (params = {}) => {
     try {
       const queryParams = {
-        limit: 1000, // Add high limit
+        limit: 1000,
         ...params
       };
       const query = new URLSearchParams(queryParams).toString();
@@ -429,7 +501,7 @@ export const api = {
 
   getProjects: (universityId, domain) => {
     const params = new URLSearchParams();
-    params.append('limit', 1000); // Add high limit
+    params.append('limit', 1000);
 
     if (universityId) params.append("universityId", universityId);
     if (domain && domain !== "All Domains") {
@@ -454,13 +526,6 @@ export const api = {
   getAdminStats: (token) =>
     request("/admin/stats", {
       headers: authHeader(token),
-    }),
-
-  updateUniversity: (id, data, token) =>
-    request(`/universities/${id}`, {
-      method: "PUT",
-      headers: authHeader(token),
-      body: JSON.stringify(data),
     }),
 
   deleteUniversity: (id, token) =>
@@ -517,9 +582,8 @@ export const api = {
       headers: authHeader(token),
     }),
 
-  // ================= COMMUNITY (FIXED - Now matches backend routes) =================
+  // ================= COMMUNITY =================
 
-  // Discussions
   getDiscussions: () =>
     request("/community/discussions"),
 
@@ -540,7 +604,6 @@ export const api = {
       body: JSON.stringify({ content }),
     }),
 
-  // Discussion Trash Operations
   getTrashedDiscussions: (token) =>
     request("/community/discussions/trashed", {
       headers: authHeader(token),
@@ -577,7 +640,6 @@ export const api = {
       headers: authHeader(token),
     }),
 
-  // Comment Trash Operations
   softDeleteComment: (id, token) =>
     request(`/community/comments/${id}/soft-delete`, {
       method: "PATCH",
@@ -596,7 +658,6 @@ export const api = {
       headers: authHeader(token),
     }),
 
-  // Mentors
   getMentors: () =>
     request("/community/mentors"),
 
@@ -609,7 +670,6 @@ export const api = {
       headers: authHeader(token),
     }),
 
-  // Events
   getEvents: () =>
     request("/community/events"),
 
@@ -644,6 +704,8 @@ export const {
   getUniversities,
   getAllUniversities,
   getUniversity,
+  createUniversity,
+  updateUniversity,
   getTrendingUniversities,
   searchUniversities,
   searchUniversitiesAdvanced,
@@ -664,7 +726,6 @@ export const {
   getProjectById,
   createProject,
   getAdminStats,
-  updateUniversity,
   deleteUniversity,
   getAdminUsers,
   getTrashedUsers,

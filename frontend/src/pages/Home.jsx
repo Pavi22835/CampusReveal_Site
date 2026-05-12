@@ -220,12 +220,12 @@ const tamilNaduLocations = [
 
 // Fallback college data
 const fallbackColleges = [
-  { id: 1, name: "IIT Madras", location: "Chennai, India", city: "Chennai", rating: 4.8, category: "IIT", image: "https://images.unsplash.com/photo-1562774053-701939374585?w=800&h=600&fit=crop" },
-  { id: 2, name: "Anna University", location: "Chennai, India", city: "Chennai", rating: 4.5, category: "State University", image: "https://images.unsplash.com/photo-1541339907198-e08759dfc3f0?w=800&h=600&fit=crop" },
-  { id: 3, name: "Loyola College", location: "Chennai, India", city: "Chennai", rating: 4.6, category: "Autonomous", image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=600&fit=crop" },
-  { id: 4, name: "PSG Tech", location: "Coimbatore, India", city: "Coimbatore", rating: 4.4, category: "Autonomous", image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=800&h=600&fit=crop" },
-  { id: 5, name: "VIT Vellore", location: "Vellore, India", city: "Vellore", rating: 4.5, category: "Deemed", image: "https://images.unsplash.com/photo-1562774053-701939374585?w=800&h=600&fit=crop" },
-  { id: 6, name: "SRM University", location: "Chennai, India", city: "Chennai", rating: 4.3, category: "Deemed", image: "https://images.unsplash.com/photo-1541339907198-e08759dfc3f0?w=800&h=600&fit=crop" }
+  { id: 1, name: "IIT Madras", location: "Chennai, India", city: "Chennai", rating: 4.8, category: "IIT" },
+  { id: 2, name: "Anna University", location: "Chennai, India", city: "Chennai", rating: 4.5, category: "State University" },
+  { id: 3, name: "Loyola College", location: "Chennai, India", city: "Chennai", rating: 4.6, category: "Autonomous" },
+  { id: 4, name: "PSG Tech", location: "Coimbatore, India", city: "Coimbatore", rating: 4.4, category: "Autonomous" },
+  { id: 5, name: "VIT Vellore", location: "Vellore, India", city: "Vellore", rating: 4.5, category: "Deemed" },
+  { id: 6, name: "SRM University", location: "Chennai, India", city: "Chennai", rating: 4.3, category: "Deemed" }
 ];
 
 export default function Home() {
@@ -312,7 +312,7 @@ export default function Home() {
         if (result.success && Array.isArray(result.data) && result.data.length > 0) {
           const formatted = result.data.map((college) => ({
             ...college,
-            image: college.imageUrl || college.images?.[0] || 'https://images.unsplash.com/photo-1562774053-701939374585?w=800&h=600&fit=crop',
+            image: college.imageUrl || college.images?.[0],
             badge: college.category || 'PREMIER',
             students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
             acceptanceRate: college.acceptanceRate || 'N/A',
@@ -383,7 +383,7 @@ export default function Home() {
             city: college.city,
             rating: college.rating,
             category: college.category,
-            image: college.imageUrl || college.images?.[0] || 'https://images.unsplash.com/photo-1562774053-701939374585?w=800&h=600&fit=crop'
+            image: college.imageUrl || college.images?.[0] 
           }));
 
           suggestionsResult = searchResults.slice(0, 6);
@@ -469,7 +469,7 @@ export default function Home() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 z-10" size={18} />
                 <input 
                   type="text" 
-                  placeholder="🔍 Search by college name, location, city..." 
+                  placeholder="Search by college name, location, city..." 
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -863,7 +863,7 @@ export default function Home() {
       <section className="py-10 bg-indigo-700">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-white">
-            {[{ label: 'Universities', val: '2,500+', icon: Building2 }, { label: 'Student Reviews', val: '45k+', icon: MessageSquare }, { label: 'Live Projects', val: '12k+', icon: Globe }, { label: 'Happy Graduates', val: '30k+', icon: ShieldCheck }].map((stat, i) => (
+            {[{ label: 'Universities', val: '2,500+', icon: Building2 }, { label: 'Student Reviews', val: '45k+', icon: MessageSquare }, { label: 'Communities', val: '12k+', icon: Globe }, { label: 'Happy Graduates', val: '30k+', icon: ShieldCheck }].map((stat, i) => (
               <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }} className="flex flex-col items-center">
                 <div className="w-10 h-10 bg-white/15 rounded-lg flex items-center justify-center mb-2"><stat.icon size={18} /></div>
                 <div className="text-2xl font-display font-black mb-0.5">{stat.val}</div>

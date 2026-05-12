@@ -235,19 +235,69 @@
   transform: translateY(-2px);
 }
 
+/* ============================================ */
+/* LOGO ON LEFT, NAME ON RIGHT - FLEX ROW */
+/* ============================================ */
+
+/* Header Row - Logo Left, Name Right */
+.college-header-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+/* Logo Section - Left Side */
+.college-logo {
+  flex-shrink: 0;
+}
+
+.college-logo-img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #eef2ff;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.college-logo-placeholder {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+/* Header Info - Right Side */
+.college-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* College Name - Left Aligned */
 .college-name {
   font-size: 1rem;
   font-weight: 700;
   color: #0f172a;
-  margin-bottom: 4px;
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+  text-align: left;
 }
 
+/* College Location - Left Aligned */
 .college-location {
   font-size: 0.7rem;
   color: #64748b;
-  margin-bottom: 10px;
+  margin: 0;
+  text-align: left;
 }
 
+/* Description - Left Aligned */
 .college-description {
   font-size: 0.7rem;
   color: #475569;
@@ -257,6 +307,7 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-align: left;
 }
 
 /* Stats Row */
@@ -538,6 +589,21 @@
     padding: 10px 16px;
     font-size: 12px;
   }
+  
+  /* Responsive Logo */
+  .college-logo-img,
+  .college-logo-placeholder {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .college-header-row {
+    gap: 10px;
+  }
+  
+  .college-name {
+    font-size: 0.9rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -588,7 +654,18 @@
     font-size: 0.7rem;
   }
   
+  /* Mobile Logo */
+  .college-logo-img,
+  .college-logo-placeholder {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .college-header-row {
+    gap: 8px;
+  }
+  
   .college-name {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
 }
