@@ -19,7 +19,7 @@ export default function Footer() {
           <h3 className="footer__heading">Platform</h3>
           <ul className="space-y-2 text-sm">
             <li><Link to="/colleges" className="footer__link">Universities</Link></li>
-            <li><Link to="/compare" className="footer__link">Compare</Link></li>
+            <li><Link to="/compare" className="footer__link">Explore</Link></li>
             <li><Link to="/reviews" className="footer__link">Reviews</Link></li>
           </ul>
         </div>
