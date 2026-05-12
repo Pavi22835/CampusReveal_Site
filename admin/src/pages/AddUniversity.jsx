@@ -23,7 +23,18 @@ import {
   Users,
   Image,
   CheckCircle,
-  ChevronRight
+  ChevronRight,
+  Award,
+  Wifi,
+  Coffee,
+  Dumbbell,
+  Heart,
+  Microscope,
+  Video,
+  Navigation,
+  FileText,
+  Link as LinkIcon,
+  Star
 } from 'lucide-react';
 import './AddUniversity.css';
 
@@ -50,6 +61,19 @@ const TwitterIcon = () => (
   </svg>
 );
 
+const FacebookIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+  </svg>
+);
+
+const YoutubeIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
+    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon>
+  </svg>
+);
+
 const AddUniversity = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -63,96 +87,182 @@ const AddUniversity = () => {
   const [uploadingImages, setUploadingImages] = useState(false);
   
   const [formData, setFormData] = useState({
+    // 1. Basic Information
     name: '',
     shortName: '',
     established: '',
     type: '',
     category: '',
-    location: '',
-    city: '',
-    state: 'Tamil Nadu',
-    pincode: '',
-    googleMapsLink: '',
-    accreditation: '',
+    naacGrade: '',
+    
+    // 2. Branding & Media
+    logoUrl: '',
+    campusVideoUrl: '',
+    
+    // 3. Academic Information
+    academicStreams: [],
+    academicLevels: [],
+    departments: [],
+    offeredCourses: [],
+    specializations: '',
     affiliation: '',
+    approvedBy: '',
     mission: '',
     vision: '',
-    academicStream: '',
-    academicLevel: '',
-    department: '',
-    offeredCourses: [],
-    entranceExam: '',
+    
+    // 4. Facilities & Campus
+    hostelAvailable: false,
+    hostelType: '',
+    transportAvailable: false,
+    campusFacilities: [],
+    
+    // 5. Location Information
+    country: 'India',
+    state: 'Tamil Nadu',
+    city: '',
+    pincode: '',
+    location: '',
+    googleMapsLink: '',
+    
+    // 6. Placement & Statistics
     rating: 4.0,
     studentCount: '',
     facultyCount: '',
     placementRate: '',
-    medianSalary: '',
-    transportScore: 50,
-    walkScore: '',
-    walkDescription: '',
-    transit: '',
-    transitDetail: '',
-    scholarship: false,
-    hostelAvailable: false,
-    genderType: 'CO_ED',
-    religiousAffiliation: '',
+    highestPackage: '',
+    averagePackage: '',
+    topRecruiters: '',
+    
+    // 7. Fees Structure
     tuitionFee: '',
     hostelFee: '',
-    description: '',
-    imageUrl: '',
-    logoUrl: '',
+    scholarshipAvailable: false,
+    
+    // 8. Contact & Social Links
+    website: '',
     phone: '',
     email: '',
-    website: '',
     instagram: '',
     linkedin: '',
-    twitter: ''
+    facebook: '',
+    youtube: '',
+    
+    // 9. Description & SEO
+    description: '',
+    keywords: ''
   });
 
   const sections = [
     { id: 'basic', label: 'Basic Info', icon: GraduationCap },
-    { id: 'logo', label: 'Logo & Images', icon: Image },
+    { id: 'branding', label: 'Branding & Media', icon: Image },
     { id: 'academic', label: 'Academic', icon: BookOpen },
-    { id: 'filters', label: 'Filters', icon: Filter },
+    { id: 'facilities', label: 'Facilities', icon: Building },
     { id: 'location', label: 'Location', icon: MapPin },
-    { id: 'stats', label: 'Statistics', icon: TrendingUp },
+    { id: 'placement', label: 'Placement', icon: TrendingUp },
     { id: 'fees', label: 'Fees', icon: DollarSign },
-    { id: 'description', label: 'Description', icon: Building }
+    { id: 'contact', label: 'Contact', icon: Globe },
+    { id: 'seo', label: 'Description & SEO', icon: FileText }
   ];
 
-  const academicStreams = [
-    { value: '', label: 'Select Academic Stream' },
+  // Dropdown options
+  const universityTypes = [
+    { value: '', label: 'Select Type' },
+    { value: 'Government', label: 'Government' },
+    { value: 'Private', label: 'Private' },
+    { value: 'Deemed', label: 'Deemed University' },
+    { value: 'Autonomous', label: 'Autonomous' }
+  ];
+
+  const categories = [
+    { value: '', label: 'Select Category' },
+    { value: 'Engineering', label: 'Engineering' },
+    { value: 'Arts & Science', label: 'Arts & Science' },
+    { value: 'Law', label: 'Law' },
+    { value: 'Agriculture', label: 'Agriculture' },
+    { value: 'Management', label: 'Management' },
+    { value: 'Commerce', label: 'Commerce' }
+  ];
+
+  const naacGrades = [
+    { value: '', label: 'Select NAAC Grade' },
+    { value: 'A++', label: 'A++' },
+    { value: 'A+', label: 'A+' },
+    { value: 'A', label: 'A' },
+    { value: 'B++', label: 'B++' },
+    { value: 'B+', label: 'B+' },
+    { value: 'B', label: 'B' },
+    { value: 'C', label: 'C' }
+  ];
+
+  const academicStreamsOptions = [
     { value: 'Engineering', label: 'Engineering' },
     { value: 'Arts', label: 'Arts' },
     { value: 'Commerce', label: 'Commerce' },
     { value: 'Science', label: 'Science' },
     { value: 'Law', label: 'Law' },
-    { value: 'Management', label: 'Management' }
+    { value: 'Management', label: 'Management' },
+    { value: 'Agriculture', label: 'Agriculture' }
   ];
 
-  const academicLevels = [
-    { value: '', label: 'Select Academic Level' },
+  const academicLevelsOptions = [
+    { value: 'Diploma', label: 'Diploma' },
     { value: 'UG', label: 'Undergraduate (UG)' },
     { value: 'PG', label: 'Postgraduate (PG)' },
-    { value: 'Diploma', label: 'Diploma' },
     { value: 'PhD', label: 'PhD / Doctorate' }
   ];
 
-  const departments = [
-    { value: '', label: 'Select Department' },
+  const departmentsOptions = [
     { value: 'Computer Science', label: 'Computer Science' },
+    { value: 'Information Technology', label: 'Information Technology' },
     { value: 'Mechanical Engineering', label: 'Mechanical Engineering' },
     { value: 'Civil Engineering', label: 'Civil Engineering' },
-    { value: 'Electronics', label: 'Electronics & Communication' }
+    { value: 'Electronics', label: 'Electronics & Communication' },
+    { value: 'Electrical', label: 'Electrical Engineering' },
+    { value: 'Business Administration', label: 'Business Administration' },
+    { value: 'Economics', label: 'Economics' },
+    { value: 'Mathematics', label: 'Mathematics' },
+    { value: 'Physics', label: 'Physics' },
+    { value: 'Chemistry', label: 'Chemistry' },
+    { value: 'English', label: 'English' },
+    { value: 'Commerce', label: 'Commerce' },
+    { value: 'Law', label: 'Law' },
+    { value: 'Agriculture', label: 'Agriculture' }
   ];
 
-  const allCourses = ['B.Tech', 'M.Tech', 'BBA', 'MBA', 'BCA', 'MCA', 'B.Com', 'M.Com'];
+  const allCourses = [
+    'B.Tech', 'M.Tech', 'BBA', 'MBA', 'BCA', 'MCA',
+    'B.Com', 'M.Com', 'BA', 'MA', 'B.Sc', 'M.Sc',
+    'LLB', 'LLM', 'B.Arch', 'B.Des', 'B.Ed', 'M.Ed',
+    'B.Agri', 'M.Agri'
+  ];
 
-  const entranceExams = [
-    { value: '', label: 'Select Entrance Exam' },
-    { value: 'JEE Main', label: 'JEE Main' },
-    { value: 'CAT', label: 'CAT' },
-    { value: 'GATE', label: 'GATE' }
+  const campusFacilitiesList = [
+    { id: 'library', label: 'Library', icon: BookOpen },
+    { id: 'canteen', label: 'Canteen', icon: Coffee },
+    { id: 'wifi', label: 'WiFi', icon: Wifi },
+    { id: 'sports', label: 'Sports Complex', icon: Dumbbell },
+    { id: 'gym', label: 'Gym', icon: Heart },
+    { id: 'labs', label: 'Labs', icon: Microscope },
+    { id: 'auditorium', label: 'Auditorium', icon: Video },
+    { id: 'parking', label: 'Parking', icon: MapPin },
+    { id: 'smartClassrooms', label: 'Smart Classrooms', icon: Video }
+  ];
+
+  const hostelTypes = [
+    { value: '', label: 'Select Hostel Type' },
+    { value: 'Boys', label: 'Boys Only' },
+    { value: 'Girls', label: 'Girls Only' },
+    { value: 'Both', label: 'Both' }
+  ];
+
+  const approvedByOptions = [
+    { value: '', label: 'Select Approval Body' },
+    { value: 'AICTE', label: 'AICTE' },
+    { value: 'UGC', label: 'UGC' },
+    { value: 'NBA', label: 'NBA' },
+    { value: 'NAAC', label: 'NAAC' },
+    { value: 'BCI', label: 'Bar Council of India' },
+    { value: 'COA', label: 'Council of Architecture' }
   ];
 
   const handleChange = (e) => {
@@ -164,82 +274,65 @@ const AddUniversity = () => {
     setError('');
   };
 
-  const handleMultiSelect = (e) => {
+  const handleMultiSelect = (e, field) => {
     const options = Array.from(e.target.selectedOptions, option => option.value);
-    setFormData(prev => ({ ...prev, offeredCourses: options }));
+    setFormData(prev => ({ ...prev, [field]: options }));
+  };
+
+  const handleFacilityToggle = (facilityId) => {
+    setFormData(prev => ({
+      ...prev,
+      campusFacilities: prev.campusFacilities.includes(facilityId)
+        ? prev.campusFacilities.filter(f => f !== facilityId)
+        : [...prev.campusFacilities, facilityId]
+    }));
   };
 
   const handleLogoUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Validate file type
     if (!file.type.match('image.*')) {
-      setError('Please upload an image file (JPEG, PNG, or WebP)');
+      setError('Please upload an image file');
       return;
     }
     
-    // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       setError('Logo image should be less than 2MB');
       return;
     }
     
     setUploadingLogo(true);
-    
     const reader = new FileReader();
     reader.onloadend = () => {
-      const imageData = reader.result;
-      setLogoPreview(imageData);
-      setFormData(prev => ({ ...prev, logoUrl: imageData }));
-      setUploadingLogo(false);
-      setError('');
-    };
-    
-    reader.onerror = () => {
-      setError('Error reading file. Please try again.');
+      setLogoPreview(reader.result);
+      setFormData(prev => ({ ...prev, logoUrl: reader.result }));
       setUploadingLogo(false);
     };
-    
     reader.readAsDataURL(file);
-  };
-
-  const handleLogoUrlChange = (e) => {
-    const url = e.target.value;
-    setFormData(prev => ({ ...prev, logoUrl: url }));
-    setLogoPreview(url);
   };
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
     
-    // Validate each file
     const validFiles = [];
-    const errors = [];
-    
     files.forEach(file => {
       if (!file.type.match('image.*')) {
-        errors.push(`${file.name} is not an image file`);
+        setError(`${file.name} is not an image file`);
       } else if (file.size > 5 * 1024 * 1024) {
-        errors.push(`${file.name} should be less than 5MB`);
+        setError(`${file.name} should be less than 5MB`);
       } else {
         validFiles.push(file);
       }
     });
     
-    if (errors.length > 0) {
-      setError(errors.join(', '));
-      return;
-    }
-    
-    if (images.length + validFiles.length > 5) {
-      setError(`Maximum 5 images allowed. You already have ${images.length} image(s).`);
+    if (images.length + validFiles.length > 10) {
+      setError(`Maximum 10 images allowed. You already have ${images.length} image(s).`);
       return;
     }
     
     setUploadingImages(true);
-    
     let processedCount = 0;
     validFiles.forEach(file => {
       const reader = new FileReader();
@@ -249,12 +342,7 @@ const AddUniversity = () => {
         processedCount++;
         if (processedCount === validFiles.length) {
           setUploadingImages(false);
-          setError('');
         }
-      };
-      reader.onerror = () => {
-        setError(`Error reading file: ${file.name}`);
-        setUploadingImages(false);
       };
       reader.readAsDataURL(file);
     });
@@ -283,50 +371,13 @@ const AddUniversity = () => {
     
     try {
       const submitData = {
+        ...formData,
         name: formData.name.trim(),
-        shortName: formData.shortName || '',
-        established: formData.established || '',
-        type: formData.type || '',
-        category: formData.category || '',
-        location: formData.location || `${formData.city || ''}, ${formData.state || 'Tamil Nadu'}`,
-        city: formData.city || '',
-        state: formData.state || 'Tamil Nadu',
-        pincode: formData.pincode || '',
-        googleMapsLink: formData.googleMapsLink || '',
-        accreditation: formData.accreditation || '',
-        affiliation: formData.affiliation || '',
-        mission: formData.mission || '',
-        vision: formData.vision || '',
-        academicStream: formData.academicStream || '',
-        academicLevel: formData.academicLevel || '',
-        department: formData.department || '',
         offeredCourses: formData.offeredCourses || [],
-        entranceExam: formData.entranceExam || '',
-        rating: parseFloat(formData.rating) || 4.0,
-        studentCount: parseInt(formData.studentCount) || 0,
-        facultyCount: formData.facultyCount || '',
-        placementRate: formData.placementRate || '',
-        medianSalary: formData.medianSalary || '',
-        transportScore: parseInt(formData.transportScore) || 50,
-        walkScore: formData.walkScore ? parseInt(formData.walkScore) : null,
-        walkDescription: formData.walkDescription || '',
-        transit: formData.transit || '',
-        transitDetail: formData.transitDetail || '',
-        scholarship: formData.scholarship,
-        hostelAvailable: formData.hostelAvailable,
-        genderType: formData.genderType,
-        religiousAffiliation: formData.religiousAffiliation || '',
-        tuitionFee: formData.tuitionFee || '',
-        hostelFee: formData.hostelFee || '',
-        description: formData.description || '',
-        imageUrl: formData.imageUrl || '',
-        logoUrl: formData.logoUrl || '',
-        phone: formData.phone || '',
-        email: formData.email || '',
-        website: formData.website || '',
-        instagram: formData.instagram || '',
-        linkedin: formData.linkedin || '',
-        twitter: formData.twitter || '',
+        campusFacilities: formData.campusFacilities || [],
+        academicStreams: formData.academicStreams || [],
+        academicLevels: formData.academicLevels || [],
+        departments: formData.departments || [],
         images: previewImages || []
       };
       
@@ -351,7 +402,7 @@ const AddUniversity = () => {
       case 'basic':
         return (
           <>
-            <h3>Basic Information</h3>
+            <h3>1. Basic Information</h3>
             <div className="form-grid">
               <div className="form-group full-width">
                 <label>University Name <span className="required">*</span></label>
@@ -368,36 +419,36 @@ const AddUniversity = () => {
               <div className="form-group">
                 <label>University Type</label>
                 <select name="type" value={formData.type} onChange={handleChange}>
-                  <option value="">Select Type</option>
-                  <option value="Government">Government</option>
-                  <option value="Private">Private</option>
-                  <option value="Deemed">Deemed University</option>
+                  {universityTypes.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
               </div>
               <div className="form-group">
                 <label>Category</label>
                 <select name="category" value={formData.category} onChange={handleChange}>
-                  <option value="">Select Category</option>
-                  <option value="Engineering">Engineering</option>
-                  <option value="Arts & Science">Arts & Science</option>
-                  <option value="Management">Management</option>
+                  {categories.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>NAAC Grade</label>
+                <select name="naacGrade" value={formData.naacGrade} onChange={handleChange}>
+                  {naacGrades.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
               </div>
             </div>
           </>
         );
       
-      case 'logo':
+      case 'branding':
         return (
           <>
-            <h3>Logo & Images</h3>
+            <h3>2. Branding & Media</h3>
             
             <div className="logo-section">
-              <label>University Logo</label>
+              <label>Logo Image</label>
               <div className="logo-upload-wrapper">
                 {logoPreview ? (
                   <div className="logo-preview-card">
-                    <img src={logoPreview} alt="University Logo Preview" />
+                    <img src={logoPreview} alt="Logo" />
                     <button type="button" onClick={removeLogo} className="remove-btn">
                       <X size={14} /> Remove Logo
                     </button>
@@ -405,78 +456,49 @@ const AddUniversity = () => {
                 ) : (
                   <label className={`logo-drop-zone ${uploadingLogo ? 'upload-loading' : ''}`}>
                     {uploadingLogo ? (
-                      <>
-                        <div className="spinner"></div>
-                        <span>Uploading...</span>
-                      </>
+                      <><div className="spinner"></div><span>Uploading...</span></>
                     ) : (
-                      <>
-                        <Upload size={48} />
-                        <span>Upload Logo</span>
-                        <small>Click or drag & drop</small>
-                        <small>JPG, PNG, WebP (Max 2MB)</small>
-                      </>
+                      <><Upload size={48} /><span>Upload Logo</span><small>JPG, PNG, WebP (Max 2MB)</small></>
                     )}
                     <input type="file" accept="image/jpeg, image/png, image/webp" onChange={handleLogoUpload} hidden />
                   </label>
                 )}
                 <div className="logo-url-field">
-                  <input 
-                    type="url" 
-                    placeholder="Or enter logo URL" 
-                    name="logoUrl" 
-                    value={formData.logoUrl} 
-                    onChange={handleLogoUrlChange} 
-                  />
-                  <small>Enter a direct image URL instead</small>
+                  <input type="url" placeholder="Or enter logo URL" name="logoUrl" value={formData.logoUrl} onChange={handleChange} />
                 </div>
               </div>
             </div>
 
             <div className="gallery-section">
               <div className="gallery-header">
-                <label>Gallery Images (Max 5)</label>
-                <span className="gallery-counter">{previewImages.length} / 5 images uploaded</span>
+                <label>Gallery Images (Max 10)</label>
+                <span className="gallery-counter">{previewImages.length} / 10 images uploaded</span>
               </div>
               <div className="gallery-grid">
                 {previewImages.map((img, idx) => (
                   <div key={idx} className="gallery-item">
                     <img src={img} alt={`Gallery ${idx + 1}`} />
-                    <button type="button" onClick={() => removeImage(idx)} className="remove-image-btn" title="Remove image">
-                      <X size={14} />
-                    </button>
+                    <button type="button" onClick={() => removeImage(idx)} className="remove-image-btn"><X size={14} /></button>
                     <span className="image-order">{idx + 1}</span>
                   </div>
                 ))}
-                {previewImages.length < 5 && (
+                {previewImages.length < 10 && (
                   <label className={`gallery-add ${uploadingImages ? 'upload-loading' : ''}`}>
                     {uploadingImages ? (
-                      <>
-                        <div className="spinner-small"></div>
-                        <span>Uploading...</span>
-                      </>
+                      <><div className="spinner-small"></div><span>Uploading...</span></>
                     ) : (
-                      <>
-                        <Upload size={28} />
-                        <span>Add Image</span>
-                      </>
+                      <><Upload size={28} /><span>Add Image</span></>
                     )}
                     <input type="file" accept="image/jpeg, image/png, image/webp" onChange={handleImageUpload} hidden multiple />
                   </label>
                 )}
               </div>
-              {previewImages.length === 0 && !uploadingImages && (
-                <p className="image-hint">No images uploaded yet. Click "Add Image" to upload gallery photos.</p>
-              )}
-              {previewImages.length > 0 && (
-                <p className="image-success">✓ {previewImages.length} image(s) uploaded successfully</p>
-              )}
             </div>
 
             <div className="form-group">
-              <label>Cover Image URL</label>
-              <input type="url" name="imageUrl" value={formData.imageUrl} onChange={handleChange} placeholder="https://example.com/cover.jpg" />
-              <small>Main cover image for the university page</small>
+              <label>Campus Video URL (optional)</label>
+              <input type="url" name="campusVideoUrl" value={formData.campusVideoUrl} onChange={handleChange} placeholder="https://youtube.com/..." />
+              <small>YouTube or Vimeo link for campus tour</small>
             </div>
           </>
         );
@@ -484,110 +506,127 @@ const AddUniversity = () => {
       case 'academic':
         return (
           <>
-            <h3>Academic Details</h3>
-            <div className="form-grid">
-              <div className="form-group">
-                <label>Academic Stream</label>
-                <select name="academicStream" value={formData.academicStream} onChange={handleChange}>
-                  {academicStreams.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
+            <h3>3. Academic Information</h3>
+            
+            <div className="sub-section">
+              <h4>Academic Structure</h4>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Academic Stream (Multiple select)</label>
+                  <select multiple value={formData.academicStreams} onChange={(e) => handleMultiSelect(e, 'academicStreams')} className="multi-select">
+                    {academicStreamsOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                  <small>Hold Ctrl/Cmd to select multiple</small>
+                </div>
+                <div className="form-group">
+                  <label>Academic Level (Multiple select)</label>
+                  <select multiple value={formData.academicLevels} onChange={(e) => handleMultiSelect(e, 'academicLevels')} className="multi-select">
+                    {academicLevelsOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                  <small>Hold Ctrl/Cmd to select multiple</small>
+                </div>
+                <div className="form-group">
+                  <label>Department (Multiple select)</label>
+                  <select multiple value={formData.departments} onChange={(e) => handleMultiSelect(e, 'departments')} className="multi-select">
+                    {departmentsOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                  <small>Hold Ctrl/Cmd to select multiple</small>
+                </div>
+                <div className="form-group">
+                  <label>Courses Offered</label>
+                  <select multiple value={formData.offeredCourses} onChange={(e) => handleMultiSelect(e, 'offeredCourses')} className="multi-select">
+                    {allCourses.map(course => <option key={course} value={course}>{course}</option>)}
+                  </select>
+                  <small>Hold Ctrl/Cmd to select multiple</small>
+                </div>
+                <div className="form-group full-width">
+                  <label>Specializations</label>
+                  <input type="text" name="specializations" value={formData.specializations} onChange={handleChange} placeholder="e.g., AI/ML, Cloud Computing, Data Science, Digital Marketing" />
+                </div>
               </div>
-              <div className="form-group">
-                <label>Academic Level</label>
-                <select name="academicLevel" value={formData.academicLevel} onChange={handleChange}>
-                  {academicLevels.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
+            </div>
+
+            <div className="sub-section">
+              <h4>Affiliation & Approval</h4>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Affiliation</label>
+                  <input type="text" name="affiliation" value={formData.affiliation} onChange={handleChange} placeholder="e.g., Anna University" />
+                </div>
+                <div className="form-group">
+                  <label>Approved By</label>
+                  <select name="approvedBy" value={formData.approvedBy} onChange={handleChange}>
+                    {approvedByOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Department</label>
-                <select name="department" value={formData.department} onChange={handleChange}>
-                  {departments.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Courses Offered</label>
-                <select multiple value={formData.offeredCourses} onChange={handleMultiSelect} className="multi-select">
-                  {allCourses.map(course => <option key={course} value={course}>{course}</option>)}
-                </select>
-                <small>Hold Ctrl/Cmd to select multiple</small>
-              </div>
-              <div className="form-group">
-                <label>Entrance Exam</label>
-                <select name="entranceExam" value={formData.entranceExam} onChange={handleChange}>
-                  {entranceExams.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Accreditation</label>
-                <input type="text" name="accreditation" value={formData.accreditation} onChange={handleChange} placeholder="e.g., NAAC A++" />
-              </div>
-              <div className="form-group">
-                <label>Affiliation</label>
-                <input type="text" name="affiliation" value={formData.affiliation} onChange={handleChange} placeholder="e.g., Anna University" />
-              </div>
-              <div className="form-group full-width">
-                <label>Mission</label>
-                <textarea name="mission" value={formData.mission} onChange={handleChange} rows="2" placeholder="University mission statement..." />
-              </div>
-              <div className="form-group full-width">
-                <label>Vision</label>
-                <textarea name="vision" value={formData.vision} onChange={handleChange} rows="2" placeholder="University vision statement..." />
+            </div>
+
+            <div className="sub-section">
+              <h4>Institutional Details</h4>
+              <div className="form-grid">
+                <div className="form-group full-width">
+                  <label>Mission</label>
+                  <textarea name="mission" value={formData.mission} onChange={handleChange} rows="2" placeholder="University mission statement..." />
+                </div>
+                <div className="form-group full-width">
+                  <label>Vision</label>
+                  <textarea name="vision" value={formData.vision} onChange={handleChange} rows="2" placeholder="University vision statement..." />
+                </div>
               </div>
             </div>
           </>
         );
       
-      case 'filters':
+      case 'facilities':
         return (
           <>
-            <h3>Filters & Facilities</h3>
-            <div className="form-grid">
-              <div className="form-group">
-                <label>Transport Score (0-100)</label>
-                <input type="range" name="transportScore" min="0" max="100" value={formData.transportScore} onChange={handleChange} />
-                <span className="range-value">{formData.transportScore}/100</span>
-              </div>
-              <div className="form-group">
-                <label>Walk Score</label>
-                <input type="number" name="walkScore" value={formData.walkScore} onChange={handleChange} placeholder="e.g., 85" />
-              </div>
-              <div className="form-group">
-                <label>Walk Description</label>
-                <input type="text" name="walkDescription" value={formData.walkDescription} onChange={handleChange} placeholder="e.g., Walker's Paradise" />
-              </div>
-              <div className="form-group">
-                <label>Transit Options</label>
-                <input type="text" name="transit" value={formData.transit} onChange={handleChange} placeholder="e.g., Metro, Bus" />
-              </div>
-              <div className="form-group full-width">
-                <label>Transit Details</label>
-                <input type="text" name="transitDetail" value={formData.transitDetail} onChange={handleChange} placeholder="e.g., Closest metro station" />
+            <h3>4. Facilities & Campus</h3>
+            
+            <div className="sub-section">
+              <h4>Hostel & Accommodation</h4>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="checkbox-label">
+                    <input type="checkbox" name="hostelAvailable" checked={formData.hostelAvailable} onChange={handleChange} />
+                    <span>Hostel Available</span>
+                  </label>
+                </div>
+                {formData.hostelAvailable && (
+                  <div className="form-group">
+                    <label>Hostel Type</label>
+                    <select name="hostelType" value={formData.hostelType} onChange={handleChange}>
+                      {hostelTypes.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
-            
-            <div className="checkbox-group">
-              <label className="checkbox-label">
-                <input type="checkbox" name="scholarship" checked={formData.scholarship} onChange={handleChange} />
-                <span>Scholarship Available</span>
-              </label>
-              <label className="checkbox-label">
-                <input type="checkbox" name="hostelAvailable" checked={formData.hostelAvailable} onChange={handleChange} />
-                <span>Hostel Available</span>
-              </label>
-            </div>
-            
-            <div className="form-grid">
+
+            <div className="sub-section">
+              <h4>Transport</h4>
               <div className="form-group">
-                <label>Gender Type</label>
-                <select name="genderType" value={formData.genderType} onChange={handleChange}>
-                  <option value="CO_ED">Co-educational</option>
-                  <option value="WOMEN_ONLY">Women Only</option>
-                  <option value="MEN_ONLY">Men Only</option>
-                </select>
+                <label className="checkbox-label">
+                  <input type="checkbox" name="transportAvailable" checked={formData.transportAvailable} onChange={handleChange} />
+                  <span>Transport Available</span>
+                </label>
               </div>
-              <div className="form-group">
-                <label>Religious Affiliation</label>
-                <input type="text" name="religiousAffiliation" value={formData.religiousAffiliation} onChange={handleChange} placeholder="Optional" />
+            </div>
+
+            <div className="sub-section">
+              <h4>Campus Facilities</h4>
+              <div className="facilities-grid">
+                {campusFacilitiesList.map(facility => (
+                  <label key={facility.id} className="facility-checkbox">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.campusFacilities.includes(facility.id)}
+                      onChange={() => handleFacilityToggle(facility.id)}
+                    />
+                    <facility.icon size={16} />
+                    <span>{facility.label}</span>
+                  </label>
+                ))}
               </div>
             </div>
           </>
@@ -596,15 +635,19 @@ const AddUniversity = () => {
       case 'location':
         return (
           <>
-            <h3>Location Details</h3>
+            <h3>5. Location Information</h3>
             <div className="form-grid">
               <div className="form-group">
-                <label>City</label>
-                <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="e.g., Chennai" />
+                <label>Country</label>
+                <input type="text" name="country" value={formData.country} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label>State</label>
                 <input type="text" name="state" value={formData.state} onChange={handleChange} />
+              </div>
+              <div className="form-group">
+                <label>City</label>
+                <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="e.g., Chennai" />
               </div>
               <div className="form-group">
                 <label>Pincode</label>
@@ -622,13 +665,13 @@ const AddUniversity = () => {
           </>
         );
       
-      case 'stats':
+      case 'placement':
         return (
           <>
-            <h3>Statistics & Ratings</h3>
+            <h3>6. Placement & Statistics</h3>
             <div className="form-grid">
               <div className="form-group">
-                <label>Rating (0-5)</label>
+                <label>Overall Rating (0-5)</label>
                 <input type="number" step="0.1" min="0" max="5" name="rating" value={formData.rating} onChange={handleChange} />
               </div>
               <div className="form-group">
@@ -644,8 +687,16 @@ const AddUniversity = () => {
                 <input type="text" name="placementRate" value={formData.placementRate} onChange={handleChange} placeholder="e.g., 85%" />
               </div>
               <div className="form-group">
-                <label>Median Salary</label>
-                <input type="text" name="medianSalary" value={formData.medianSalary} onChange={handleChange} placeholder="e.g., ₹8 LPA" />
+                <label>Highest Package</label>
+                <input type="text" name="highestPackage" value={formData.highestPackage} onChange={handleChange} placeholder="e.g., ₹45 LPA" />
+              </div>
+              <div className="form-group">
+                <label>Average Package</label>
+                <input type="text" name="averagePackage" value={formData.averagePackage} onChange={handleChange} placeholder="e.g., ₹12 LPA" />
+              </div>
+              <div className="form-group full-width">
+                <label>Top Recruiters</label>
+                <input type="text" name="topRecruiters" value={formData.topRecruiters} onChange={handleChange} placeholder="e.g., Google, Microsoft, Amazon, TCS, Infosys" />
               </div>
             </div>
           </>
@@ -654,7 +705,7 @@ const AddUniversity = () => {
       case 'fees':
         return (
           <>
-            <h3>Fee Structure</h3>
+            <h3>7. Fees Structure</h3>
             <div className="form-grid">
               <div className="form-group">
                 <label>Tuition Fee (per year)</label>
@@ -664,43 +715,65 @@ const AddUniversity = () => {
                 <label>Hostel Fee (per year)</label>
                 <input type="text" name="hostelFee" value={formData.hostelFee} onChange={handleChange} placeholder="e.g., ₹80,000" />
               </div>
+              <div className="form-group">
+                <label className="checkbox-label">
+                  <input type="checkbox" name="scholarshipAvailable" checked={formData.scholarshipAvailable} onChange={handleChange} />
+                  <span>Scholarship Available</span>
+                </label>
+              </div>
             </div>
           </>
         );
       
-      case 'description':
+      case 'contact':
         return (
           <>
-            <h3>About the University</h3>
-            <div className="form-group full-width">
-              <label>Description</label>
-              <textarea name="description" value={formData.description} onChange={handleChange} rows="5" placeholder="Detailed description of the university..." />
-            </div>
+            <h3>8. Contact & Social Links</h3>
             <div className="form-grid">
               <div className="form-group">
                 <label><Globe size={14} /> Website</label>
-                <input type="url" name="website" value={formData.website} onChange={handleChange} placeholder="https://..." />
+                <input type="url" name="website" value={formData.website} onChange={handleChange} placeholder="https://www.university.edu" />
               </div>
               <div className="form-group">
-                <label><Phone size={14} /> Phone</label>
-                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="Contact number" />
+                <label><Phone size={14} /> Phone Number</label>
+                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="e.g., 044-2257 8000" />
               </div>
-              <div className="form-group full-width">
-                <label><Mail size={14} /> Email</label>
+              <div className="form-group">
+                <label><Mail size={14} /> Email Address</label>
                 <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="admin@university.edu" />
               </div>
               <div className="form-group">
                 <label><InstagramIcon /> Instagram</label>
-                <input type="url" name="instagram" value={formData.instagram} onChange={handleChange} placeholder="Instagram URL" />
+                <input type="url" name="instagram" value={formData.instagram} onChange={handleChange} placeholder="https://instagram.com/university" />
               </div>
               <div className="form-group">
                 <label><LinkedinIcon /> LinkedIn</label>
-                <input type="url" name="linkedin" value={formData.linkedin} onChange={handleChange} placeholder="LinkedIn URL" />
+                <input type="url" name="linkedin" value={formData.linkedin} onChange={handleChange} placeholder="https://linkedin.com/school/university" />
               </div>
               <div className="form-group">
-                <label><TwitterIcon /> Twitter</label>
-                <input type="url" name="twitter" value={formData.twitter} onChange={handleChange} placeholder="Twitter URL" />
+                <label><FacebookIcon /> Facebook</label>
+                <input type="url" name="facebook" value={formData.facebook} onChange={handleChange} placeholder="https://facebook.com/university" />
               </div>
+              <div className="form-group">
+                <label><YoutubeIcon /> YouTube</label>
+                <input type="url" name="youtube" value={formData.youtube} onChange={handleChange} placeholder="https://youtube.com/@university" />
+              </div>
+            </div>
+          </>
+        );
+      
+      case 'seo':
+        return (
+          <>
+            <h3>9. Description & SEO</h3>
+            <div className="form-group full-width">
+              <label>Full Description</label>
+              <textarea name="description" value={formData.description} onChange={handleChange} rows="5" placeholder="Detailed description of the university..." />
+            </div>
+            <div className="form-group full-width">
+              <label>Keywords / Tags</label>
+              <input type="text" name="keywords" value={formData.keywords} onChange={handleChange} placeholder="e.g., engineering college, best university, top placement, higher education" />
+              <small>Comma separated keywords for SEO</small>
             </div>
           </>
         );
@@ -731,7 +804,6 @@ const AddUniversity = () => {
       )}
 
       <form onSubmit={handleSubmit} className="add-university-form">
-        {/* Top Navigation - Section Names */}
         <div className="top-navigation">
           {sections.map((section) => (
             <button
@@ -746,9 +818,7 @@ const AddUniversity = () => {
           ))}
         </div>
 
-        {/* Two Containers - Attached Together Same Size */}
         <div className="two-containers">
-          {/* Left Container - Form Content */}
           <div className="container-left">
             <div className="form-content">
               {renderFormContent()}
@@ -764,7 +834,6 @@ const AddUniversity = () => {
             </div>
           </div>
 
-          {/* Right Container - Live Preview */}
           <div className="container-right">
             <div className="preview-content">
               <h3>Live Preview</h3>
@@ -779,7 +848,7 @@ const AddUniversity = () => {
               </div>
               <div className="preview-info">
                 <h4>{formData.name || 'University Name'}</h4>
-                <p className="preview-location">{formData.location || 'City, State'}</p>
+                <p className="preview-location">{formData.city || 'City'}, {formData.state || 'State'}</p>
                 <div className="preview-rating">
                   <span>⭐ {formData.rating || '4.0'}</span>
                   <span className="preview-type">{formData.type || 'University Type'}</span>
@@ -787,15 +856,14 @@ const AddUniversity = () => {
                 <p className="preview-short-desc">
                   {formData.description ? formData.description.slice(0, 100) + (formData.description.length > 100 ? '...' : '') : 'Add a description to see preview...'}
                 </p>
-                {formData.academicStream && (
+                {formData.academicStreams && formData.academicStreams.length > 0 && (
                   <div className="preview-tags">
-                    <span>{formData.academicStream}</span>
-                    {formData.academicLevel && <span>{formData.academicLevel}</span>}
+                    {formData.academicStreams.map(stream => <span key={stream}>{stream}</span>)}
                   </div>
                 )}
-                {previewImages.length > 0 && (
-                  <div className="preview-images-count">
-                    📸 {previewImages.length} gallery image(s)
+                {formData.naacGrade && (
+                  <div className="preview-badge">
+                    <Award size={12} /> NAAC {formData.naacGrade}
                   </div>
                 )}
               </div>

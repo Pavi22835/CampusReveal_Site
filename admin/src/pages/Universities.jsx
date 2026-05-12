@@ -153,7 +153,6 @@ const Universities = () => {
   };
 
   const handleEdit = (id) => {
-    // Navigate to edit page with the university ID
     navigate(`/admin/universities/edit/${id}`);
   };
 
@@ -213,7 +212,7 @@ const Universities = () => {
     });
   };
 
-  // Mobile Card Component
+  // Mobile Card Component - WITHOUT LOGO (original layout)
   const UniversityCard = ({ uni, isTrashedView }) => (
     <div className={`university-card ${uni.isTrashed ? 'trashed-card' : ''}`}>
       <div className="card-header">
