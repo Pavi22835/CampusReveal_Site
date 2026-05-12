@@ -46,7 +46,7 @@ const Colleges = () => {
             acceptanceRate: college.acceptanceRate ? `${college.acceptanceRate}%` : 'N/A',
             netPrice: college.tuitionFee ? `₹${college.tuitionFee}` : 'N/A',
             description: college.description || college.about || 'A premier institution dedicated to academic excellence.',
-            image: college.imageUrl || college.images?.[0] || 'https://images.unsplash.com/photo-1562774053-701939374585?w=800&h=600&fit=crop',
+            image: college.imageUrl || college.images?.[0] || '',
             students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
             category: college.category || 'University'
           }));
