@@ -20,15 +20,14 @@ const CollegeCard = ({ college, index }) => {
     >
       {/* Image Section - Smaller height */}
       <div className="card-image-wrapper">
-        <img 
-          src={college.image || "https://images.unsplash.com/photo-1562774053-701939374585?w=400&h=300&fit=crop"} 
-          alt={college.name} 
-          className="card-image"
-          referrerPolicy="no-referrer"
-          onError={(e) => {
-            e.target.src = 'https://images.unsplash.com/photo-1562774053-701939374585?w=400&h=300&fit=crop';
-          }}
-        />
+        {college.image ? (
+          <img 
+            src={college.image} 
+            alt={college.name || 'College image'} 
+            className="card-image"
+            referrerPolicy="no-referrer"
+          />
+        ) : null}
         
         {/* Premier Badge */}
         <div className="card-badge">
