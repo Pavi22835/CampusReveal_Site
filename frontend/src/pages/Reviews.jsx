@@ -25,6 +25,74 @@ export default function Reviews() {
 
   const ratingRef = useRef(null);
 
+  // ============================================
+  // HELPER FUNCTIONS - DEFINED FIRST
+  // ============================================
+  
+  const getAverageRating = (reviewsList) => {
+    if (!reviewsList || !reviewsList.length) return 0;
+    const sum = reviewsList.reduce((acc, r) => acc + (r.rating || 0), 0);
+    return parseFloat((sum / reviewsList.length).toFixed(1));
+  };
+
+  const getRatingRange = (rating) => {
+    if (rating >= 4.0 && rating <= 5.0) return '4-5';
+    if (rating >= 3.0 && rating < 4.0) return '3-4';
+    if (rating >= 2.0 && rating < 3.0) return '2-3';
+    if (rating >= 1.0 && rating < 2.0) return '1-2';
+    return 'all';
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Recently';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMonths = (now.getFullYear() - date.getFullYear()) * 12 + (now.getMonth() - date.getMonth());
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    
+    if (diffMonths >= 12) {
+      const years = Math.floor(diffMonths / 12);
+      return `${years} year${years > 1 ? 's' : ''} ago`;
+    }
+    if (diffMonths >= 1) {
+      return `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;
+    }
+    if (diffDays >= 7) {
+      const weeks = Math.floor(diffDays / 7);
+      return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+    }
+    if (diffDays >= 1) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    }
+    return 'Today';
+  };
+
+  // ============================================
+  // STAR RENDERING FUNCTION
+  // ============================================
+  const renderStars = (rating) => {
+    const numRating = typeof rating === 'number' ? rating : parseFloat(rating) || 0;
+    const fullStars = Math.floor(numRating);
+    const hasHalfStar = (numRating - fullStars) >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+    
+    const stars = [];
+    
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(<span key={`full-${i}`} className="star filled">★</span>);
+    }
+    
+    if (hasHalfStar) {
+      stars.push(<span key="half" className="star half">★</span>);
+    }
+    
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(<span key={`empty-${i}`} className="star empty">★</span>);
+    }
+    
+    return stars;
+  };
+
   // Fetch real reviews from API
   useEffect(() => {
     const fetchReviews = async () => {
@@ -92,20 +160,21 @@ export default function Reviews() {
 
     let result = Object.values(grouped).filter((item) => item.reviews.length > 0);
 
+    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(item => 
         item.university.name.toLowerCase().includes(query) ||
-        item.university.location.toLowerCase().includes(query)
+        (item.university.location && item.university.location.toLowerCase().includes(query))
       );
     }
 
+    // Rating range filter (1-2, 2-3, 3-4, 4-5)
     if (selectedRating !== 'all') {
-      const minRating = parseFloat(selectedRating);
       result = result.filter(item => {
-        const avgRating = item.reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / item.reviews.length;
-        if (minRating === 5.0) return avgRating === 5.0;
-        return avgRating >= minRating;
+        const avgRating = getAverageRating(item.reviews);
+        const ratingRange = getRatingRange(avgRating);
+        return ratingRange === selectedRating;
       });
     }
 
@@ -163,72 +232,6 @@ export default function Reviews() {
     return pages;
   };
 
-  const getAverageRating = (reviewsList) => {
-    if (!reviewsList.length) return 0;
-    const sum = reviewsList.reduce((acc, r) => acc + (r.rating || 0), 0);
-    return parseFloat((sum / reviewsList.length).toFixed(1));
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Recently';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMonths = (now.getFullYear() - date.getFullYear()) * 12 + (now.getMonth() - date.getMonth());
-    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-    
-    if (diffMonths >= 12) {
-      const years = Math.floor(diffMonths / 12);
-      return `${years} year${years > 1 ? 's' : ''} ago`;
-    }
-    if (diffMonths >= 1) {
-      return `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;
-    }
-    if (diffDays >= 7) {
-      const weeks = Math.floor(diffDays / 7);
-      return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
-    }
-    if (diffDays >= 1) {
-      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    }
-    return 'Today';
-  };
-
-  // ============================================
-  // CORRECTED STAR RENDERING FUNCTION
-  // ============================================
-  const renderStars = (rating) => {
-    // Ensure rating is a number
-    const numRating = typeof rating === 'number' ? rating : parseFloat(rating) || 0;
-    
-    // Calculate full stars (floor of rating)
-    const fullStars = Math.floor(numRating);
-    
-    // Check if there should be a half star (rating - fullStars >= 0.5)
-    const hasHalfStar = (numRating - fullStars) >= 0.5;
-    
-    // Calculate empty stars
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-    
-    const stars = [];
-    
-    // Add full stars
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<span key={`full-${i}`} className="star filled">★</span>);
-    }
-    
-    // Add half star
-    if (hasHalfStar) {
-      stars.push(<span key="half" className="star half">★</span>);
-    }
-    
-    // Add empty stars
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(<span key={`empty-${i}`} className="star empty">★</span>);
-    }
-    
-    return stars;
-  };
-
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedRating('all');
@@ -241,16 +244,16 @@ export default function Reviews() {
     }));
   };
 
+  // Rating Options - 1-2, 2-3, 3-4, 4-5
   const ratingOptions = [
-    { value: 'all', label: 'All Ratings', stars: 0 },
-    { value: '5.0', label: '5.0', stars: 5 },
-    { value: '4.5', label: '4.5+', stars: 4.5 },
-    { value: '4.0', label: '4.0+', stars: 4 },
-    { value: '3.5', label: '3.5+', stars: 3.5 },
-    { value: '3.0', label: '3.0+', stars: 3 }
+    { value: 'all', label: 'All Ratings', range: 'All' },
+    { value: '4-5', label: '4.0 - 5.0', range: '4-5', stars: 5, color: '#10b981' },
+    { value: '3-4', label: '3.0 - 4.0', range: '3-4', stars: 4, color: '#f59e0b' },
+    { value: '2-3', label: '2.0 - 3.0', range: '2-3', stars: 3, color: '#f97316' },
+    { value: '1-2', label: '1.0 - 2.0', range: '1-2', stars: 2, color: '#ef4444' }
   ];
 
-  const currentRatingLabel = ratingOptions.find(o => o.value === selectedRating)?.label;
+  const currentRatingLabel = ratingOptions.find(o => o.value === selectedRating)?.label || 'All Ratings';
 
   if (loading) {
     return (
@@ -313,7 +316,26 @@ export default function Reviews() {
                       setIsRatingOpen(false);
                     }}
                   >
-                    {option.label}
+                    <div className="rating-option-content">
+                      <span className="rating-option-label">{option.label}</span>
+                      <div className="rating-option-stars">
+                        {option.value !== 'all' && (
+                          <>
+                            {[...Array(5)].map((_, i) => (
+                              <span 
+                                key={i} 
+                                className="rating-star-indicator"
+                                style={{ 
+                                  color: i < Math.floor(option.stars) ? option.color : '#e2e8f0'
+                                }}
+                              >
+                                ★
+                              </span>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -324,6 +346,45 @@ export default function Reviews() {
             Clear filters
           </button>
         </div>
+
+        {/* Rating Scale Bar */}
+        {!loading && !error && reviews.length > 0 && (
+          <div className="rating-scale-bar">
+            <div className="rating-scale-container">
+              <span className="rating-scale-label">Rating Scale:</span>
+              <div className="rating-scale-options">
+                <button 
+                  className={`rating-scale-chip ${selectedRating === '4-5' ? 'active' : ''}`}
+                  onClick={() => setSelectedRating('4-5')}
+                >
+                  <span className="rating-chip-color excellent"></span>
+                  4.0 - 5.0
+                </button>
+                <button 
+                  className={`rating-scale-chip ${selectedRating === '3-4' ? 'active' : ''}`}
+                  onClick={() => setSelectedRating('3-4')}
+                >
+                  <span className="rating-chip-color good"></span>
+                  3.0 - 4.0
+                </button>
+                <button 
+                  className={`rating-scale-chip ${selectedRating === '2-3' ? 'active' : ''}`}
+                  onClick={() => setSelectedRating('2-3')}
+                >
+                  <span className="rating-chip-color average"></span>
+                  2.0 - 3.0
+                </button>
+                <button 
+                  className={`rating-scale-chip ${selectedRating === '1-2' ? 'active' : ''}`}
+                  onClick={() => setSelectedRating('1-2')}
+                >
+                  <span className="rating-chip-color poor"></span>
+                  1.0 - 2.0
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Results Info */}
         {!loading && sections.length > 0 && (
