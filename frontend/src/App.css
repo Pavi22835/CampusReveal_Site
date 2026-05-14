@@ -149,7 +149,7 @@
 .app-container {
   width: 100%;
   min-height: 100vh;
-  padding-top: 4rem;
+  padding-top: 0;
 }
 
 /* Footer */
