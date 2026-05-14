@@ -210,6 +210,16 @@ const getDefaultCourses = (level) => {
   return defaults[level] || defaults.ug;
 };
 
+const getCollegeImage = (college) => {
+  if (Array.isArray(college.images) && college.images.length > 0) {
+    return college.images[0];
+  }
+  if (college.imageUrl && college.imageUrl !== college.logoUrl) {
+    return college.imageUrl;
+  }
+  return null;
+};
+
 const tamilNaduLocations = [
   'All Regions', 'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Tirunelveli',
   'Salem', 'Erode', 'Vellore', 'Thoothukkudi', 'Dindigul', 'Thanjavur',
@@ -246,6 +256,12 @@ export default function Home() {
   const [trendingColleges, setTrendingColleges] = useState([]);
   const [allColleges, setAllColleges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterOptions, setFilterOptions] = useState({
+    academicStreams: [],
+    academicLevels: [],
+    departments: [],
+    genderTypes: []
+  });
   const [expandedSections, setExpandedSections] = useState({
     stream: true,
     level: true,
@@ -289,6 +305,10 @@ export default function Home() {
     setActiveFilters(prev => ({ ...prev, department: dept, course: '' }));
   };
 
+  const handleCourseChange = (course) => {
+    setActiveFilters(prev => ({ ...prev, course: course }));
+  };
+
   const clearAllFilters = () => {
     setActiveFilters({
       stream: '', level: '', department: '', course: '', location: 'All Regions',
@@ -304,15 +324,60 @@ export default function Home() {
       activeFilters.transport !== 'All' || activeFilters.rating !== 'Any Rating';
   };
 
-  // Fetch trending colleges
+  // Get selected filters as array for display
+  const getSelectedFiltersArray = () => {
+    const selected = [];
+    if (activeFilters.stream) {
+      const stream = academicStreams.find(s => s.id === activeFilters.stream);
+      if (stream) selected.push({ type: 'stream', label: stream.name });
+    }
+    if (activeFilters.level) {
+      const level = academicLevels.find(l => l.id === activeFilters.level);
+      if (level) selected.push({ type: 'level', label: level.name });
+    }
+    if (activeFilters.department) {
+      selected.push({ type: 'department', label: activeFilters.department });
+    }
+    if (activeFilters.course) {
+      selected.push({ type: 'course', label: activeFilters.course });
+    }
+    if (activeFilters.location !== 'All Regions') {
+      selected.push({ type: 'location', label: activeFilters.location });
+    }
+    return selected;
+  };
+
+  // Remove individual filter
+  const removeFilter = (filterType) => {
+    if (filterType === 'stream') {
+      setActiveFilters(prev => ({ ...prev, stream: '', department: '', course: '' }));
+    } else if (filterType === 'level') {
+      setActiveFilters(prev => ({ ...prev, level: '', course: '' }));
+    } else if (filterType === 'department') {
+      setActiveFilters(prev => ({ ...prev, department: '', course: '' }));
+    } else if (filterType === 'course') {
+      setActiveFilters(prev => ({ ...prev, course: '' }));
+    } else if (filterType === 'location') {
+      setActiveFilters(prev => ({ ...prev, location: 'All Regions' }));
+    }
+  };
+
+  const selectedFilters = getSelectedFiltersArray();
+
+  // Fetch trending colleges and filter options
   useEffect(() => {
-    const fetchTrending = async () => {
+    const fetchData = async () => {
       try {
-        const result = await api.getTrendingUniversities();
-        if (result.success && Array.isArray(result.data) && result.data.length > 0) {
-          const formatted = result.data.map((college) => ({
+        const [trendingResult, filterResult] = await Promise.all([
+          api.getTrendingUniversities(),
+          api.getFilterOptions()
+        ]);
+
+        // Handle trending colleges
+        if (trendingResult.success && Array.isArray(trendingResult.data) && trendingResult.data.length > 0) {
+          const formatted = trendingResult.data.map((college) => ({
             ...college,
-            image: college.imageUrl || college.images?.[0],
+            image: getCollegeImage(college),
             badge: college.category || 'PREMIER',
             students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
             acceptanceRate: college.acceptanceRate || 'N/A',
@@ -334,8 +399,13 @@ export default function Home() {
           setTrendingColleges(formatted);
           setAllColleges(formatted);
         }
+
+        // Handle filter options
+        if (filterResult.success && filterResult.data) {
+          setFilterOptions(filterResult.data);
+        }
       } catch (error) {
-        console.error('Error fetching trending colleges:', error);
+        console.error('Error fetching data:', error);
         const formatted = fallbackColleges.map((college) => ({
           ...college,
           badge: college.category,
@@ -350,18 +420,53 @@ export default function Home() {
         setLoading(false);
       }
     };
-    fetchTrending();
+    fetchData();
   }, []);
 
+  // Apply filters when they change
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setShowSuggestions(false);
+    const applyFilters = async () => {
+      try {
+        const params = {};
+
+        // Map frontend filter names to backend API parameters
+        if (activeFilters.stream) params.academicStream = activeFilters.stream;
+        if (activeFilters.level) params.academicLevel = activeFilters.level;
+        if (activeFilters.department) params.department = activeFilters.department;
+        if (activeFilters.location !== 'All Regions') params.city = activeFilters.location;
+        if (activeFilters.rating !== 'Any Rating') params.minRating = activeFilters.rating.replace('+', '');
+        if (activeFilters.transport === 'Available') params.hostelAvailable = 'true';
+
+        // Add search if present
+        if (searchQuery.trim()) params.search = searchQuery.trim();
+
+        const result = await api.getUniversities(params);
+        if (result.success && Array.isArray(result.data)) {
+          const formatted = result.data.map((college) => ({
+            ...college,
+            image: getCollegeImage(college),
+            badge: college.category || 'PREMIER',
+            students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
+            acceptanceRate: college.acceptanceRate || 'N/A',
+            netPrice: college.tuitionFee ? `₹${college.tuitionFee}` : 'N/A',
+            satRange: 'N/A',
+            location: college.location || college.city || 'India'
+          }));
+          setAllColleges(formatted);
+        }
+      } catch (error) {
+        console.error('Error applying filters:', error);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+
+    // Only apply filters if we have active filters or search
+    if (hasActiveFilters() || searchQuery.trim()) {
+      applyFilters();
+    } else {
+      // Reset to trending colleges if no filters
+      setAllColleges(trendingColleges);
+    }
+  }, [activeFilters, searchQuery, trendingColleges]);
 
   // Enhanced search function - searches by name, location, city
   const handleSearchChange = async (query) => {
@@ -369,13 +474,12 @@ export default function Home() {
 
     if (query.trim().length > 0) {
       const searchTerm = query.trim();
-      let searchResults = [];
       let suggestionsResult = [];
 
       try {
         const searchResult = await api.searchUniversities(searchTerm);
         if (searchResult.success && Array.isArray(searchResult.data)) {
-          searchResults = searchResult.data.map(college => ({
+          suggestionsResult = searchResult.data.slice(0, 6).map(college => ({
             ...college,
             id: college.id,
             name: college.name,
@@ -383,10 +487,8 @@ export default function Home() {
             city: college.city,
             rating: college.rating,
             category: college.category,
-            image: college.imageUrl || college.images?.[0] 
+            image: getCollegeImage(college)
           }));
-
-          suggestionsResult = searchResults.slice(0, 6);
         }
       } catch (err) {
         console.error('API search error:', err);
@@ -394,11 +496,11 @@ export default function Home() {
 
       setSuggestions(suggestionsResult);
       setShowSuggestions(suggestionsResult.length > 0);
-      setAllColleges(searchResults);
+      // Note: allColleges will be updated by the useEffect when searchQuery changes
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
-      setAllColleges(trendingColleges);
+      // Note: allColleges will be reset by the useEffect when searchQuery becomes empty
     }
   };
 
@@ -424,23 +526,43 @@ export default function Home() {
     requireAuth(() => navigate(`/university/${college.id}`));
   };
 
-  const filteredColleges = allColleges.filter(college => {
-    const matchesRegion = activeFilters.location === 'All Regions' || 
-      (college.city === activeFilters.location || college.location?.includes(activeFilters.location));
-    const matchesType = activeFilters.type === 'All' || college.type === activeFilters.type;
-    const matchesRating = activeFilters.rating === 'Any Rating' || college.rating >= parseFloat(activeFilters.rating);
-    const query = searchQuery.toLowerCase();
-    const matchesSearch = !searchQuery.trim() || 
-      college.name?.toLowerCase().includes(query) || 
-      college.location?.toLowerCase().includes(query) ||
-      college.city?.toLowerCase().includes(query);
-    return matchesRegion && matchesType && matchesRating && matchesSearch;
-  });
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
 
-      {/* Hero Section with Centered Search Bar */}
+      {/* Selected Filters Display - Horizontal Chips (Added without changing existing UI) */}
+      {selectedFilters.length > 0 && (
+        <div className="bg-white border-b border-slate-100 py-3 px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-2">
+                Applied Filters:
+              </span>
+              {selectedFilters.map((filter, index) => (
+                <div
+                  key={index}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-full text-sm"
+                >
+                  <span className="text-indigo-700 font-medium">{filter.label}</span>
+                  <button
+                    onClick={() => removeFilter(filter.type)}
+                    className="text-indigo-400 hover:text-red-500 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={clearAllFilters}
+                className="text-xs text-red-500 hover:text-red-600 font-medium ml-2"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hero Section with Centered Search Bar - YOUR EXISTING HERO SECTION (UNCHANGED) */}
       <section className="relative min-h-[65vh] flex items-start justify-center pt-20 pb-16 overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50">
         <div className="absolute inset-0 z-0 bg-gradient-to-br from-indigo-50/80 via-white/90 to-purple-50/80" />
 
@@ -463,7 +585,7 @@ export default function Home() {
               Authentic reviews, real projects, and honest insights shared by students, for students. Find your perfect fit based on merit and student life.
             </p>
 
-            {/* Centered Search Bar - UPDATED with BOLD and BLINKING */}
+            {/* Centered Search Bar */}
             <div className="relative max-w-2xl mx-auto z-30" ref={searchRef}>
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 z-10" size={18} />
@@ -698,7 +820,7 @@ export default function Home() {
                           <div className="space-y-1 max-h-48 overflow-y-auto">
                             {availableCourses.map(course => (
                               <label key={course} className="flex items-center gap-2 py-1.5 cursor-pointer group">
-                                <input type="radio" name="course" checked={activeFilters.course === course} onChange={() => setActiveFilters(prev => ({ ...prev, course }))} className="w-3.5 h-3.5 accent-indigo-600" />
+                                <input type="radio" name="course" checked={activeFilters.course === course} onChange={() => handleCourseChange(course)} className="w-3.5 h-3.5 accent-indigo-600" />
                                 <span className={`text-xs ${activeFilters.course === course ? 'text-indigo-600 font-medium' : 'text-slate-600'} group-hover:text-indigo-600`}>{course}</span>
                               </label>
                             ))}
@@ -814,11 +936,11 @@ export default function Home() {
                 <div className="flex justify-center py-16"><div className="w-10 h-10 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
               ) : (
                 <>
-                  {searchQuery && <div className="mb-3 text-xs text-slate-500">Found {filteredColleges.length} result{filteredColleges.length !== 1 ? 's' : ''} for "{searchQuery}"</div>}
+                  {searchQuery && <div className="mb-3 text-xs text-slate-500">Found {allColleges.length} result{allColleges.length !== 1 ? 's' : ''} for "{searchQuery}"</div>}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {filteredColleges.map((college, i) => (<CollegeCard key={college.id} college={college} index={i} />))}
+                    {allColleges.map((college, i) => (<CollegeCard key={college.id} college={college} index={i} />))}
                   </div>
-                  {filteredColleges.length === 0 && (
+                  {allColleges.length === 0 && (
                     <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-slate-200">
                       <School size={40} className="mx-auto text-slate-300 mb-2" />
                       <p className="text-slate-400 text-sm font-medium">No colleges found matching your criteria</p>
@@ -842,8 +964,12 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {trendingColleges.slice(0, 3).map((college, i) => (
               <motion.div key={college.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} whileHover={{ y: -3 }} onClick={() => requireAuth(() => navigate(`/university/${college.id}`))} className="group bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all cursor-pointer border border-slate-100">
-                <div className="relative h-36 overflow-hidden">
-                  <img src={college.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={college.name} />
+                <div className="relative h-36 overflow-hidden bg-slate-100">
+                  {college.image ? (
+                    <img src={college.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={college.name} />
+                  ) : (
+                    <div className="w-full h-full bg-slate-200" />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                   <div className="absolute top-2 left-2"><span className="bg-white/95 backdrop-blur px-2 py-0.5 rounded-md text-[9px] font-black uppercase text-slate-800">#{i + 1}</span></div>
                   {college.rating && <div className="absolute top-2 right-2 bg-amber-500/90 backdrop-blur px-1.5 py-0.5 rounded-md flex items-center gap-0.5"><Star size={8} fill="white" className="text-white" /><span className="text-[9px] font-bold text-white">{college.rating}</span></div>}
