@@ -85,7 +85,7 @@ export const AuthProvider = ({ children }) => {
     setIsOtpAuthenticated(true);
     setShowAuthModal(false);
     
-    // ✅ FIX: Store the token from OTP response
+    // Store the token from OTP response
     if (otpToken) {
       localStorage.setItem('token', otpToken);
       setToken(otpToken);
@@ -99,6 +99,40 @@ export const AuthProvider = ({ children }) => {
       pendingAction();
       setPendingAction(null);
     }
+  };
+
+  // Update User Profile Details
+  const updateUserProfile = async (profileData) => {
+    try {
+      const res = await api.updateUserProfile(profileData, token);
+      if (res.success) {
+        // Update local user state
+        const updatedUser = { ...user, ...profileData };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return { success: true, user: updatedUser };
+      }
+      return { success: false, message: res.message };
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  // Check if user has complete profile
+  const hasCompleteProfile = () => {
+    if (!user) return false;
+    return !!(user.collegeName && user.department && user.graduationYear);
+  };
+
+  // Get user profile details
+  const getUserProfile = () => {
+    return {
+      name: user?.name || '',
+      collegeName: user?.collegeName || '',
+      department: user?.department || '',
+      graduationYear: user?.graduationYear || ''
+    };
   };
 
   useEffect(() => {
@@ -182,10 +216,14 @@ export const AuthProvider = ({ children }) => {
       otpLogin,
       requireAuth,
       showAuthModal,
+      openAuthModal,  // Make sure this is exported
       closeModal,
       isAuthenticated,
       toast,
-      hideToast
+      hideToast,
+      updateUserProfile,
+      hasCompleteProfile,
+      getUserProfile
     }}>
       {children}
     </AuthContext.Provider>
