@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { prisma } = require('../prisma');
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
 
 const buildSearchWhere = (query) => {
   const term = query?.trim();
@@ -17,8 +19,10 @@ const buildSearchWhere = (query) => {
       { affiliation: { contains: term, mode: 'insensitive' } },
       { shortName: { contains: term, mode: 'insensitive' } },
       { description: { contains: term, mode: 'insensitive' } },
-      { specializations: { contains: term, mode: 'insensitive' } },
-      { keywords: { contains: term, mode: 'insensitive' } }
+      { academicStreams: { has: term } },
+      { academicLevels: { has: term } },
+      { departments: { has: term } },
+      { offeredCourses: { has: term } }
     ]
   };
 };
@@ -30,7 +34,21 @@ const buildSearchWhere = (query) => {
 // @access  Public
 const getUniversities = async (req, res) => {
   try {
-    const { search, limit = 50, page = 1 } = req.query;
+    const { 
+      search, 
+      limit = 1000, 
+      page = 1,
+      academicStream,
+      academicLevel,
+      department,
+      genderType,
+      scholarship,
+      hostelAvailable,
+      minRating,
+      minTransportScore,
+      city,
+      state
+    } = req.query;
     
     let where = {
       isTrashed: false
@@ -41,40 +59,67 @@ const getUniversities = async (req, res) => {
       if (searchWhere) where = { ...where, ...searchWhere };
     }
     
+    // Apply advanced filters
+    if (academicStream) where.academicStreams = { has: academicStream };
+    if (academicLevel) where.academicLevels = { has: academicLevel };
+    if (department) where.departments = { has: department };
+    if (hostelAvailable === 'true') where.hostelAvailable = true;
+    if (minRating) where.rating = { gte: parseFloat(minRating) };
+    if (city) where.city = { contains: city, mode: 'insensitive' };
+    if (state) where.state = { contains: state, mode: 'insensitive' };
+    
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
-    const universities = await prisma.university.findMany({
-      where,
-      skip,
-      take: parseInt(limit),
-      orderBy: { rating: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        shortName: true,
-        logoUrl: true,
-        imageUrl: true,
-        images: true,
-        location: true,
-        city: true,
-        state: true,
-        rating: true,
-        studentCount: true,
-        description: true,
-        isTrashed: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: { reviews: true }
+    const [universities, total] = await Promise.all([
+      prisma.university.findMany({
+        where,
+        skip,
+        take: parseInt(limit),
+        orderBy: { rating: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          shortName: true,
+          logoUrl: true,
+          imageUrl: true,
+          images: true,
+          location: true,
+          city: true,
+          state: true,
+          rating: true,
+          studentCount: true,
+          description: true,
+          academicStreams: true,
+          academicLevels: true,
+          departments: true,
+          offeredCourses: true,
+          hostelAvailable: true,
+          tuitionFee: true,
+          hostelFee: true,
+          placementRate: true,
+          website: true,
+          email: true,
+          phone: true,
+          category: true,
+          type: true,
+          established: true,
+          isTrashed: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: { reviews: true }
+          }
         }
-      }
-    });
+      }),
+      prisma.university.count({ where })
+    ]);
 
-    const total = await prisma.university.count({ where });
+    console.log(`✅ Universities API: Fetched ${universities.length} of ${total} total universities`);
     
     res.json({
       success: true,
       data: universities,
+      total: total,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -109,35 +154,36 @@ const getTrashedUniversities = async (req, res) => {
     
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
-    const universities = await prisma.university.findMany({
-      where,
-      skip,
-      take: parseInt(limit),
-      orderBy: { trashedAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        shortName: true,
-        logoUrl: true,
-        imageUrl: true,
-        images: true,
-        location: true,
-        city: true,
-        state: true,
-        rating: true,
-        studentCount: true,
-        description: true,
-        isTrashed: true,
-        createdAt: true,
-        updatedAt: true,
-        trashedAt: true,
-        _count: {
-          select: { reviews: true }
+    const [universities, total] = await Promise.all([
+      prisma.university.findMany({
+        where,
+        skip,
+        take: parseInt(limit),
+        orderBy: { trashedAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          shortName: true,
+          logoUrl: true,
+          imageUrl: true,
+          images: true,
+          location: true,
+          city: true,
+          state: true,
+          rating: true,
+          studentCount: true,
+          description: true,
+          isTrashed: true,
+          trashedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: { reviews: true }
+          }
         }
-      }
-    });
-
-    const total = await prisma.university.count({ where });
+      }),
+      prisma.university.count({ where })
+    ]);
     
     res.json({
       success: true,
@@ -314,7 +360,7 @@ const getUniversityById = async (req, res) => {
           }
         },
         _count: {
-          select: { reviews: true }
+          select: { reviews: true, users: true }
         }
       }
     });
@@ -355,10 +401,12 @@ const getTrendingUniversities = async (req, res) => {
         name: true,
         logoUrl: true,
         imageUrl: true,
+        images: true,
         location: true,
         city: true,
         rating: true,
         studentCount: true,
+        category: true,
         _count: {
           select: { reviews: true }
         }
@@ -406,6 +454,7 @@ const searchUniversities = async (req, res) => {
         rating: true,
         studentCount: true,
         description: true,
+        academicStream: true,
         _count: {
           select: { reviews: true }
         }
@@ -456,15 +505,15 @@ const searchUniversitiesAdvanced = async (req, res) => {
     }
 
     if (degree) {
-      filters.push({ academicLevels: { has: degree } });
+      filters.push({ academicLevel: degree });
     }
 
     if (stream) {
-      filters.push({ academicStreams: { has: stream } });
+      filters.push({ academicStream: stream });
     }
 
     if (level) {
-      filters.push({ academicLevels: { has: level } });
+      filters.push({ academicLevel: level });
     }
 
     if (types.length) {
@@ -476,7 +525,7 @@ const searchUniversitiesAdvanced = async (req, res) => {
     }
 
     const universities = await prisma.university.findMany({
-      where: { AND: filters.length > 1 ? filters : [{ isTrashed: false }] },
+      where: { AND: filters },
       take: 50,
       orderBy: { rating: 'desc' },
       select: {
@@ -493,7 +542,8 @@ const searchUniversitiesAdvanced = async (req, res) => {
         type: true,
         category: true,
         established: true,
-        naacGrade: true,
+        academicStream: true,
+        academicLevel: true,
         _count: {
           select: { reviews: true }
         }
@@ -506,6 +556,50 @@ const searchUniversitiesAdvanced = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: error.message 
+    });
+  }
+};
+
+// @desc    Get filter options for dropdowns
+// @route   GET /api/universities/filters/options
+// @access  Public
+const getFilterOptions = async (req, res) => {
+  try {
+    // Get all universities to extract unique values from array fields
+    const universities = await prisma.university.findMany({
+      where: { isTrashed: false },
+      select: {
+        academicStreams: true,
+        academicLevels: true,
+        departments: true,
+        city: true,
+        state: true
+      }
+    });
+
+    // Extract unique values from arrays
+    const academicStreams = [...new Set(universities.flatMap(u => u.academicStreams || []))];
+    const academicLevels = [...new Set(universities.flatMap(u => u.academicLevels || []))];
+    const departments = [...new Set(universities.flatMap(u => u.departments || []))];
+    const cities = [...new Set(universities.map(u => u.city).filter(Boolean))];
+    const states = [...new Set(universities.map(u => u.state).filter(Boolean))];
+
+    res.json({
+      success: true,
+      data: {
+        academicStreams,
+        academicLevels,
+        departments,
+        cities,
+        states
+      }
+    });
+  } catch (error) {
+    console.error('Get filter options error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch filter options',
+      error: error.message
     });
   }
 };
@@ -550,75 +644,55 @@ const createUniversity = async (req, res) => {
       });
     }
     
-    // Prepare data with all new fields
+    // Prepare data with all fields
     const universityData = {
-      // 1. Basic Information
       name: name.trim(),
       shortName: body.shortName || null,
       established: body.established || null,
       type: body.type || null,
       category: body.category || null,
-      naacGrade: body.naacGrade || null,
-      
-      // 2. Branding & Media
       logoUrl: body.logoUrl || null,
-      campusVideoUrl: body.campusVideoUrl || null,
+      imageUrl: body.imageUrl || body.logoUrl || null,
       images: Array.isArray(body.images) ? body.images : [],
-      
-      // 3. Academic Information
-      academicStreams: Array.isArray(body.academicStreams) ? body.academicStreams : [],
-      academicLevels: Array.isArray(body.academicLevels) ? body.academicLevels : [],
-      departments: Array.isArray(body.departments) ? body.departments : [],
-      offeredCourses: Array.isArray(body.offeredCourses) ? body.offeredCourses : [],
-      specializations: body.specializations || null,
+      location: body.location || `${body.city || ''}, ${body.state || 'Tamil Nadu'}`,
+      city: body.city || null,
+      state: body.state || 'Tamil Nadu',
+      pincode: body.pincode || null,
+      googleMapsLink: body.googleMapsLink || null,
+      accreditation: body.accreditation || null,
       affiliation: body.affiliation || null,
-      approvedBy: body.approvedBy || null,
       mission: body.mission || null,
       vision: body.vision || null,
-      
-      // 4. Facilities & Campus
-      hostelAvailable: body.hostelAvailable || false,
-      hostelType: body.hostelType || null,
-      transportAvailable: body.transportAvailable || false,
-      campusFacilities: Array.isArray(body.campusFacilities) ? body.campusFacilities : [],
-      
-      // 5. Location Information
-      country: body.country || 'India',
-      state: body.state || null,
-      city: body.city || null,
-      pincode: body.pincode || null,
-      location: body.location || `${body.city || ''}, ${body.state || 'Tamil Nadu'}`,
-      googleMapsLink: body.googleMapsLink || null,
-      
-      // 6. Placement & Statistics
+      academicStream: body.academicStream || null,
+      academicLevel: body.academicLevel || null,
+      department: body.department || null,
+      offeredCourses: Array.isArray(body.offeredCourses) ? body.offeredCourses : [],
+      entranceExam: body.entranceExam || null,
       rating: parseFloat(body.rating) || 0,
       studentCount: parseInt(body.studentCount) || 0,
-      facultyCount: parseInt(body.facultyCount) || null,
+      facultyCount: body.facultyCount ? parseInt(body.facultyCount) : null,
       placementRate: body.placementRate || null,
-      highestPackage: body.highestPackage || null,
-      averagePackage: body.averagePackage || null,
-      topRecruiters: body.topRecruiters || null,
-      
-      // 7. Fees Structure
+      medianSalary: body.medianSalary || null,
+      transportScore: body.transportScore ? parseInt(body.transportScore) : 50,
+      walkScore: body.walkScore ? parseInt(body.walkScore) : null,
+      walkDescription: body.walkDescription || null,
+      transit: body.transit || null,
+      transitDetail: body.transitDetail || null,
+      scholarship: body.scholarship === true || body.scholarship === 'true',
+      hostelAvailable: body.hostelAvailable === true || body.hostelAvailable === 'true',
+      genderType: body.genderType || 'CO_ED',
+      religiousAffiliation: body.religiousAffiliation || null,
       tuitionFee: body.tuitionFee || null,
       hostelFee: body.hostelFee || null,
-      scholarshipAvailable: body.scholarshipAvailable || false,
-      
-      // 8. Contact & Social Links
+      description: body.description || null,
       website: body.website || null,
       phone: body.phone || null,
       email: body.email || null,
       instagram: body.instagram || null,
       linkedin: body.linkedin || null,
-      facebook: body.facebook || null,
-      youtube: body.youtube || null,
-      
-      // 9. Description & SEO
-      description: body.description || null,
-      keywords: body.keywords || null,
-      
-      // Legacy fields for compatibility
-      imageUrl: body.imageUrl || body.logoUrl || null
+      twitter: body.twitter || null,
+      isActive: body.isActive !== undefined ? body.isActive : true,
+      isFeatured: body.isFeatured !== undefined ? body.isFeatured : false
     };
     
     console.log('Creating university with name:', universityData.name);
@@ -653,7 +727,6 @@ const updateUniversity = async (req, res) => {
     
     console.log('Updating university with ID:', id);
     
-    // Check if university exists
     const existing = await prisma.university.findUnique({
       where: { id }
     });
@@ -665,75 +738,54 @@ const updateUniversity = async (req, res) => {
       });
     }
     
-    // Prepare update data with all new fields
     const updateData = {
-      // 1. Basic Information
       name: body.name?.trim(),
       shortName: body.shortName || null,
       established: body.established || null,
       type: body.type || null,
       category: body.category || null,
-      naacGrade: body.naacGrade || null,
-      
-      // 2. Branding & Media
       logoUrl: body.logoUrl || null,
-      campusVideoUrl: body.campusVideoUrl || null,
+      imageUrl: body.imageUrl || body.logoUrl || null,
       images: Array.isArray(body.images) ? body.images : existing.images,
-      
-      // 3. Academic Information
-      academicStreams: Array.isArray(body.academicStreams) ? body.academicStreams : existing.academicStreams,
-      academicLevels: Array.isArray(body.academicLevels) ? body.academicLevels : existing.academicLevels,
-      departments: Array.isArray(body.departments) ? body.departments : existing.departments,
-      offeredCourses: Array.isArray(body.offeredCourses) ? body.offeredCourses : existing.offeredCourses,
-      specializations: body.specializations || null,
+      location: body.location || `${body.city || existing.city || ''}, ${body.state || existing.state || 'Tamil Nadu'}`,
+      city: body.city || null,
+      state: body.state || 'Tamil Nadu',
+      pincode: body.pincode || null,
+      googleMapsLink: body.googleMapsLink || null,
+      accreditation: body.accreditation || null,
       affiliation: body.affiliation || null,
-      approvedBy: body.approvedBy || null,
       mission: body.mission || null,
       vision: body.vision || null,
-      
-      // 4. Facilities & Campus
-      hostelAvailable: body.hostelAvailable !== undefined ? body.hostelAvailable : existing.hostelAvailable,
-      hostelType: body.hostelType || null,
-      transportAvailable: body.transportAvailable !== undefined ? body.transportAvailable : existing.transportAvailable,
-      campusFacilities: Array.isArray(body.campusFacilities) ? body.campusFacilities : existing.campusFacilities,
-      
-      // 5. Location Information
-      country: body.country || 'India',
-      state: body.state || null,
-      city: body.city || null,
-      pincode: body.pincode || null,
-      location: body.location || `${body.city || existing.city || ''}, ${body.state || existing.state || 'Tamil Nadu'}`,
-      googleMapsLink: body.googleMapsLink || null,
-      
-      // 6. Placement & Statistics
+      academicStream: body.academicStream || null,
+      academicLevel: body.academicLevel || null,
+      department: body.department || null,
+      offeredCourses: Array.isArray(body.offeredCourses) ? body.offeredCourses : existing.offeredCourses,
+      entranceExam: body.entranceExam || null,
       rating: body.rating !== undefined ? parseFloat(body.rating) : existing.rating,
       studentCount: body.studentCount !== undefined ? parseInt(body.studentCount) : existing.studentCount,
-      facultyCount: body.facultyCount !== undefined ? parseInt(body.facultyCount) : existing.facultyCount,
+      facultyCount: body.facultyCount ? parseInt(body.facultyCount) : existing.facultyCount,
       placementRate: body.placementRate || null,
-      highestPackage: body.highestPackage || null,
-      averagePackage: body.averagePackage || null,
-      topRecruiters: body.topRecruiters || null,
-      
-      // 7. Fees Structure
+      medianSalary: body.medianSalary || null,
+      transportScore: body.transportScore ? parseInt(body.transportScore) : existing.transportScore,
+      walkScore: body.walkScore ? parseInt(body.walkScore) : existing.walkScore,
+      walkDescription: body.walkDescription || null,
+      transit: body.transit || null,
+      transitDetail: body.transitDetail || null,
+      scholarship: body.scholarship !== undefined ? body.scholarship : existing.scholarship,
+      hostelAvailable: body.hostelAvailable !== undefined ? body.hostelAvailable : existing.hostelAvailable,
+      genderType: body.genderType || existing.genderType,
+      religiousAffiliation: body.religiousAffiliation || null,
       tuitionFee: body.tuitionFee || null,
       hostelFee: body.hostelFee || null,
-      scholarshipAvailable: body.scholarshipAvailable !== undefined ? body.scholarshipAvailable : existing.scholarshipAvailable,
-      
-      // 8. Contact & Social Links
+      description: body.description || null,
       website: body.website || null,
       phone: body.phone || null,
       email: body.email || null,
       instagram: body.instagram || null,
       linkedin: body.linkedin || null,
-      facebook: body.facebook || null,
-      youtube: body.youtube || null,
-      
-      // 9. Description & SEO
-      description: body.description || null,
-      keywords: body.keywords || null,
-      
-      // Legacy
-      imageUrl: body.imageUrl || body.logoUrl || existing.imageUrl
+      twitter: body.twitter || null,
+      isActive: body.isActive !== undefined ? body.isActive : existing.isActive,
+      isFeatured: body.isFeatured !== undefined ? body.isFeatured : existing.isFeatured
     };
     
     const university = await prisma.university.update({
@@ -794,22 +846,23 @@ const deleteUniversity = async (req, res) => {
 
 // ==================== ROUTES ====================
 
-// Public routes
+// Public routes (order matters - specific routes first)
+router.get('/filters/options', getFilterOptions);
 router.get('/search/advanced', searchUniversitiesAdvanced);
 router.get('/search', searchUniversities);
 router.get('/trending', getTrendingUniversities);
 router.get('/', getUniversities);
 
-// Trash routes (Admin only - Add auth middleware in your main app)
+// Trash routes (Admin only)
 router.get('/trashed', getTrashedUniversities);
 router.patch('/:id/soft-delete', softDeleteUniversity);
 router.patch('/:id/restore', restoreUniversity);
 router.delete('/:id/permanent', permanentDeleteUniversity);
 
-// Get single university by ID
+// Get single university by ID (must be after specific routes)
 router.get('/:id', getUniversityById);
 
-// CRUD routes (Admin only - Add auth middleware in your main app)
+// CRUD routes (Admin only)
 router.post('/', createUniversity);
 router.put('/:id', updateUniversity);
 router.delete('/:id', deleteUniversity);

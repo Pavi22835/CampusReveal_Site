@@ -14,27 +14,106 @@ const buildSearchWhere = (query) => {
       { type: { contains: term, mode: 'insensitive' } },
       { courses: { contains: term, mode: 'insensitive' } },
       { shortName: { contains: term, mode: 'insensitive' } },
-      { description: { contains: term, mode: 'insensitive' } }
+      { description: { contains: term, mode: 'insensitive' } },
+      { academicStream: { contains: term, mode: 'insensitive' } },
+      { academicLevel: { contains: term, mode: 'insensitive' } },
+      { department: { contains: term, mode: 'insensitive' } }
     ]
   };
 };
 
-// @desc    Get all universities (excluding trashed)
+const buildFilterWhere = (filters) => {
+  const where = { isTrashed: false };
+  
+  if (filters.academicStream) {
+    where.academicStream = filters.academicStream;
+  }
+  
+  if (filters.academicLevel) {
+    where.academicLevel = filters.academicLevel;
+  }
+  
+  if (filters.department) {
+    where.department = filters.department;
+  }
+  
+  if (filters.genderType) {
+    where.genderType = filters.genderType;
+  }
+  
+  if (filters.scholarship !== undefined) {
+    where.scholarship = filters.scholarship === 'true';
+  }
+  
+  if (filters.hostelAvailable !== undefined) {
+    where.hostelAvailable = filters.hostelAvailable === 'true';
+  }
+  
+  if (filters.minRating) {
+    where.rating = { gte: parseFloat(filters.minRating) };
+  }
+  
+  if (filters.minTransportScore) {
+    where.transportScore = { gte: parseInt(filters.minTransportScore) };
+  }
+  
+  if (filters.minPlacementPercent) {
+    where.placementPercent = { gte: parseFloat(filters.minPlacementPercent) };
+  }
+  
+  return where;
+};
+
+// @desc    Get all universities (excluding trashed) with filters
 // @route   GET /api/universities
 // @access  Public
 const getUniversities = async (req, res) => {
   try {
-    // FIXED: Changed default limit from 20 to 1000 to fetch all universities
-    const { search, limit = 1000, page = 1 } = req.query;
+    const { 
+      search, 
+      limit = 1000, 
+      page = 1,
+      // Filter parameters
+      academicStream,
+      academicLevel,
+      department,
+      genderType,
+      scholarship,
+      hostelAvailable,
+      minRating,
+      minTransportScore,
+      minPlacementPercent,
+      city,
+      state
+    } = req.query;
     
-    let where = {
-      isTrashed: false  // Exclude trashed universities
-    };
+    let where = { isTrashed: false };
     
+    // Apply search filter
     if (search) {
       const searchWhere = buildSearchWhere(search);
       if (searchWhere) where = { ...where, ...searchWhere };
     }
+    
+    // Apply location filters
+    if (city) {
+      where.city = { contains: city, mode: 'insensitive' };
+    }
+    
+    if (state) {
+      where.state = { contains: state, mode: 'insensitive' };
+    }
+    
+    // Apply advanced filters
+    if (academicStream) where.academicStream = academicStream;
+    if (academicLevel) where.academicLevel = academicLevel;
+    if (department) where.department = department;
+    if (genderType) where.genderType = genderType;
+    if (scholarship === 'true') where.scholarship = true;
+    if (hostelAvailable === 'true') where.hostelAvailable = true;
+    if (minRating) where.rating = { gte: parseFloat(minRating) };
+    if (minTransportScore) where.transportScore = { gte: parseInt(minTransportScore) };
+    if (minPlacementPercent) where.placementPercent = { gte: parseFloat(minPlacementPercent) };
     
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
@@ -43,7 +122,7 @@ const getUniversities = async (req, res) => {
         where,
         skip,
         take: parseInt(limit),
-        orderBy: { name: 'asc' }, // Changed to alphabetical order
+        orderBy: { rating: 'desc' },
         select: {
           id: true,
           name: true,
@@ -62,17 +141,36 @@ const getUniversities = async (req, res) => {
           studentCount: true,
           description: true,
           imageUrl: true,
+          logoUrl: true,
           images: true,
           ratings: true,
           tuitionFee: true,
           hostelFee: true,
           placementRate: true,
+          placementPercent: true,
+          highestPackage: true,
+          averagePackage: true,
           accreditation: true,
           website: true,
           email: true,
           phone: true,
           category: true,
           type: true,
+          shortName: true,
+          established: true,
+          academicStream: true,
+          academicLevel: true,
+          department: true,
+          offeredCourses: true,
+          entranceExam: true,
+          transportScore: true,
+          scholarship: true,
+          hostelAvailable: true,
+          genderType: true,
+          religiousAffiliation: true,
+          campusArea: true,
+          libraryBooks: true,
+          sportsRating: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -102,7 +200,79 @@ const getUniversities = async (req, res) => {
   }
 };
 
-// NEW: Get total count of universities
+// NEW: Get universities with advanced filters
+// @route   POST /api/universities/filter
+// @access  Public
+const filterUniversities = async (req, res) => {
+  try {
+    const { 
+      search,
+      academicStream,
+      academicLevel,
+      department,
+      genderType,
+      scholarship,
+      hostelAvailable,
+      minRating,
+      minTransportScore,
+      city,
+      state,
+      limit = 50,
+      page = 1
+    } = req.body;
+    
+    let where = { isTrashed: false };
+    
+    if (search) {
+      const searchWhere = buildSearchWhere(search);
+      if (searchWhere) where = { ...where, ...searchWhere };
+    }
+    
+    if (academicStream) where.academicStream = academicStream;
+    if (academicLevel) where.academicLevel = academicLevel;
+    if (department) where.department = department;
+    if (genderType) where.genderType = genderType;
+    if (scholarship) where.scholarship = true;
+    if (hostelAvailable) where.hostelAvailable = true;
+    if (minRating) where.rating = { gte: minRating };
+    if (minTransportScore) where.transportScore = { gte: minTransportScore };
+    if (city) where.city = { contains: city, mode: 'insensitive' };
+    if (state) where.state = { contains: state, mode: 'insensitive' };
+    
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const [universities, total] = await Promise.all([
+      prisma.university.findMany({
+        where,
+        skip,
+        take: parseInt(limit),
+        orderBy: { rating: 'desc' },
+        include: {
+          _count: {
+            select: { reviews: true }
+          }
+        }
+      }),
+      prisma.university.count({ where })
+    ]);
+    
+    res.json({
+      success: true,
+      data: universities,
+      total,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Filter universities error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Get total count of universities
 // @route   GET /api/universities/count
 // @access  Public
@@ -130,11 +300,9 @@ const getUniversitiesCount = async (req, res) => {
 // @access  Admin
 const getTrashedUniversities = async (req, res) => {
   try {
-    const { search, limit = 1000, page = 1 } = req.query; // Increased limit to 1000
+    const { search, limit = 1000, page = 1 } = req.query;
     
-    let where = {
-      isTrashed: true  // Only get trashed universities
-    };
+    let where = { isTrashed: true };
     
     if (search) {
       const searchWhere = buildSearchWhere(search);
@@ -167,6 +335,7 @@ const getTrashedUniversities = async (req, res) => {
           studentCount: true,
           description: true,
           imageUrl: true,
+          logoUrl: true,
           images: true,
           ratings: true,
           tuitionFee: true,
@@ -213,7 +382,6 @@ const softDeleteUniversity = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Check if university exists
     const university = await prisma.university.findUnique({
       where: { id }
     });
@@ -225,7 +393,6 @@ const softDeleteUniversity = async (req, res) => {
       });
     }
     
-    // Check if already trashed
     if (university.isTrashed) {
       return res.status(400).json({ 
         success: false, 
@@ -233,7 +400,6 @@ const softDeleteUniversity = async (req, res) => {
       });
     }
     
-    // Soft delete the university
     const updatedUniversity = await prisma.university.update({
       where: { id },
       data: {
@@ -260,7 +426,6 @@ const restoreUniversity = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Check if university exists
     const university = await prisma.university.findUnique({
       where: { id }
     });
@@ -272,7 +437,6 @@ const restoreUniversity = async (req, res) => {
       });
     }
     
-    // Check if not in trash
     if (!university.isTrashed) {
       return res.status(400).json({ 
         success: false, 
@@ -280,7 +444,6 @@ const restoreUniversity = async (req, res) => {
       });
     }
     
-    // Restore the university
     const restoredUniversity = await prisma.university.update({
       where: { id },
       data: {
@@ -307,7 +470,6 @@ const permanentDeleteUniversity = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Check if university exists
     const university = await prisma.university.findUnique({
       where: { id }
     });
@@ -319,7 +481,6 @@ const permanentDeleteUniversity = async (req, res) => {
       });
     }
     
-    // Permanently delete the university
     await prisma.university.delete({
       where: { id }
     });
@@ -357,10 +518,6 @@ const getUniversityById = async (req, res) => {
             }
           }
         },
-        projects: {
-          take: 5,
-          orderBy: { createdAt: 'desc' }
-        },
         _count: {
           select: { reviews: true, users: true }
         }
@@ -389,7 +546,7 @@ const getUniversityById = async (req, res) => {
 // @access  Public
 const getTrendingUniversities = async (req, res) => {
   try {
-    const { limit = 1000 } = req.query; // Increased limit
+    const { limit = 1000 } = req.query;
     const universities = await prisma.university.findMany({
       where: { isTrashed: false },
       take: parseInt(limit),
@@ -416,7 +573,7 @@ const getTrendingUniversities = async (req, res) => {
 // @access  Public
 const searchUniversities = async (req, res) => {
   try {
-    const { q, limit = 1000 } = req.query; // Increased limit
+    const { q, limit = 1000 } = req.query;
     
     if (!q) {
       return res.json({ success: true, data: [] });
@@ -445,75 +602,53 @@ const searchUniversities = async (req, res) => {
   }
 };
 
-// @desc    Advanced search universities
-// @route   GET /api/universities/search/advanced
+// @desc    Get filter options for dropdowns
+// @route   GET /api/universities/filters/options
 // @access  Public
-const searchUniversitiesAdvanced = async (req, res) => {
+const getFilterOptions = async (req, res) => {
   try {
-    const { search, location, course, degree, limit = 1000 } = req.query; // Increased limit
-    const types = req.query.type ? (Array.isArray(req.query.type) ? req.query.type : [req.query.type]) : [];
-
-    const filters = [{ isTrashed: false }];
-
-    if (search) {
-      const searchWhere = buildSearchWhere(search);
-      if (searchWhere) filters.push(searchWhere);
-    }
-
-    if (location) {
-      filters.push({
-        OR: [
-          { location: { contains: location, mode: 'insensitive' } },
-          { city: { contains: location, mode: 'insensitive' } },
-          { state: { contains: location, mode: 'insensitive' } },
-          { name: { contains: location, mode: 'insensitive' } }
-        ]
-      });
-    }
-
-    if (course) {
-      filters.push({ courses: { contains: course, mode: 'insensitive' } });
-    }
-
-    if (degree) {
-      filters.push({ courses: { contains: degree, mode: 'insensitive' } });
-    }
-
-    if (types.length) {
-      filters.push({
-        OR: types.map((type) => ({
-          type: { contains: type, mode: 'insensitive' }
-        }))
-      });
-    }
-
-    if (filters.length === 1) {
-      return res.json({ success: true, data: [] });
-    }
-
-    const universities = await prisma.university.findMany({
-      where: {
-        AND: filters
-      },
-      take: parseInt(limit),
-      orderBy: { rating: 'desc' },
-      include: {
-        _count: {
-          select: { reviews: true }
-        }
+    const [academicStreams, academicLevels, departments, genderTypes] = await Promise.all([
+      prisma.university.findMany({
+        where: { isTrashed: false },
+        distinct: ['academicStream'],
+        select: { academicStream: true }
+      }),
+      prisma.university.findMany({
+        where: { isTrashed: false },
+        distinct: ['academicLevel'],
+        select: { academicLevel: true }
+      }),
+      prisma.university.findMany({
+        where: { isTrashed: false },
+        distinct: ['department'],
+        select: { department: true }
+      }),
+      prisma.university.findMany({
+        where: { isTrashed: false },
+        distinct: ['genderType'],
+        select: { genderType: true }
+      })
+    ]);
+    
+    res.json({
+      success: true,
+      data: {
+        academicStreams: academicStreams.map(s => s.academicStream).filter(Boolean),
+        academicLevels: academicLevels.map(l => l.academicLevel).filter(Boolean),
+        departments: departments.map(d => d.department).filter(Boolean),
+        genderTypes: genderTypes.map(g => g.genderType).filter(Boolean)
       }
     });
-
-    res.json({ success: true, data: universities });
   } catch (error) {
-    console.error('Advanced search error:', error);
+    console.error('Get filter options error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 module.exports = { 
   getUniversities,
-  getUniversitiesCount, // NEW: Added count function
+  filterUniversities,
+  getUniversitiesCount,
   getUniversityById, 
   getTrendingUniversities,
   searchUniversities,
@@ -521,5 +656,6 @@ module.exports = {
   getTrashedUniversities,
   softDeleteUniversity,
   restoreUniversity,
-  permanentDeleteUniversity
+  permanentDeleteUniversity,
+  getFilterOptions
 };
