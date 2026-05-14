@@ -19,7 +19,7 @@ export default function Footer() {
           <h3 className="footer__heading">Platform</h3>
           <ul className="space-y-2 text-sm">
             <li><Link to="/colleges" className="footer__link">Universities</Link></li>
-            <li><Link to="/compare" className="footer__link">Explore</Link></li>
+            <li><Link to="/reviews" className="footer__link">Explore</Link></li>
             <li><Link to="/reviews" className="footer__link">Reviews</Link></li>
           </ul>
         </div>
@@ -36,9 +36,9 @@ export default function Footer() {
         <div>
           <h3 className="footer__heading">Support</h3>
           <ul className="space-y-2 text-sm">
-            <li><Link to="/help" className="footer__link">Help</Link></li>
-            <li><Link to="/contact" className="footer__link">Contact</Link></li>
-            <li><Link to="/privacy" className="footer__link">Privacy</Link></li>
+            <li><Link to="/community" className="footer__link">Community</Link></li>
+            <li><Link to="/reviews" className="footer__link">Reviews</Link></li>
+            <li><Link to="/compare" className="footer__link">Compare Colleges</Link></li>
           </ul>
         </div>
       </div>
