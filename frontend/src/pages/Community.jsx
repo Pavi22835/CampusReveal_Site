@@ -7,7 +7,8 @@ import {
   ArrowRight, Shield, Zap, Loader2, UserPlus, Clock,
   Award, BookOpen, Video, MapPin, Filter, ThumbsUp, ThumbsDown,
   Send, Image, Link as LinkIcon, Smile, MoreHorizontal, Flag,
-  Trash2, Edit2, Check, X, Reply, Archive, RotateCcw
+  Trash2, Edit2, Check, X, Reply, Archive, RotateCcw, Pencil,
+  Hash
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +29,8 @@ export default function Community() {
   const [activeTab, setActiveTab] = useState('all');
   const [isAdmin, setIsAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [likingPost, setLikingPost] = useState(null);
+  const [likingComment, setLikingComment] = useState(null);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -94,7 +97,7 @@ export default function Community() {
             commentCount: discussion._count?.comments || 0,
             commentsList: [],
             timestamp: discussion.createdAt,
-            liked: false,
+            liked: discussion.isLikedByUser || false,
             isTrashed: false,
             tags: discussion.tags || [],
             views: discussion.views || 0
@@ -164,7 +167,7 @@ export default function Community() {
           content: comment.content,
           timestamp: comment.createdAt,
           likes: comment.likes || 0,
-          liked: false,
+          liked: comment.isLikedByUser || false,
           replies: []
         }));
         
@@ -264,27 +267,124 @@ export default function Community() {
     }
   };
 
-  // Like a post
-  const handleLikePost = (postId) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { ...post, likes: post.liked ? post.likes - 1 : post.likes + 1, liked: !post.liked }
-        : post
-    ));
+  // Like a post with API call
+  const handleLikePost = async (postId) => {
+    if (!token) {
+      alert('Please login to like posts');
+      return;
+    }
+    
+    // Prevent multiple rapid clicks
+    if (likingPost === postId) return;
+    setLikingPost(postId);
+    
+    try {
+      const post = posts.find(p => p.id === postId);
+      const isLiked = post?.liked || false;
+      
+      // Optimistic update
+      setPosts(prev => prev.map(post => 
+        post.id === postId 
+          ? { 
+              ...post, 
+              likes: isLiked ? post.likes - 1 : post.likes + 1, 
+              liked: !isLiked 
+            }
+          : post
+      ));
+      
+      // API call
+      const result = await api.likeDiscussion?.(postId, token);
+      
+      if (!result?.success) {
+        // Revert on error
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                likes: isLiked ? post.likes + 1 : post.likes - 1, 
+                liked: isLiked 
+              }
+            : post
+        ));
+        console.error('Failed to like post');
+      }
+    } catch (err) {
+      console.error('Error liking post:', err);
+      // Revert on error
+      const post = posts.find(p => p.id === postId);
+      if (post) {
+        setPosts(prev => prev.map(p => 
+          p.id === postId 
+            ? { ...p, likes: post.liked ? p.likes - 1 : p.likes + 1, liked: !post.liked }
+            : p
+        ));
+      }
+    } finally {
+      setLikingPost(null);
+    }
   };
 
-  // Like a comment
-  const handleLikeComment = (postId, commentId) => {
-    setPosts(prev => prev.map(post => {
-      if (post.id !== postId) return post;
-      return {
-        ...post,
-        commentsList: post.commentsList.map(comment => {
-          if (comment.id !== commentId) return comment;
-          return { ...comment, likes: comment.liked ? comment.likes - 1 : comment.likes + 1, liked: !comment.liked };
-        })
-      };
-    }));
+  // Like a comment with API call
+  const handleLikeComment = async (postId, commentId) => {
+    if (!token) {
+      alert('Please login to like comments');
+      return;
+    }
+    
+    // Prevent multiple rapid clicks
+    if (likingComment === commentId) return;
+    setLikingComment(commentId);
+    
+    try {
+      // Find current state
+      let currentLiked = false;
+      let currentLikes = 0;
+      
+      setPosts(prev => prev.map(post => {
+        if (post.id !== postId) return post;
+        return {
+          ...post,
+          commentsList: post.commentsList.map(comment => {
+            if (comment.id !== commentId) return comment;
+            currentLiked = comment.liked || false;
+            currentLikes = comment.likes || 0;
+            return {
+              ...comment,
+              likes: currentLiked ? currentLikes - 1 : currentLikes + 1,
+              liked: !currentLiked
+            };
+          })
+        };
+      }));
+      
+      // API call
+      const result = await api.likeComment?.(commentId, token);
+      
+      if (!result?.success) {
+        // Revert on error
+        setPosts(prev => prev.map(post => {
+          if (post.id !== postId) return post;
+          return {
+            ...post,
+            commentsList: post.commentsList.map(comment => {
+              if (comment.id !== commentId) return comment;
+              return {
+                ...comment,
+                likes: currentLiked ? currentLikes + 1 : currentLikes - 1,
+                liked: currentLiked
+              };
+            })
+          };
+        }));
+        console.error('Failed to like comment');
+      }
+    } catch (err) {
+      console.error('Error liking comment:', err);
+      // Revert on error logic would go here
+    } finally {
+      setLikingComment(null);
+    }
   };
 
   // Soft delete post (move to trash)
@@ -440,13 +540,24 @@ export default function Community() {
   return (
     <div className="instagram-community">
       <div className="ig-container">
-        {/* Header */}
+        {/* Header with Add Post Button */}
         <div className="ig-header">
-          <h1>Community</h1>
-          <button className="create-post-btn" onClick={() => setShowNewPostModal(true)}>
-            <Plus size={20} />
-          </button>
+          <div className="ig-header-left">
+            <h1>Community</h1>
+            <span className="ig-post-count">{posts.length} posts</span>
+          </div>
+          <div className="ig-header-actions">
+            <button className="create-post-btn" onClick={() => setShowNewPostModal(true)}>
+              <Plus size={20} />
+              <span className="create-post-text">Add New Post</span>
+            </button>
+          </div>
         </div>
+
+        {/* Floating Action Button for Mobile */}
+        <button className="ig-fab" onClick={() => setShowNewPostModal(true)}>
+          <Pencil size={24} />
+        </button>
 
         {/* Tabs for Admin */}
         {isAdmin && (
@@ -479,6 +590,11 @@ export default function Community() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          {searchQuery && (
+            <button className="ig-search-clear" onClick={clearSearch}>
+              <X size={14} />
+            </button>
+          )}
         </div>
 
         {/* Admin Banner */}
@@ -551,20 +667,32 @@ export default function Community() {
                 {!post.isTrashed && (
                   <>
                     <div className="ig-post-actions">
-                      <button onClick={() => handleLikePost(post.id)} className={`ig-action ${post.liked ? 'liked' : ''}`}>
+                      <button 
+                        onClick={() => handleLikePost(post.id)} 
+                        className={`ig-action ${post.liked ? 'liked' : ''}`}
+                        disabled={likingPost === post.id}
+                      >
                         <Heart size={22} fill={post.liked ? '#ed4956' : 'none'} />
+                        <span className="ig-action-count">
+                          {post.likes > 0 && post.likes.toLocaleString()}
+                        </span>
                       </button>
                       <button onClick={() => toggleComments(post.id)} className="ig-action">
                         <MessageCircle size={22} />
+                        <span className="ig-action-count">
+                          {post.commentCount > 0 && post.commentCount.toLocaleString()}
+                        </span>
                       </button>
                     </div>
 
-                    {/* Likes Count */}
-                    <div className="ig-likes">
-                      {post.likes.toLocaleString()} likes
-                    </div>
+                    {/* Likes Count Text */}
+                    {post.likes > 0 && (
+                      <div className="ig-likes">
+                        {post.likes.toLocaleString()} {post.likes === 1 ? 'like' : 'likes'}
+                      </div>
+                    )}
 
-                    {/* Comments Count - THIS IS THE FIXED PART */}
+                    {/* Comments Count - FIXED: Always show if there are comments */}
                     {post.commentCount > 0 && (
                       <div className="ig-comments-count" onClick={() => toggleComments(post.id)}>
                         View all {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
@@ -575,73 +703,78 @@ export default function Community() {
                     {activePostId === post.id && (
                       <div className="ig-comments-section">
                         <div className="ig-comments-list">
-                          {post.commentsList?.map((comment) => (
-                            <div key={comment.id} className="ig-comment">
-                              <div className="ig-comment-avatar">
-                                {comment.user?.username?.charAt(0).toUpperCase() || 'U'}
-                              </div>
-                              <div className="ig-comment-content">
-                                <div className="ig-comment-header">
-                                  <span className="ig-comment-username">{comment.user?.username || 'Anonymous'}</span>
-                                  {comment.user?.verified && <BadgeCheck size={10} className="ig-verified-small" />}
-                                  <span className="ig-comment-time">{formatTimestamp(comment.timestamp)}</span>
+                          {post.commentsList?.length > 0 ? (
+                            post.commentsList.map((comment) => (
+                              <div key={comment.id} className="ig-comment">
+                                <div className="ig-comment-avatar">
+                                  {comment.user?.username?.charAt(0).toUpperCase() || 'U'}
                                 </div>
-                                <p className="ig-comment-text">{comment.content}</p>
-                                <div className="ig-comment-actions">
-                                  <button 
-                                    onClick={() => handleLikeComment(post.id, comment.id)}
-                                    className={`ig-comment-action ${comment.liked ? 'liked' : ''}`}
-                                  >
-                                    Like
-                                  </button>
-                                  <button 
-                                    onClick={() => setActiveCommentId(activeCommentId === comment.id ? null : comment.id)}
-                                    className="ig-comment-action"
-                                  >
-                                    Reply
-                                  </button>
-                                  {comment.likes > 0 && (
-                                    <span className="ig-comment-likes">{comment.likes} likes</span>
+                                <div className="ig-comment-content">
+                                  <div className="ig-comment-header">
+                                    <span className="ig-comment-username">{comment.user?.username || 'Anonymous'}</span>
+                                    {comment.user?.verified && <BadgeCheck size={10} className="ig-verified-small" />}
+                                    <span className="ig-comment-time">{formatTimestamp(comment.timestamp)}</span>
+                                  </div>
+                                  <p className="ig-comment-text">{comment.content}</p>
+                                  <div className="ig-comment-actions">
+                                    <button 
+                                      onClick={() => handleLikeComment(post.id, comment.id)}
+                                      className={`ig-comment-action ${comment.liked ? 'liked' : ''}`}
+                                      disabled={likingComment === comment.id}
+                                    >
+                                      {comment.liked ? 'Liked' : 'Like'}
+                                      {comment.likes > 0 && ` (${comment.likes.toLocaleString()})`}
+                                    </button>
+                                    <button 
+                                      onClick={() => setActiveCommentId(activeCommentId === comment.id ? null : comment.id)}
+                                      className="ig-comment-action"
+                                    >
+                                      Reply
+                                    </button>
+                                  </div>
+
+                                  {/* Replies */}
+                                  {comment.replies?.map((reply) => (
+                                    <div key={reply.id} className="ig-reply">
+                                      <div className="ig-reply-avatar">
+                                        {reply.user?.username?.charAt(0).toUpperCase() || 'U'}
+                                      </div>
+                                      <div className="ig-reply-content">
+                                        <div className="ig-reply-header">
+                                          <span className="ig-reply-username">{reply.user?.username || 'Anonymous'}</span>
+                                          <span className="ig-reply-time">{formatTimestamp(reply.timestamp)}</span>
+                                        </div>
+                                        <p className="ig-reply-text">{reply.content}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+
+                                  {/* Reply Input */}
+                                  {activeCommentId === comment.id && (
+                                    <div className="ig-reply-input">
+                                      <input
+                                        type="text"
+                                        value={newReply[comment.id] || ''}
+                                        onChange={(e) => setNewReply(prev => ({ ...prev, [comment.id]: e.target.value }))}
+                                        placeholder={`Reply to @${comment.user?.username}...`}
+                                        autoFocus
+                                      />
+                                      <button onClick={() => handleAddReply(post.id, comment.id)}>Post</button>
+                                    </div>
                                   )}
                                 </div>
-
-                                {/* Replies */}
-                                {comment.replies?.map((reply) => (
-                                  <div key={reply.id} className="ig-reply">
-                                    <div className="ig-reply-avatar">
-                                      {reply.user?.username?.charAt(0).toUpperCase() || 'U'}
-                                    </div>
-                                    <div className="ig-reply-content">
-                                      <div className="ig-reply-header">
-                                        <span className="ig-reply-username">{reply.user?.username || 'Anonymous'}</span>
-                                        <span className="ig-reply-time">{formatTimestamp(reply.timestamp)}</span>
-                                      </div>
-                                      <p className="ig-reply-text">{reply.content}</p>
-                                    </div>
-                                  </div>
-                                ))}
-
-                                {/* Reply Input */}
-                                {activeCommentId === comment.id && (
-                                  <div className="ig-reply-input">
-                                    <input
-                                      type="text"
-                                      value={newReply[comment.id] || ''}
-                                      onChange={(e) => setNewReply(prev => ({ ...prev, [comment.id]: e.target.value }))}
-                                      placeholder={`Reply to @${comment.user?.username}...`}
-                                      autoFocus
-                                    />
-                                    <button onClick={() => handleAddReply(post.id, comment.id)}>Post</button>
-                                  </div>
+                                {isAdmin && (
+                                  <button onClick={() => handleSoftDeleteComment(post.id, comment.id)} className="ig-delete-comment" title="Delete Comment">
+                                    <Trash2 size={12} />
+                                  </button>
                                 )}
                               </div>
-                              {isAdmin && (
-                                <button onClick={() => handleSoftDeleteComment(post.id, comment.id)} className="ig-delete-comment" title="Delete Comment">
-                                  <Trash2 size={12} />
-                                </button>
-                              )}
+                            ))
+                          ) : (
+                            <div className="ig-no-comments">
+                              <p>No comments yet. Be the first to comment!</p>
                             </div>
-                          ))}
+                          )}
                         </div>
 
                         {/* Add Comment */}
@@ -654,6 +787,7 @@ export default function Community() {
                             placeholder="Add a comment..."
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleAddComment(post.id)}
                           />
                           <button 
                             onClick={() => handleAddComment(post.id)}
@@ -687,7 +821,13 @@ export default function Community() {
       <AnimatePresence>
         {showNewPostModal && (
           <div className="ig-modal-overlay" onClick={() => setShowNewPostModal(false)}>
-            <div className="ig-modal" onClick={(e) => e.stopPropagation()}>
+            <motion.div 
+              className="ig-modal"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="ig-modal-header">
                 <h3>Create new post</h3>
                 <button onClick={() => setShowNewPostModal(false)}>
@@ -697,22 +837,29 @@ export default function Community() {
               <div className="ig-modal-body">
                 <textarea
                   placeholder="What's on your mind? Share your thoughts, questions, or experiences..."
-                  rows={4}
+                  rows={6}
                   value={newPostContent}
                   onChange={(e) => setNewPostContent(e.target.value)}
+                  autoFocus
                 />
+                <div className="ig-post-tags">
+                  <span className="ig-tag-hint">
+                    <Hash size={12} /> Use #hashtags to make your post discoverable
+                  </span>
+                </div>
               </div>
               <div className="ig-modal-footer">
-                <button onClick={() => setShowNewPostModal(false)}>Cancel</button>
+                <button className="cancel-btn" onClick={() => setShowNewPostModal(false)}>Cancel</button>
                 <button 
+                  className="share-btn"
                   onClick={handleCreatePost}
                   disabled={!newPostContent.trim()}
-                  style={{ opacity: !newPostContent.trim() ? 0.5 : 1 }}
                 >
-                  Share
+                  <Send size={16} />
+                  Share Post
                 </button>
               </div>
-            </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>

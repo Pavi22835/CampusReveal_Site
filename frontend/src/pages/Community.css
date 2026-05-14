@@ -12,7 +12,10 @@
   padding: 0 16px;
 }
 
-/* Header */
+/* ============================================ */
+/* HEADER WITH ADD POST BUTTON */
+/* ============================================ */
+
 .ig-header {
   display: flex;
   justify-content: space-between;
@@ -20,28 +23,84 @@
   padding: 12px 0;
   border-bottom: 1px solid #dbdbdb;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.ig-header h1 {
+.ig-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ig-header-left h1 {
   font-size: 24px;
   font-weight: 600;
   color: #262626;
+  margin: 0;
 }
 
+.ig-post-count {
+  font-size: 13px;
+  color: #8e8e8e;
+  font-weight: 500;
+}
+
+.ig-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Create Post Button - Desktop */
 .create-post-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
+  gap: 8px;
+  background: linear-gradient(135deg, #0095f6, #00a3ff);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .create-post-btn:hover {
-  background: #efefef;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 149, 246, 0.3);
+  background: linear-gradient(135deg, #0084d6, #0095f6);
+}
+
+.create-post-text {
+  display: inline-block;
+}
+
+/* Floating Action Button for Mobile */
+.ig-fab {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0095f6, #00a3ff);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  transition: all 0.2s ease;
+}
+
+.ig-fab:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 149, 246, 0.4);
 }
 
 /* ============================================ */
@@ -103,6 +162,75 @@
 }
 
 /* ============================================ */
+/* SEARCH WITH CLEAR BUTTON */
+/* ============================================ */
+
+.ig-search {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.ig-search svg:first-child {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8e8e8e;
+}
+
+.ig-search input {
+  width: 100%;
+  padding: 10px 32px 10px 40px;
+  background: #efefef;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+}
+
+.ig-search input:focus {
+  background: #e4e4e4;
+}
+
+.ig-search-clear {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #8e8e8e;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.ig-search-clear:hover {
+  background: #e4e4e4;
+  color: #262626;
+}
+
+/* ============================================ */
+/* ADMIN BANNER */
+/* ============================================ */
+
+.ig-admin-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #e8f0fe;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #1a73e8;
+}
+
+/* ============================================ */
 /* TRASH BANNER */
 /* ============================================ */
 
@@ -142,89 +270,6 @@
   border-radius: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-/* ============================================ */
-/* POST ACTIONS MENU */
-/* ============================================ */
-
-.ig-post-actions-menu {
-  display: flex;
-  gap: 4px;
-}
-
-.ig-more {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #8e8e8e;
-  transition: all 0.2s;
-}
-
-.ig-more:hover {
-  background: #efefef;
-}
-
-.ig-more.restore:hover {
-  background: #dcfce7;
-  color: #10b981;
-}
-
-.ig-more.delete:hover {
-  background: #fee2e2;
-  color: #ef4444;
-}
-
-/* ============================================ */
-/* SEARCH */
-/* ============================================ */
-
-.ig-search {
-  position: relative;
-  margin-bottom: 20px;
-}
-
-.ig-search svg {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #8e8e8e;
-}
-
-.ig-search input {
-  width: 100%;
-  padding: 10px 16px 10px 40px;
-  background: #efefef;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  outline: none;
-}
-
-.ig-search input:focus {
-  background: #e4e4e4;
-}
-
-/* ============================================ */
-/* ADMIN BANNER */
-/* ============================================ */
-
-.ig-admin-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: #e8f0fe;
-  border-radius: 10px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: #1a73e8;
 }
 
 /* ============================================ */
@@ -272,6 +317,7 @@
   border-radius: 12px;
   border: 1px solid #dbdbdb;
   overflow: hidden;
+  animation: fadeIn 0.3s ease;
 }
 
 /* Post Header */
@@ -324,6 +370,39 @@
   color: #8e8e8e;
 }
 
+/* Post Actions Menu */
+.ig-post-actions-menu {
+  display: flex;
+  gap: 4px;
+}
+
+.ig-more {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8e8e8e;
+  transition: all 0.2s;
+}
+
+.ig-more:hover {
+  background: #efefef;
+}
+
+.ig-more.restore:hover {
+  background: #dcfce7;
+  color: #10b981;
+}
+
+.ig-more.delete:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
 /* Post Content */
 .ig-post-content {
   padding: 0 16px 12px;
@@ -336,7 +415,7 @@
 }
 
 /* ============================================ */
-/* POST ACTIONS */
+/* POST ACTIONS WITH COUNTS */
 /* ============================================ */
 
 .ig-post-actions {
@@ -354,9 +433,10 @@
   border-radius: 50%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   color: #262626;
   transition: all 0.2s;
+  font-size: 14px;
 }
 
 .ig-action:hover {
@@ -365,6 +445,12 @@
 
 .ig-action.liked {
   color: #ed4956;
+}
+
+.ig-action-count {
+  font-size: 14px;
+  font-weight: 500;
+  color: #262626;
 }
 
 /* ============================================ */
@@ -424,6 +510,14 @@
 .ig-comments-list::-webkit-scrollbar-thumb {
   background: #c7c7c7;
   border-radius: 10px;
+}
+
+/* No Comments State */
+.ig-no-comments {
+  text-align: center;
+  padding: 24px;
+  color: #8e8e8e;
+  font-size: 14px;
 }
 
 /* ============================================ */
@@ -767,7 +861,7 @@
 }
 
 /* ============================================ */
-/* MODAL */
+/* MODAL - IMPROVED */
 /* ============================================ */
 
 .ig-modal-overlay {
@@ -842,13 +936,26 @@
   border: 1px solid #dbdbdb;
   border-radius: 8px;
   font-size: 14px;
-  resize: none;
+  resize: vertical;
   outline: none;
   font-family: inherit;
+  transition: border-color 0.2s;
 }
 
 .ig-modal-body textarea:focus {
   border-color: #0095f6;
+}
+
+.ig-post-tags {
+  margin-top: 12px;
+}
+
+.ig-tag-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #8e8e8e;
 }
 
 .ig-modal-footer {
@@ -859,51 +966,90 @@
   border-top: 1px solid #efefef;
 }
 
-.ig-modal-footer button {
+.ig-modal-footer .cancel-btn {
+  background: none;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8e8e8e;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ig-modal-footer .cancel-btn:hover {
+  background: #efefef;
+}
+
+.ig-modal-footer .share-btn {
+  background: linear-gradient(135deg, #0095f6, #00a3ff);
+  color: white;
+  border: none;
   padding: 8px 20px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   transition: all 0.2s;
 }
 
-.ig-modal-footer button:first-child {
-  background: none;
-  border: none;
-  color: #8e8e8e;
+.ig-modal-footer .share-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0084d6, #0095f6);
+  transform: translateY(-1px);
 }
 
-.ig-modal-footer button:first-child:hover {
-  background: #efefef;
-}
-
-.ig-modal-footer button:last-child {
-  background: #0095f6;
-  color: white;
-  border: none;
-}
-
-.ig-modal-footer button:last-child:hover:not(:disabled) {
-  background: #0077cc;
-}
-
-.ig-modal-footer button:last-child:disabled {
+.ig-modal-footer .share-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 /* ============================================ */
-/* RESPONSIVE */
+/* ANIMATIONS */
 /* ============================================ */
 
-@media (max-width: 640px) {
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================ */
+/* RESPONSIVE DESIGN */
+/* ============================================ */
+
+@media (max-width: 768px) {
   .ig-container {
     padding: 0 12px;
   }
   
-  .ig-header h1 {
+  .ig-header-left h1 {
     font-size: 20px;
+  }
+  
+  .ig-post-count {
+    font-size: 11px;
+  }
+  
+  .create-post-text {
+    display: none;
+  }
+  
+  .create-post-btn {
+    padding: 8px;
+    border-radius: 50%;
+  }
+  
+  .ig-fab {
+    display: flex;
   }
   
   .ig-post {
@@ -932,21 +1078,62 @@
   }
 }
 
-/* ============================================ */
-/* ANIMATIONS */
-/* ============================================ */
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+@media (min-width: 769px) {
+  .ig-fab {
+    display: none;
   }
 }
 
-.ig-post {
-  animation: fadeIn 0.3s ease;
+@media (max-width: 480px) {
+  .ig-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .ig-header-actions {
+    width: 100%;
+  }
+  
+  .create-post-btn {
+    width: 100%;
+    justify-content: center;
+    border-radius: 12px;
+  }
+  
+  .ig-modal {
+    width: 95%;
+    margin: 16px;
+  }
+  
+  .ig-comment-actions {
+    gap: 8px;
+  }
+  
+  .ig-empty h3 {
+    font-size: 16px;
+  }
+  
+  .ig-empty p {
+    font-size: 12px;
+  }
+}
+
+/* ============================================ */
+/* UTILITY CLASSES */
+/* ============================================ */
+
+.text-center {
+  text-align: center;
+}
+
+.mt-2 {
+  margin-top: 8px;
+}
+
+.mb-2 {
+  margin-bottom: 8px;
+}
+
+.p-2 {
+  padding: 8px;
 }
