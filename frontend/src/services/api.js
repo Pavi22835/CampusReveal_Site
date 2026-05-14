@@ -91,7 +91,94 @@ export const api = {
       body: JSON.stringify({ phone }),
     }),
 
+  // ================= USER PROFILE DETAILS =================
+  updateUserProfile: (profileData, token) =>
+    request("/auth/update-profile", {
+      method: "PUT",
+      headers: authHeader(token),
+      body: JSON.stringify(profileData),
+    }),
+
+  getUserProfile: (token) =>
+    request("/auth/profile", {
+      headers: authHeader(token),
+    }),
+
   // ================= UNIVERSITIES =================
+
+  // NEW: Get universities with advanced filters (academicStream, level, department, etc.)
+  getFilteredUniversities: async (filters = {}) => {
+    try {
+      const queryParams = {
+        page: filters.page || 1,
+        limit: filters.limit || 1000,
+        ...filters
+      };
+      
+      // Remove undefined/null values
+      Object.keys(queryParams).forEach(key => {
+        if (queryParams[key] === undefined || queryParams[key] === null || queryParams[key] === '') {
+          delete queryParams[key];
+        }
+      });
+      
+      const query = new URLSearchParams(queryParams).toString();
+      const endpoint = `/universities${query ? `?${query}` : ""}`;
+      
+      console.log(`📡 GET → ${endpoint}`);
+      
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        return { success: false, data: [], error: data?.message };
+      }
+
+      if (data.data && Array.isArray(data.data)) {
+        console.log(`✅ Fetched ${data.data.length} filtered universities (Total: ${data.total || data.data.length})`);
+        return { 
+          success: true, 
+          data: data.data, 
+          total: data.total || data.data.length,
+          pagination: data.pagination
+        };
+      }
+      
+      return { success: true, data: Array.isArray(data) ? data : [], total: Array.isArray(data) ? data.length : 0 };
+    } catch (error) {
+      console.error("❌ Error fetching filtered universities:", error);
+      return { success: false, error: error.message || "Unable to fetch universities.", data: [] };
+    }
+  },
+
+  // NEW: Get filter options for dropdowns (academicStreams, academicLevels, departments, genderTypes)
+  getFilterOptions: async () => {
+    try {
+      const res = await fetch(`${API_URL}/universities/filters/options`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        return { success: false, data: null, error: data?.message };
+      }
+
+      return data.data ? { success: true, data: data.data } : { success: true, data: data };
+    } catch (error) {
+      console.error("❌ Error fetching filter options:", error);
+      return { success: false, error: error.message, data: null };
+    }
+  },
 
   getUniversities: async (params = {}) => {
     try {
@@ -221,7 +308,6 @@ export const api = {
     try {
       console.log("📡 POST → /universities (Creating new university)");
       
-      // Log the data being sent (excluding large images for readability)
       const logData = { ...data };
       if (logData.images && logData.images.length > 0) {
         logData.images = [`${logData.images.length} images`];
@@ -260,7 +346,6 @@ export const api = {
     try {
       console.log(`📡 PUT → /universities/${id} (Updating university)`);
       
-      // Log the data being sent (excluding large images for readability)
       const logData = { ...data };
       if (logData.images && logData.images.length > 0) {
         logData.images = [`${logData.images.length} images`];
@@ -390,7 +475,7 @@ export const api = {
       headers: authHeader(token),
     }),
 
-  // ================= REVIEWS (Public - no auth required) =================
+  // ================= REVIEWS =================
   getReviews: async (universityId) => {
     try {
       console.log(`📡 GET → /reviews/university/${universityId}`);
@@ -500,7 +585,7 @@ export const api = {
   // ================= PROJECTS =================
 
   getProjects: (universityId, domain) => {
-    const params = new URLSearchParams();
+    const params = new SearchParams();
     params.append('limit', 1000);
 
     if (universityId) params.append("universityId", universityId);
@@ -701,6 +786,10 @@ export const {
   sendOTP,
   verifyOTP,
   resendOTP,
+  updateUserProfile,
+  getUserProfile,
+  getFilteredUniversities,
+  getFilterOptions,
   getUniversities,
   getAllUniversities,
   getUniversity,
