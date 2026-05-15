@@ -171,7 +171,8 @@ export default function Community() {
           replies: []
         }));
         
-        // Update posts with comments and update comment count
+        console.log('Comment likes values:', formattedComments.map(c => ({ id: c.id, likes: c.likes })));
+        
         setPosts(prev => prev.map(post => 
           post.id === postId 
             ? { 
@@ -182,7 +183,6 @@ export default function Community() {
             : post
         ));
         
-        // Also update trashed posts if needed
         setTrashedPosts(prev => prev.map(post => 
           post.id === postId 
             ? { ...post, commentCount: comments.length }
@@ -229,12 +229,10 @@ export default function Community() {
     try {
       const result = await api.addComment(postId, newComment, token);
       if (result.success) {
-        // Refresh comments to get the updated list
         await fetchComments(postId);
         setNewComment('');
         setActivePostId(null);
         
-        // Update comment count in the post preview
         setPosts(prev => prev.map(post => 
           post.id === postId 
             ? { ...post, commentCount: (post.commentCount || 0) + 1 }
@@ -274,35 +272,32 @@ export default function Community() {
       return;
     }
     
-    // Prevent multiple rapid clicks
     if (likingPost === postId) return;
     setLikingPost(postId);
     
     try {
       const post = posts.find(p => p.id === postId);
       const isLiked = post?.liked || false;
+      const currentLikes = post?.likes || 0;
       
-      // Optimistic update
       setPosts(prev => prev.map(post => 
         post.id === postId 
           ? { 
               ...post, 
-              likes: isLiked ? post.likes - 1 : post.likes + 1, 
+              likes: isLiked ? currentLikes - 1 : currentLikes + 1, 
               liked: !isLiked 
             }
           : post
       ));
       
-      // API call
-      const result = await api.likeDiscussion?.(postId, token);
+      const result = await api.likeDiscussion(postId, token);
       
       if (!result?.success) {
-        // Revert on error
         setPosts(prev => prev.map(post => 
           post.id === postId 
             ? { 
                 ...post, 
-                likes: isLiked ? post.likes + 1 : post.likes - 1, 
+                likes: isLiked ? currentLikes + 1 : currentLikes - 1, 
                 liked: isLiked 
               }
             : post
@@ -311,7 +306,6 @@ export default function Community() {
       }
     } catch (err) {
       console.error('Error liking post:', err);
-      // Revert on error
       const post = posts.find(p => p.id === postId);
       if (post) {
         setPosts(prev => prev.map(p => 
@@ -332,12 +326,10 @@ export default function Community() {
       return;
     }
     
-    // Prevent multiple rapid clicks
     if (likingComment === commentId) return;
     setLikingComment(commentId);
     
     try {
-      // Find current state
       let currentLiked = false;
       let currentLikes = 0;
       
@@ -358,11 +350,9 @@ export default function Community() {
         };
       }));
       
-      // API call
-      const result = await api.likeComment?.(commentId, token);
+      const result = await api.likeComment(commentId, token);
       
       if (!result?.success) {
-        // Revert on error
         setPosts(prev => prev.map(post => {
           if (post.id !== postId) return post;
           return {
@@ -377,11 +367,9 @@ export default function Community() {
             })
           };
         }));
-        console.error('Failed to like comment');
       }
     } catch (err) {
       console.error('Error liking comment:', err);
-      // Revert on error logic would go here
     } finally {
       setLikingComment(null);
     }
@@ -397,11 +385,9 @@ export default function Community() {
       try {
         const result = await api.softDeleteDiscussion?.(postId, token);
         if (result?.success) {
-          // Remove from active posts
           const deletedPost = posts.find(p => p.id === postId);
           setPosts(prev => prev.filter(p => p.id !== postId));
           
-          // Add to trashed posts with proper structure
           if (deletedPost) {
             setTrashedPosts(prev => [{
               ...deletedPost,
@@ -429,11 +415,9 @@ export default function Community() {
       try {
         const result = await api.restoreDiscussion?.(postId, token);
         if (result?.success) {
-          // Remove from trashed posts
           const restoredPost = trashedPosts.find(p => p.id === postId);
           setTrashedPosts(prev => prev.filter(p => p.id !== postId));
           
-          // Add back to active posts
           if (restoredPost) {
             setPosts(prev => [{
               ...restoredPost,
@@ -483,7 +467,6 @@ export default function Community() {
       try {
         const result = await api.deleteComment?.(commentId, token);
         if (result?.success) {
-          // Remove comment from the list and decrement count
           setPosts(prev => prev.map(post => 
             post.id === postId 
               ? { 
@@ -520,13 +503,20 @@ export default function Community() {
     setSearchQuery('');
   };
 
-  // Get current list based on active tab
   const currentList = activeTab === 'all' ? posts : trashedPosts;
   
   const filteredList = currentList.filter(post =>
     post.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     post.content?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Format like count for display
+  const formatLikeCount = (count) => {
+    if (count >= 1000) {
+      return (count / 1000).toFixed(1) + 'k';
+    }
+    return count;
+  };
 
   if (loading) {
     return (
@@ -540,7 +530,7 @@ export default function Community() {
   return (
     <div className="instagram-community">
       <div className="ig-container">
-        {/* Header with Add Post Button */}
+        {/* Header */}
         <div className="ig-header">
           <div className="ig-header-left">
             <h1>Community</h1>
@@ -554,12 +544,12 @@ export default function Community() {
           </div>
         </div>
 
-        {/* Floating Action Button for Mobile */}
+        {/* FAB for Mobile */}
         <button className="ig-fab" onClick={() => setShowNewPostModal(true)}>
           <Pencil size={24} />
         </button>
 
-        {/* Tabs for Admin */}
+        {/* Admin Tabs */}
         {isAdmin && (
           <div className="ig-tabs">
             <button 
@@ -663,7 +653,7 @@ export default function Community() {
                   <p>{post.content}</p>
                 </div>
 
-                {/* Post Actions - Only show for active posts */}
+                {/* Post Actions */}
                 {!post.isTrashed && (
                   <>
                     <div className="ig-post-actions">
@@ -674,25 +664,25 @@ export default function Community() {
                       >
                         <Heart size={22} fill={post.liked ? '#ed4956' : 'none'} />
                         <span className="ig-action-count">
-                          {post.likes > 0 && post.likes.toLocaleString()}
+                          {post.likes > 0 && formatLikeCount(post.likes)}
                         </span>
                       </button>
                       <button onClick={() => toggleComments(post.id)} className="ig-action">
                         <MessageCircle size={22} />
                         <span className="ig-action-count">
-                          {post.commentCount > 0 && post.commentCount.toLocaleString()}
+                          {post.commentCount > 0 && formatLikeCount(post.commentCount)}
                         </span>
                       </button>
                     </div>
 
-                    {/* Likes Count Text */}
+                    {/* Post Likes Count */}
                     {post.likes > 0 && (
                       <div className="ig-likes">
-                        {post.likes.toLocaleString()} {post.likes === 1 ? 'like' : 'likes'}
+                        ❤️ {formatLikeCount(post.likes)} {post.likes === 1 ? 'like' : 'likes'}
                       </div>
                     )}
 
-                    {/* Comments Count - FIXED: Always show if there are comments */}
+                    {/* Comments Count Link */}
                     {post.commentCount > 0 && (
                       <div className="ig-comments-count" onClick={() => toggleComments(post.id)}>
                         View all {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
@@ -716,6 +706,8 @@ export default function Community() {
                                     <span className="ig-comment-time">{formatTimestamp(comment.timestamp)}</span>
                                   </div>
                                   <p className="ig-comment-text">{comment.content}</p>
+                                  
+                                  {/* Comment Actions */}
                                   <div className="ig-comment-actions">
                                     <button 
                                       onClick={() => handleLikeComment(post.id, comment.id)}
@@ -723,7 +715,6 @@ export default function Community() {
                                       disabled={likingComment === comment.id}
                                     >
                                       {comment.liked ? 'Liked' : 'Like'}
-                                      {comment.likes > 0 && ` (${comment.likes.toLocaleString()})`}
                                     </button>
                                     <button 
                                       onClick={() => setActiveCommentId(activeCommentId === comment.id ? null : comment.id)}
@@ -732,6 +723,13 @@ export default function Community() {
                                       Reply
                                     </button>
                                   </div>
+                                  
+                                  {/* COMMENT LIKES COUNT - Shows total likes with heart icon */}
+                                  {comment.likes > 0 && (
+                                    <div className="ig-comment-likes-count">
+                                      ❤️ {formatLikeCount(comment.likes)} {comment.likes === 1 ? 'like' : 'likes'}
+                                    </div>
+                                  )}
 
                                   {/* Replies */}
                                   {comment.replies?.map((reply) => (
