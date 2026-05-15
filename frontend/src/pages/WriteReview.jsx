@@ -4,12 +4,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Building2, Star, Sparkles, MessageSquare, 
   ArrowRight, ArrowLeft, ShieldCheck, Trophy,
-  CheckCircle2, AlertCircle, Search, Clock, Plus,
-  Award, BookOpen, Calendar, Users, Heart, Zap, Crown, Lock, Globe, X,
+  CheckCircle2, AlertCircle, Search, Calendar,
+  Award, BookOpen, Users, Heart, Zap, Crown, Lock, Globe, X,
   GraduationCap, Briefcase, Wifi, Coffee, Dumbbell, Library, Bus, Utensils,
-  School, Computer, Mic, Flame, Trees, Car, Shield, Music, Bike,
-  Footprints, Compass, Cloud, Sun, Moon, Activity, PartyPopper,
-  TrendingUp, Smile, Frown, Meh
+  School, Computer, Mic, Flame, Trees, Car, Shield, Music,
+  Compass, Sun, Activity, TrendingUp
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -18,16 +17,14 @@ import './WriteReview.css';
 export default function WriteReview() {
   const { id: routeId } = useParams();
   const navigate = useNavigate();
-  const { token, isAuthenticated, openAuthModal } = useAuth();
+  const { token, isAuthenticated, openAuthModal, user } = useAuth();
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [allUniversities, setAllUniversities] = useState([]);
-  const [universities, setUniversities] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   
   const [formData, setFormData] = useState({
     universityId: '',
@@ -77,53 +74,78 @@ export default function WriteReview() {
   }, [isAuthenticated, token, openAuthModal]);
 
   useEffect(() => {
-    const fetchUniversities = async () => {
+    const loadData = async () => {
       try {
-        const result = await api.getUniversities({ limit: 100 });
-        console.log('Fetched universities:', result);
-        if (result.success && result.data) {
-          setAllUniversities(result.data);
-          setUniversities(result.data);
-          if (routeId) {
-            const selected = result.data.find(u => u.id === routeId || u._id === routeId);
-            if (selected) selectUniversity(selected);
-          }
-        } else {
-          console.error('Failed to fetch universities:', result.error);
+        // Get stored data from localStorage
+        const storedUniId = localStorage.getItem('reviewUniversityId');
+        const storedUniName = localStorage.getItem('reviewUniversityName');
+        const storedDepartment = localStorage.getItem('userDepartment');
+        const storedYear = localStorage.getItem('userGraduationYear');
+        const storedCollegeName = localStorage.getItem('userCollegeName');
+        
+        console.log('Stored data:', {
+          storedUniId,
+          storedUniName,
+          storedDepartment,
+          storedYear,
+          storedCollegeName
+        });
+        
+        // Set university data
+        if (storedUniId && storedUniName) {
+          setFormData(prev => ({ 
+            ...prev, 
+            universityId: storedUniId, 
+            universityName: storedUniName 
+          }));
+          setIsVerified(true);
+        } else if (storedCollegeName) {
+          setFormData(prev => ({ 
+            ...prev, 
+            universityName: storedCollegeName 
+          }));
+          setIsVerified(true);
         }
+        
+        // Set department and year
+        if (storedDepartment) {
+          setFormData(prev => ({ ...prev, program: storedDepartment }));
+          setIsVerified(true);
+        }
+        
+        if (storedYear) {
+          setFormData(prev => ({ ...prev, classYear: storedYear }));
+          setIsVerified(true);
+        }
+        
+        // Also check routeId for university detail page
+        if (routeId && !storedUniId) {
+          try {
+            const uniResult = await api.getUniversity(routeId);
+            if (uniResult.success && uniResult.data) {
+              setFormData(prev => ({ 
+                ...prev, 
+                universityId: routeId, 
+                universityName: uniResult.data.name 
+              }));
+              setIsVerified(true);
+            }
+          } catch (err) {
+            console.error('Error fetching university by routeId:', err);
+          }
+        }
+        
+        setIsDataLoaded(true);
       } catch (err) {
-        console.error('Error fetching universities:', err);
+        console.error('Error loading data:', err);
+        setIsDataLoaded(true);
       }
     };
-    fetchUniversities();
+    
+    loadData();
   }, [routeId]);
 
-  useEffect(() => {
-    if (searchTerm && !formData.universityId) {
-      const filtered = allUniversities.filter(uni => 
-        uni.name && uni.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setUniversities(filtered);
-      setShowDropdown(true);
-    } else {
-      setShowDropdown(false);
-    }
-  }, [searchTerm, allUniversities, formData.universityId]);
-
-  const selectUniversity = (uni) => {
-    setFormData(prev => ({ ...prev, universityId: uni.id || uni._id, universityName: uni.name }));
-    setSearchTerm(uni.name);
-    setShowDropdown(false);
-  };
-
-  const clearUniversity = () => {
-    setFormData(prev => ({ ...prev, universityId: '', universityName: '' }));
-    setSearchTerm('');
-    setShowDropdown(false);
-  };
-
   const handleSubmit = async () => {
-    // Validation
     if (!formData.universityId) {
       setError('Please select a university');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -144,9 +166,11 @@ export default function WriteReview() {
     setError('');
     
     try {
-      // Calculate average rating from all categories
       const ratingValues = Object.values(formData.ratings);
       const avgRating = ratingValues.reduce((a, b) => a + b, 0) / ratingValues.length;
+      
+      const prosList = formData.pros ? formData.pros.split(',').map(p => p.trim()).filter(p => p) : [];
+      const consList = formData.cons ? formData.cons.split(',').map(c => c.trim()).filter(c => c) : [];
       
       const reviewData = {
         universityId: formData.universityId,
@@ -154,21 +178,24 @@ export default function WriteReview() {
         content: formData.tips || formData.pros || 'Insightful feedback shared.',
         rating: parseFloat(avgRating.toFixed(1)),
         ratings: formData.ratings,
-        pros: formData.pros ? formData.pros.split(',').map(p => p.trim()).filter(p => p) : [],
-        cons: formData.cons ? formData.cons.split(',').map(c => c.trim()).filter(c => c) : [],
+        pros: prosList,
+        cons: consList,
         tips: formData.tips || '',
         classYear: formData.classYear.toString(),
         major: formData.program,
         projectLink: formData.projectLink || ''
       };
       
-      console.log('Submitting review data:', reviewData);
-      console.log('Using token:', token ? 'Token exists' : 'No token');
-      
       const res = await api.createReview(reviewData, token);
-      console.log('Create review response:', res);
       
       if (res.success) {
+        // Clear stored data after successful submission
+        localStorage.removeItem('userDepartment');
+        localStorage.removeItem('userGraduationYear');
+        localStorage.removeItem('userCollegeName');
+        localStorage.removeItem('reviewUniversityId');
+        localStorage.removeItem('reviewUniversityName');
+        
         alert('✓ Review submitted successfully! Thank you for sharing your experience.');
         navigate(`/university/${formData.universityId}`);
       } else {
@@ -201,145 +228,123 @@ export default function WriteReview() {
 
   const ratingSections = [
     {
-      id: 0,
-      title: 'Academics',
-      icon: GraduationCap,
-      color: 'indigo',
-      gradient: 'from-indigo-500 to-purple-500',
+      id: 0, title: 'Academics', icon: GraduationCap, color: 'indigo',
       categories: [
-        { key: 'academicRigor', label: 'Academic Rigor', icon: Flame, description: 'Challenge level & depth of curriculum' },
-        { key: 'teachingQuality', label: 'Teaching Quality', icon: Mic, description: 'Faculty expertise & engagement' },
-        { key: 'curriculumRelevance', label: 'Curriculum Relevance', icon: Compass, description: 'Industry alignment & practical value' },
-        { key: 'facultySupport', label: 'Faculty Support', icon: Users, description: 'Mentorship & guidance' }
+        { key: 'academicRigor', label: 'Academic Rigor', icon: Flame },
+        { key: 'teachingQuality', label: 'Teaching Quality', icon: Mic },
+        { key: 'curriculumRelevance', label: 'Curriculum Relevance', icon: Compass },
+        { key: 'facultySupport', label: 'Faculty Support', icon: Users }
       ]
     },
     {
-      id: 1,
-      title: 'Infrastructure',
-      icon: Building2,
-      color: 'blue',
-      gradient: 'from-blue-500 to-cyan-500',
+      id: 1, title: 'Infrastructure', icon: Building2, color: 'blue',
       categories: [
-        { key: 'campusInfrastructure', label: 'Campus Infrastructure', icon: School, description: 'Buildings, design, maintenance' },
-        { key: 'classrooms', label: 'Classrooms', icon: Computer, description: 'Smart classes, seating, AC' },
-        { key: 'laboratories', label: 'Laboratories', icon: Zap, description: 'Equipment, safety, resources' },
-        { key: 'library', label: 'Library', icon: Library, description: 'Books, journals, study space' },
-        { key: 'wifiInternet', label: 'Wi-Fi & Internet', icon: Wifi, description: 'Speed & campus connectivity' }
+        { key: 'campusInfrastructure', label: 'Campus Infrastructure', icon: School },
+        { key: 'classrooms', label: 'Classrooms', icon: Computer },
+        { key: 'laboratories', label: 'Laboratories', icon: Zap },
+        { key: 'library', label: 'Library', icon: Library },
+        { key: 'wifiInternet', label: 'Wi-Fi & Internet', icon: Wifi }
       ]
     },
     {
-      id: 2,
-      title: 'Campus Life',
-      icon: Coffee,
-      color: 'amber',
-      gradient: 'from-amber-500 to-orange-500',
+      id: 2, title: 'Campus Life', icon: Coffee, color: 'amber',
       categories: [
-        { key: 'canteenFood', label: 'Canteen & Food', icon: Utensils, description: 'Quality, variety, hygiene' },
-        { key: 'hostelFacilities', label: 'Hostel Facilities', icon: Building2, description: 'Rooms, amenities, maintenance' },
-        { key: 'cleanliness', label: 'Cleanliness', icon: Sun, description: 'Campus & hostel hygiene' },
-        { key: 'safetySecurity', label: 'Safety & Security', icon: Shield, description: 'CCTV, guards, student safety' }
+        { key: 'canteenFood', label: 'Canteen & Food', icon: Utensils },
+        { key: 'hostelFacilities', label: 'Hostel Facilities', icon: Building2 },
+        { key: 'cleanliness', label: 'Cleanliness', icon: Sun },
+        { key: 'safetySecurity', label: 'Safety & Security', icon: Shield }
       ]
     },
     {
-      id: 3,
-      title: 'Transport',
-      icon: Bus,
-      color: 'teal',
-      gradient: 'from-teal-500 to-emerald-500',
+      id: 3, title: 'Transport', icon: Bus, color: 'teal',
       categories: [
-        { key: 'transportFacilities', label: 'Transport Facilities', icon: Car, description: 'College bus services' },
-        { key: 'busAvailability', label: 'Bus Availability', icon: Bus, description: 'Frequency & routes' },
-        { key: 'locationConnectivity', label: 'Connectivity', icon: Compass, description: 'Location access & commute' }
+        { key: 'transportFacilities', label: 'Transport Facilities', icon: Car },
+        { key: 'busAvailability', label: 'Bus Availability', icon: Bus },
+        { key: 'locationConnectivity', label: 'Connectivity', icon: Compass }
       ]
     },
     {
-      id: 4,
-      title: 'Placements',
-      icon: Briefcase,
-      color: 'emerald',
-      gradient: 'from-emerald-500 to-green-500',
+      id: 4, title: 'Placements', icon: Briefcase, color: 'emerald',
       categories: [
-        { key: 'placementSupport', label: 'Placement Support', icon: Trophy, description: 'Placement cell & assistance' },
-        { key: 'internshipOpportunities', label: 'Internships', icon: Calendar, description: 'Opportunities & quality' },
-        { key: 'careerGuidance', label: 'Career Guidance', icon: Compass, description: 'Counseling & workshops' },
-        { key: 'industryExposure', label: 'Industry Exposure', icon: Globe, description: 'Visits, guest lectures' }
+        { key: 'placementSupport', label: 'Placement Support', icon: Trophy },
+        { key: 'internshipOpportunities', label: 'Internships', icon: Calendar },
+        { key: 'careerGuidance', label: 'Career Guidance', icon: Compass },
+        { key: 'industryExposure', label: 'Industry Exposure', icon: Globe }
       ]
     },
     {
-      id: 5,
-      title: 'Student Life',
-      icon: Users,
-      color: 'purple',
-      gradient: 'from-purple-500 to-pink-500',
+      id: 5, title: 'Student Life', icon: Users, color: 'purple',
       categories: [
-        { key: 'socialLife', label: 'Social Life', icon: Users, description: 'Peer interactions & community' },
-        { key: 'clubsActivities', label: 'Clubs & Activities', icon: Music, description: 'Student clubs & events' },
-        { key: 'eventsFests', label: 'Events & Fests', icon: Sparkles, description: 'Cultural fests & celebrations' },
-        { key: 'campusCulture', label: 'Campus Culture', icon: Heart, description: 'Inclusivity & vibe' }
+        { key: 'socialLife', label: 'Social Life', icon: Users },
+        { key: 'clubsActivities', label: 'Clubs & Activities', icon: Music },
+        { key: 'eventsFests', label: 'Events & Fests', icon: Sparkles },
+        { key: 'campusCulture', label: 'Campus Culture', icon: Heart }
       ]
     },
     {
-      id: 6,
-      title: 'Sports',
-      icon: Dumbbell,
-      color: 'orange',
-      gradient: 'from-orange-500 to-red-500',
+      id: 6, title: 'Sports', icon: Dumbbell, color: 'orange',
       categories: [
-        { key: 'sportsFacilities', label: 'Sports Facilities', icon: Trophy, description: 'Grounds, courts, equipment' },
-        { key: 'gymFacilities', label: 'Gym Facilities', icon: Activity, description: 'Equipment & trainers' },
-        { key: 'extracurricular', label: 'Extracurricular', icon: Users, description: 'Sports events & competitions' }
+        { key: 'sportsFacilities', label: 'Sports Facilities', icon: Trophy },
+        { key: 'gymFacilities', label: 'Gym Facilities', icon: Activity },
+        { key: 'extracurricular', label: 'Extracurricular', icon: Users }
       ]
     }
   ];
 
   const overallRating = (Object.values(formData.ratings).reduce((a, b) => a + b, 0) / Object.values(formData.ratings).length).toFixed(1);
+  const availableYears = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i).sort((a, b) => b - a);
+
+  if (!isDataLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 pb-20">
-      
-      <main className="max-w-7xl mx-auto px-6 pt-28">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Main Journey Container */}
-          <div className="lg:col-span-8">
-            <header className="mb-8">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-              >
+      <main className="max-w-4xl mx-auto px-6 pt-28">
+        <div className="grid grid-cols-1 gap-8">
+          <div>
+            <header className="mb-8 text-center">
+              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
                 <span className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider mb-4">
                   <Sparkles size={12} /> Academic Contribution
                 </span>
-                <h1 className="text-4xl md:text-5xl font-display font-black text-slate-900 tracking-tight">
+                <h1 className="text-3xl md:text-4xl font-display font-black text-slate-900 tracking-tight">
                   Share Your Story
                 </h1>
-                <p className="text-slate-500 text-base mt-2">Your insights help 12,000+ students find their path every month.</p>
+                <p className="text-slate-500 text-sm mt-2">Your insights help 12,000+ students find their path every month.</p>
               </motion.div>
             </header>
 
             {/* Stepper */}
-            <div className="mb-12">
+            <div className="mb-8 max-w-md mx-auto">
               <div className="flex justify-between relative">
-                <div className="absolute top-5 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 z-0" />
+                <div className="absolute top-4 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 z-0" />
                 <div 
-                  className="absolute top-5 left-0 h-0.5 bg-indigo-600 -translate-y-1/2 z-0 transition-all duration-500"
+                  className="absolute top-4 left-0 h-0.5 bg-indigo-600 -translate-y-1/2 z-0 transition-all duration-500"
                   style={{ width: `${((step - 1) / 3) * 100}%` }}
                 />
                 
                 {steps.map((s, i) => (
-                  <div key={i} className="relative z-10 flex flex-col items-center gap-2">
+                  <div key={i} className="relative z-10 flex flex-col items-center gap-1">
                     <motion.div 
                       animate={{ 
                         backgroundColor: step > i + 1 ? '#4f46e5' : step === i + 1 ? '#4f46e5' : '#ffffff',
                         borderColor: step >= i + 1 ? '#4f46e5' : '#e2e8f0',
                         color: step > i + 1 ? '#ffffff' : step === i + 1 ? '#4f46e5' : '#94a3b8',
-                        scale: step === i + 1 ? 1.1 : 1
+                        scale: step === i + 1 ? 1.05 : 1
                       }}
-                      className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2 bg-white shadow-md"
+                      className="w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border-2 bg-white shadow-sm"
                     >
-                      {step > i + 1 ? <CheckCircle2 size={16} className="text-white" /> : s.number}
+                      {step > i + 1 ? <CheckCircle2 size={12} className="text-white" /> : s.number}
                     </motion.div>
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${step === i + 1 ? 'text-indigo-600' : 'text-slate-400'}`}>
+                    <span className={`text-[9px] font-bold uppercase tracking-wider ${step === i + 1 ? 'text-indigo-600' : 'text-slate-400'}`}>
                       {s.title}
                     </span>
                   </div>
@@ -347,221 +352,208 @@ export default function WriteReview() {
               </div>
             </div>
 
-            {/* Error Message */}
             {error && (
-              <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3">
-                <AlertCircle size={18} className="text-rose-600" />
+              <div className="mb-6 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3">
+                <AlertCircle size={16} className="text-rose-600" />
                 <p className="text-sm text-rose-700 font-medium">{error}</p>
               </div>
             )}
 
-            {/* Step Content */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100"
+                className="bg-white rounded-xl p-6 shadow-md border border-slate-100"
               >
-                {/* Step 1: Institution */}
                 {step === 1 && (
-                  <div className="space-y-6">
-                    <div className="text-center mb-4">
-                      <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                        <Building2 size={28} className="text-indigo-600" />
+                  <div className="space-y-5">
+                    <div className="text-center mb-3">
+                      <div className="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                        <Building2 size={24} className="text-indigo-600" />
                       </div>
-                      <h2 className="text-xl font-black text-slate-900">Tell us about your institution</h2>
-                      <p className="text-sm text-slate-500 mt-1">Help us verify your academic journey</p>
+                      <h2 className="text-lg font-black text-slate-900">Tell us about your institution</h2>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {isVerified ? "✓ Verified Information (Cannot be edited)" : "Help us verify your academic journey"}
+                      </p>
                     </div>
 
-                    <div className="space-y-5">
+                    <div className="space-y-4">
+                      {/* University Selection - LOCKED */}
                       <div>
                         <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">
                           Which institution? <span className="text-rose-500">*</span>
                         </label>
                         
                         {formData.universityName ? (
-                          <div className="flex items-center justify-between p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
+                          <div className="flex items-center justify-between p-3 rounded-xl border bg-green-50 border-green-200">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                              <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center text-white font-bold text-base">
                                 {formData.universityName.charAt(0)}
                               </div>
                               <div>
-                                <div className="font-bold text-slate-800">{formData.universityName}</div>
-                                <div className="text-xs text-slate-500">Selected Institution</div>
+                                <div className="font-bold text-slate-800 text-sm">{formData.universityName}</div>
+                                <div className="text-xs text-green-600 flex items-center gap-1">
+                                  <Lock size={10} /> Verified Institution - Cannot be changed
+                                </div>
                               </div>
                             </div>
-                            <button
-                              onClick={clearUniversity}
-                              className="p-2 hover:bg-indigo-200 rounded-lg transition-colors"
-                            >
-                              <X size={16} className="text-indigo-600" />
-                            </button>
+                            <div className="text-green-600">
+                              <CheckCircle2 size={16} />
+                            </div>
                           </div>
                         ) : (
                           <div className="relative">
-                            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input 
                               type="text" 
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              onFocus={() => {
-                                if (searchTerm && !formData.universityId) {
-                                  setShowDropdown(true);
+                              placeholder="Search university name..."
+                              className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              value={formData.universityName}
+                              onChange={(e) => {
+                                if (!isVerified) {
+                                  setFormData(prev => ({ ...prev, universityName: e.target.value }));
                                 }
                               }}
-                              placeholder="Search university name..."
-                              className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                              disabled={isVerified}
                             />
-                            <AnimatePresence>
-                              {showDropdown && universities.length > 0 && (
-                                <motion.div 
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: 10 }}
-                                  className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 z-50 max-h-64 overflow-y-auto"
-                                >
-                                  {universities.map(uni => (
-                                    <button 
-                                      key={uni.id} 
-                                      onClick={() => selectUniversity(uni)}
-                                      className="w-full flex items-center gap-3 p-3 hover:bg-indigo-50 transition-all text-left border-b border-slate-50 last:border-0"
-                                    >
-                                      <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-black text-sm">
-                                        {uni.name?.charAt(0) || 'U'}
-                                      </div>
-                                      <div className="flex-1">
-                                        <div className="font-bold text-slate-800 text-sm">{uni.name}</div>
-                                        <div className="text-xs text-slate-400">{uni.city || 'India'}</div>
-                                      </div>
-                                      <ArrowRight size={14} className="text-slate-300" />
-                                    </button>
-                                  ))}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
                           </div>
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                          <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">
-                            Your Program <span className="text-rose-500">*</span>
-                          </label>
-                          <div className="relative">
-                            <BookOpen size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <input 
-                              type="text" 
-                              placeholder="e.g., Computer Science Engineering" 
-                              className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              value={formData.program}
-                              onChange={(e) => setFormData({...formData, program: e.target.value})}
-                            />
-                          </div>
+                      {/* Program / Department - LOCKED */}
+                      <div>
+                        <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">
+                          Your Program / Department <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <BookOpen size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input 
+                            type="text" 
+                            placeholder="e.g., Computer Science Engineering" 
+                            className={`w-full pl-9 pr-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isVerified ? 'bg-green-50 border border-green-200 text-slate-700' : 'bg-slate-50 border border-slate-200'}`}
+                            value={formData.program}
+                            onChange={(e) => setFormData({...formData, program: e.target.value})}
+                            disabled={isVerified}
+                            readOnly={isVerified}
+                          />
                         </div>
-                        <div>
-                          <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">
-                            Graduation Year <span className="text-rose-500">*</span>
-                          </label>
-                          <div className="relative">
-                            <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <select
-                              value={formData.classYear}
-                              onChange={(e) => setFormData({...formData, classYear: e.target.value})}
-                              className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
-                            >
-                              <option value="">Select Year</option>
-                              {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map(year => (
-                                <option key={year} value={year}>{year}</option>
-                              ))}
-                            </select>
-                          </div>
+                        {isVerified && (
+                          <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                            <Lock size={10} /> Verified from your profile - Cannot be changed
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Passed Out Year - LOCKED */}
+                      <div>
+                        <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">
+                          Passed Out Year <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <select
+                            value={formData.classYear}
+                            onChange={(e) => setFormData({...formData, classYear: e.target.value})}
+                            disabled={isVerified}
+                            className={`w-full pl-9 pr-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none ${isVerified ? 'bg-green-50 border border-green-200 text-slate-700' : 'bg-slate-50 border border-slate-200'}`}
+                          >
+                            <option value="">Select Year</option>
+                            {availableYears.map(year => (
+                              <option key={year} value={year}>{year}</option>
+                            ))}
+                          </select>
                         </div>
+                        {isVerified && (
+                          <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                            <Lock size={10} /> Verified from your profile - Cannot be changed
+                          </p>
+                        )}
                       </div>
                     </div>
+
+                    {!formData.universityName && !isVerified && (
+                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle size={16} className="text-amber-600" />
+                          <p className="text-xs text-amber-700">
+                            Please search and select your college to continue.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Step 2: Experience - With step 0.1 for ratings */}
+                {/* Step 2, 3, 4 remain the same as before */}
                 {step === 2 && (
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     <div className="text-center">
-                      <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <TrendingUp size={32} className="text-white" />
+                      <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-md">
+                        <TrendingUp size={28} className="text-white" />
                       </div>
-                      <h2 className="text-2xl font-black text-slate-900">How was your experience?</h2>
-                      <p className="text-slate-500 text-sm mt-1">Rate different aspects of your college journey</p>
+                      <h2 className="text-xl font-black text-slate-900">How was your experience?</h2>
+                      <p className="text-xs text-slate-500 mt-1">Rate different aspects of your college journey</p>
                       
-                      <div className="inline-flex items-center gap-3 mt-4 px-4 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-full">
-                        <span className="text-sm font-medium text-slate-600">Overall Rating:</span>
+                      <div className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-full">
+                        <span className="text-xs font-medium text-slate-600">Overall:</span>
                         <div className="flex items-center gap-1">
-                          <span className="text-2xl font-black text-indigo-600">{overallRating}</span>
-                          <span className="text-sm text-slate-400">/5.0</span>
+                          <span className="text-xl font-black text-indigo-600">{overallRating}</span>
+                          <span className="text-xs text-slate-400">/5.0</span>
                         </div>
-                        <div className="w-px h-6 bg-slate-200"></div>
+                        <div className="w-px h-4 bg-slate-200"></div>
                         <div className="flex items-center gap-1">
-                          <span className="text-lg">{getRatingEmoji(parseFloat(overallRating)).emoji}</span>
-                          <span className={`text-sm font-bold ${getRatingEmoji(parseFloat(overallRating)).color}`}>
+                          <span className="text-sm">{getRatingEmoji(parseFloat(overallRating)).emoji}</span>
+                          <span className={`text-xs font-bold ${getRatingEmoji(parseFloat(overallRating)).color}`}>
                             {getRatingEmoji(parseFloat(overallRating)).text}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Professional Section Tabs with Icons */}
-                    <div className="section-tabs-container">
-                      <div className="section-tabs-wrapper">
-                        {ratingSections.map((section) => (
-                          <button
-                            key={section.id}
-                            onClick={() => setActiveSection(section.id)}
-                            className={`section-tab-btn ${activeSection === section.id ? 'active' : ''}`}
-                          >
-                            <div className="tab-icon" style={{ backgroundColor: activeSection === section.id ? `${section.color === 'indigo' ? '#6366f1' : section.color === 'blue' ? '#3b82f6' : section.color === 'amber' ? '#f59e0b' : section.color === 'teal' ? '#14b8a6' : section.color === 'emerald' ? '#10b981' : section.color === 'purple' ? '#a855f7' : '#f97316'}15` : '#f1f5f9' }}>
-                              <section.icon size={18} style={{ color: activeSection === section.id ? (section.color === 'indigo' ? '#6366f1' : section.color === 'blue' ? '#3b82f6' : section.color === 'amber' ? '#f59e0b' : section.color === 'teal' ? '#14b8a6' : section.color === 'emerald' ? '#10b981' : section.color === 'purple' ? '#a855f7' : '#f97316') : '#94a3b8' }} />
-                            </div>
-                            <span className="tab-label">{section.title}</span>
-                            {activeSection === section.id && <div className="tab-indicator" style={{ backgroundColor: section.color === 'indigo' ? '#6366f1' : section.color === 'blue' ? '#3b82f6' : section.color === 'amber' ? '#f59e0b' : section.color === 'teal' ? '#14b8a6' : section.color === 'emerald' ? '#10b981' : section.color === 'purple' ? '#a855f7' : '#f97316' }} />}
-                          </button>
-                        ))}
-                      </div>
+                    <div className="flex flex-wrap gap-1 justify-center">
+                      {ratingSections.map((section) => (
+                        <button
+                          key={section.id}
+                          onClick={() => setActiveSection(section.id)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                            activeSection === section.id 
+                              ? `bg-${section.color}-600 text-white shadow-sm` 
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          {section.title}
+                        </button>
+                      ))}
                     </div>
 
-                    {/* Active Section Content */}
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={activeSection}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
-                        className="space-y-4"
+                        className="space-y-3 max-h-96 overflow-y-auto pr-2"
                       >
                         {ratingSections[activeSection].categories.map((cat) => {
                           const ratingValue = formData.ratings[cat.key];
                           const ratingInfo = getRatingEmoji(ratingValue);
                           
                           return (
-                            <div key={cat.key} className="group">
+                            <div key={cat.key} className="p-3 bg-slate-50 rounded-lg">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
-                                  <div className={`w-8 h-8 rounded-lg bg-${ratingSections[activeSection].color}-100 flex items-center justify-center`}>
-                                    <cat.icon size={14} className={`text-${ratingSections[activeSection].color}-600`} />
-                                  </div>
-                                  <div>
-                                    <p className="font-bold text-slate-800 text-sm">{cat.label}</p>
-                                    <p className="text-[10px] text-slate-400">{cat.description}</p>
-                                  </div>
+                                  <cat.icon size={14} className={`text-${ratingSections[activeSection].color}-600`} />
+                                  <span className="font-semibold text-slate-800 text-sm">{cat.label}</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg">{ratingInfo.emoji}</span>
-                                  <span className={`font-black text-lg ${ratingInfo.color}`}>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-sm">{ratingInfo.emoji}</span>
+                                  <span className={`font-bold text-sm ${ratingInfo.color}`}>
                                     {ratingValue.toFixed(1)}
                                   </span>
                                 </div>
                               </div>
-                              
                               <input 
                                 type="range" 
                                 min="1" 
@@ -572,7 +564,7 @@ export default function WriteReview() {
                                   ...formData, 
                                   ratings: {...formData.ratings, [cat.key]: parseFloat(e.target.value)}
                                 })}
-                                className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                                className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
                                 style={{
                                   background: `linear-gradient(to right, 
                                     ${ratingSections[activeSection].color === 'indigo' ? '#6366f1' : 
@@ -585,39 +577,23 @@ export default function WriteReview() {
                                     #e2e8f0 ${((ratingValue - 1) / 4) * 100}%)`
                                 }}
                               />
-                              <div className="flex justify-between mt-2 px-1">
-                                {[1, 2, 3, 4, 5].map(val => (
-                                  <span 
-                                    key={val} 
-                                    onClick={() => setFormData({
-                                      ...formData, 
-                                      ratings: {...formData.ratings, [cat.key]: val}
-                                    })}
-                                    className={`text-[9px] font-medium cursor-pointer transition-all ${
-                                      ratingValue >= val && ratingValue < val + 0.5 ? `text-${ratingSections[activeSection].color}-600 font-bold scale-110` : 'text-slate-400'
-                                    } hover:text-${ratingSections[activeSection].color}-500`}
-                                  >
-                                    {val}
-                                  </span>
-                                ))}
-                              </div>
                             </div>
                           );
                         })}
                       </motion.div>
                     </AnimatePresence>
 
-                    <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                       <div className="text-xs text-slate-400">
-                        Section {activeSection + 1} of {ratingSections.length}
+                        {activeSection + 1} of {ratingSections.length}
                       </div>
                       <div className="flex gap-1">
                         {ratingSections.map((_, idx) => (
                           <button
                             key={idx}
                             onClick={() => setActiveSection(idx)}
-                            className={`h-1.5 rounded-full transition-all ${
-                              idx === activeSection ? 'w-6 bg-indigo-600' : 'w-2 bg-slate-300 hover:bg-slate-400'
+                            className={`h-1 rounded-full transition-all ${
+                              idx === activeSection ? 'w-4 bg-indigo-600' : 'w-1.5 bg-slate-300'
                             }`}
                           />
                         ))}
@@ -626,55 +602,52 @@ export default function WriteReview() {
                   </div>
                 )}
 
-                {/* Step 3: Insights */}
                 {step === 3 && (
-                  <div className="space-y-6">
-                    <div className="text-center mb-4">
-                      <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                        <MessageSquare size={28} className="text-purple-600" />
+                  <div className="space-y-4">
+                    <div className="text-center mb-2">
+                      <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                        <MessageSquare size={24} className="text-purple-600" />
                       </div>
-                      <h2 className="text-xl font-black text-slate-900">Share Your Insights</h2>
-                      <p className="text-sm text-slate-500 mt-1">Tell future students what they should know</p>
+                      <h2 className="text-lg font-black text-slate-900">Share Your Insights</h2>
+                      <p className="text-xs text-slate-500 mt-1">Tell future students what they should know</p>
                     </div>
 
-                    <div className="space-y-5">
+                    <div className="space-y-4">
                       <div>
                         <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">
                           Headline for your story
                         </label>
                         <input 
                           type="text" 
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          placeholder="e.g., 'Best decision of my life!' or 'Great academics but average placements'"
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          placeholder="e.g., 'Best decision of my life!'"
                           value={formData.title}
                           onChange={(e) => setFormData({...formData, title: e.target.value})}
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="flex items-center gap-2 text-xs font-black text-emerald-700 uppercase tracking-wider mb-2">
-                            <span>👍</span> What Went Well (Pros)
+                            <span>👍</span> Pros
                           </label>
                           <textarea 
-                            className="w-full p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm font-medium min-h-[140px] focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            placeholder="e.g., Excellent faculty, Great infrastructure, Strong placements"
+                            className="w-full p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            placeholder="e.g., Excellent faculty, Great infrastructure"
                             value={formData.pros}
                             onChange={(e) => setFormData({...formData, pros: e.target.value})}
                           />
-                          <p className="text-[10px] text-slate-400 mt-1">Separate multiple points with commas</p>
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-xs font-black text-rose-700 uppercase tracking-wider mb-2">
-                            <span>👎</span> What Needs Improvement (Cons)
+                            <span>👎</span> Cons
                           </label>
                           <textarea 
-                            className="w-full p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm font-medium min-h-[140px] focus:outline-none focus:ring-2 focus:ring-rose-500"
-                            placeholder="e.g., Poor hostel food, Limited sports facilities"
+                            className="w-full p-3 bg-rose-50 border border-rose-200 rounded-lg text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-rose-500"
+                            placeholder="e.g., Poor hostel food"
                             value={formData.cons}
                             onChange={(e) => setFormData({...formData, cons: e.target.value})}
                           />
-                          <p className="text-[10px] text-slate-400 mt-1">Separate multiple points with commas</p>
                         </div>
                       </div>
 
@@ -683,8 +656,8 @@ export default function WriteReview() {
                           Tips for Future Students
                         </label>
                         <textarea 
-                          className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium min-h-[100px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          placeholder="What advice would you give to incoming students?"
+                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          placeholder="What advice would you give?"
                           value={formData.tips}
                           onChange={(e) => setFormData({...formData, tips: e.target.value})}
                         />
@@ -693,33 +666,32 @@ export default function WriteReview() {
                   </div>
                 )}
 
-                {/* Step 4: Legacy */}
                 {step === 4 && (
-                  <div className="space-y-6 text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                      <Sparkles size={36} className="text-white" />
+                  <div className="space-y-4 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto shadow-md">
+                      <Sparkles size={28} className="text-white" />
                     </div>
-                    <h2 className="text-2xl font-black text-slate-900">Ready to Publish?</h2>
-                    <p className="text-slate-500 max-w-sm mx-auto">
-                      Your contribution will help thousands of students make informed decisions about their future.
+                    <h2 className="text-xl font-black text-slate-900">Ready to Publish?</h2>
+                    <p className="text-slate-500 text-sm max-w-sm mx-auto">
+                      Your contribution will help thousands of students make informed decisions.
                     </p>
                     
-                    <div className="bg-indigo-50 border border-indigo-100 p-5 rounded-xl text-left max-w-md mx-auto">
-                      <div className="flex items-start gap-3">
-                        <ShieldCheck size={18} className="text-indigo-600 shrink-0 mt-0.5" />
+                    <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-lg text-left max-w-md mx-auto">
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck size={16} className="text-indigo-600 shrink-0 mt-0.5" />
                         <p className="text-xs text-indigo-900 font-medium">
-                          Please verify that all information is accurate. Reviews are vetted by our community guardians.
+                          Please verify that all information is accurate.
                         </p>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 max-w-md mx-auto mt-4">
-                      <div className="bg-slate-50 p-3 rounded-xl text-center">
-                        <div className="text-xl font-black text-indigo-600">{overallRating}</div>
-                        <div className="text-[10px] text-slate-500 font-medium">Overall Rating</div>
+                    <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto mt-2">
+                      <div className="bg-slate-50 p-2 rounded-lg text-center">
+                        <div className="text-lg font-black text-indigo-600">{overallRating}</div>
+                        <div className="text-[10px] text-slate-500 font-medium">Rating</div>
                       </div>
-                      <div className="bg-slate-50 p-3 rounded-xl text-center">
-                        <div className="text-xl font-black text-emerald-600">
+                      <div className="bg-slate-50 p-2 rounded-lg text-center">
+                        <div className="text-lg font-black text-emerald-600 truncate">
                           {formData.universityName ? formData.universityName.split(' ')[0] : 'N/A'}
                         </div>
                         <div className="text-[10px] text-slate-500 font-medium">Institution</div>
@@ -730,93 +702,31 @@ export default function WriteReview() {
               </motion.div>
             </AnimatePresence>
 
-            {/* Navigation Buttons */}
-            <div className="flex items-center justify-between mt-8">
+            <div className="flex items-center justify-between mt-6">
               <button 
                 onClick={() => setStep(s => s - 1)}
                 disabled={step === 1}
-                className="flex items-center gap-2 px-6 py-3 font-bold text-slate-500 hover:text-slate-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-5 py-2 font-semibold text-slate-500 hover:text-slate-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-sm"
               >
-                <ArrowLeft size={16} /> Back
+                <ArrowLeft size={14} /> Back
               </button>
               
               <button 
                 onClick={() => step === 4 ? handleSubmit() : setStep(s => s + 1)}
-                disabled={loading}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading || (!formData.universityName && step === 1)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-md disabled:opacity-50 text-sm"
               >
                 {loading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
                   <>
                     {step === 4 ? 'Publish Review' : 'Continue'}
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight size={14} />
                   </>
                 )}
               </button>
             </div>
           </div>
-
-          {/* Sidebar - Right Side */}
-          <aside className="lg:col-span-4 space-y-6">
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-600/20 rounded-full blur-3xl" />
-              <div className="relative z-10">
-                <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center mb-4">
-                  <Award size={24} className="text-amber-400" />
-                </div>
-                <h3 className="text-xl font-black mb-2">Community Reward</h3>
-                <p className="text-slate-300 text-sm mb-4">Earn 50 Atelier Credits instantly upon publication.</p>
-                <div className="space-y-2">
-                  {[
-                    { icon: Lock, text: 'Portfolio Review Unlocks' },
-                    { icon: Users, text: 'Direct Mentor Access' },
-                    { icon: Globe, text: 'Premium Resource Library' }
-                  ].map((benefit, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-indigo-300 font-medium">
-                      <benefit.icon size={12} />
-                      <span>{benefit.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <ShieldCheck size={18} className="text-indigo-600" />
-                <h3 className="font-black text-slate-800 text-sm uppercase tracking-wider">Integrity Checklist</h3>
-              </div>
-              <div className="space-y-3">
-                {[
-                  'Honest, unbiased feedback',
-                  'Specific department details',
-                  'Professional language',
-                  'Actionable advice for juniors'
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <CheckCircle2 size={14} className="text-emerald-500" />
-                    <span className="text-sm text-slate-600">{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-indigo-50 rounded-2xl p-5 border border-indigo-100">
-              <div className="flex items-center gap-2 mb-3">
-                <Zap size={16} className="text-indigo-600" />
-                <span className="text-xs font-black text-indigo-700 uppercase tracking-wider">Pro Tip</span>
-              </div>
-              <p className="text-sm text-indigo-800 font-medium">
-                The most helpful reviews are specific, balanced, and include actionable advice for future students.
-              </p>
-            </div>
-          </aside>
-
         </div>
       </main>
     </div>

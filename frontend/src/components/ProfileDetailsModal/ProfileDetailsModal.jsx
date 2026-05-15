@@ -8,6 +8,7 @@ const ProfileDetailsModal = ({ isOpen, onClose, onSuccess }) => {
   const { user, updateUserProfile, showToast } = useAuth();
   const [loading, setLoading] = useState(false);
   const [colleges, setColleges] = useState([]);
+  const [selectedUniversityId, setSelectedUniversityId] = useState(null);
   const [formData, setFormData] = useState({
     name: user?.name || '',
     collegeName: '',
@@ -18,7 +19,6 @@ const ProfileDetailsModal = ({ isOpen, onClose, onSuccess }) => {
 
   const [errors, setErrors] = useState({});
 
-  // Fetch colleges for datalist
   useEffect(() => {
     const fetchColleges = async () => {
       try {
@@ -32,6 +32,27 @@ const ProfileDetailsModal = ({ isOpen, onClose, onSuccess }) => {
     };
     fetchColleges();
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      const uniId = localStorage.getItem('reviewUniversityId');
+      if (uniId) {
+        setSelectedUniversityId(uniId);
+      }
+      
+      if (user) {
+        if (user.name && !formData.name) {
+          setFormData(prev => ({ ...prev, name: user.name }));
+        }
+        if (user.major && !formData.department) {
+          setFormData(prev => ({ ...prev, department: user.major }));
+        }
+        if (user.graduationYear && !formData.graduationYear) {
+          setFormData(prev => ({ ...prev, graduationYear: user.graduationYear.toString() }));
+        }
+      }
+    }
+  }, [isOpen, user]);
 
   if (!isOpen) return null;
 
@@ -55,6 +76,36 @@ const ProfileDetailsModal = ({ isOpen, onClose, onSuccess }) => {
     return newErrors;
   };
 
+  const findOrCreateUniversity = async (collegeName) => {
+    try {
+      const result = await api.getUniversities({ search: collegeName, limit: 5 });
+      if (result.success && result.data && result.data.length > 0) {
+        const found = result.data.find(u => 
+          u.name.toLowerCase() === collegeName.toLowerCase() ||
+          u.name.toLowerCase().includes(collegeName.toLowerCase())
+        );
+        if (found) return found.id;
+      }
+      
+      const createResult = await api.createUniversity({
+        name: collegeName,
+        location: 'Not specified',
+        city: 'Not specified',
+        state: 'Tamil Nadu',
+        description: 'Added by user during review'
+      }, localStorage.getItem('token'));
+      
+      if (createResult.success && createResult.data) {
+        return createResult.data.id;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error finding/creating university:', error);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -67,8 +118,14 @@ const ProfileDetailsModal = ({ isOpen, onClose, onSuccess }) => {
     setLoading(true);
 
     try {
+      let universityId = selectedUniversityId;
+      if (!universityId && formData.collegeName) {
+        universityId = await findOrCreateUniversity(formData.collegeName);
+      }
+
       const profileData = {
         name: formData.name,
+        universityId: universityId,
         collegeName: formData.collegeName,
         department: formData.department,
         graduationYear: parseInt(formData.graduationYear),
@@ -78,14 +135,25 @@ const ProfileDetailsModal = ({ isOpen, onClose, onSuccess }) => {
       const result = await updateUserProfile(profileData);
       
       if (result.success) {
+        // STORE ALL DATA IN LOCALSTORAGE
+        if (universityId) {
+          localStorage.setItem('reviewUniversityId', universityId);
+          localStorage.setItem('reviewUniversityName', formData.collegeName);
+        }
+        localStorage.setItem('userDepartment', formData.department);
+        localStorage.setItem('userGraduationYear', formData.graduationYear);
+        localStorage.setItem('userCollegeName', formData.collegeName);
+        
         if (showToast) {
           showToast('Your profile has been verified!', 'success');
         } else {
           alert('Your profile has been verified!');
         }
+        
         if (onSuccess) {
-          onSuccess(profileData);
+          onSuccess(universityId);
         }
+        
         onClose();
       } else {
         if (showToast) {

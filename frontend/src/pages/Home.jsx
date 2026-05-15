@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
@@ -16,11 +11,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import CollegeCard from '../components/CollegeCard/CollegeCard.jsx';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-
+import ProfileDetailsModal from '../components/ProfileDetailsModal/ProfileDetailsModal';
 
 // ==================== FILTER DATA ====================
 
-// Academic Streams
 const academicStreams = [
   { id: 'science_tech', name: 'Science & Technology', icon: '🔬' },
   { id: 'engineering', name: 'Engineering', icon: '🏗️' },
@@ -31,7 +25,6 @@ const academicStreams = [
   { id: 'professional', name: 'Professional Studies', icon: '💼' }
 ];
 
-// Academic Levels
 const academicLevels = [
   { id: 'diploma', name: 'Diploma', icon: '📜' },
   { id: 'ug', name: 'UG (Undergraduate)', icon: '🎓' },
@@ -39,7 +32,6 @@ const academicLevels = [
   { id: 'phd', name: 'PhD / Doctorate', icon: '🔬' }
 ];
 
-// Departments by Stream
 const departmentsByStream = {
   science_tech: [
     'Computer Science', 'Information Technology', 'Artificial Intelligence', 
@@ -68,7 +60,6 @@ const departmentsByStream = {
   ]
 };
 
-// Courses by Department and Level
 const coursesByDeptAndLevel = {
   'Computer Science': {
     ug: ['B.Sc Computer Science', 'BCA', 'B.Tech Computer Science Engineering'],
@@ -217,7 +208,41 @@ const getCollegeImage = (college) => {
   if (college.imageUrl && college.imageUrl !== college.logoUrl) {
     return college.imageUrl;
   }
+  if (college.image && college.image !== college.logoUrl) {
+    return college.image;
+  }
+  if (college.logoUrl && college.logoUrl.startsWith('http')) {
+    return college.logoUrl;
+  }
+  if (college.coverImage && college.coverImage.startsWith('http')) {
+    return college.coverImage;
+  }
   return null;
+};
+
+const getFallbackImage = (collegeName, category) => {
+  const name = (collegeName || '').toLowerCase();
+  
+  if (name.includes('iit') || name.includes('nit')) {
+    return 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop';
+  }
+  if (name.includes('anna university')) {
+    return 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?q=80&w=2070&auto=format&fit=crop';
+  }
+  if (name.includes('vit') || name.includes('vellore')) {
+    return 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2069&auto=format&fit=crop';
+  }
+  if (name.includes('srm')) {
+    return 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?q=80&w=2070&auto=format&fit=crop';
+  }
+  if (name.includes('loyola')) {
+    return 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop';
+  }
+  if (name.includes('psg')) {
+    return 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2069&auto=format&fit=crop';
+  }
+  
+  return 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2069&auto=format&fit=crop';
 };
 
 const tamilNaduLocations = [
@@ -228,18 +253,51 @@ const tamilNaduLocations = [
   'Kumbakonam', 'Tiruvannamalai', 'Villupuram', 'Cuddalore', 'Namakkal'
 ];
 
-// Fallback college data
 const fallbackColleges = [
-  { id: 1, name: "IIT Madras", location: "Chennai, India", city: "Chennai", rating: 4.8, category: "IIT" },
-  { id: 2, name: "Anna University", location: "Chennai, India", city: "Chennai", rating: 4.5, category: "State University" },
-  { id: 3, name: "Loyola College", location: "Chennai, India", city: "Chennai", rating: 4.6, category: "Autonomous" },
-  { id: 4, name: "PSG Tech", location: "Coimbatore, India", city: "Coimbatore", rating: 4.4, category: "Autonomous" },
-  { id: 5, name: "VIT Vellore", location: "Vellore, India", city: "Vellore", rating: 4.5, category: "Deemed" },
-  { id: 6, name: "SRM University", location: "Chennai, India", city: "Chennai", rating: 4.3, category: "Deemed" }
+  { 
+    id: 1, name: "IIT Madras", location: "Chennai, India", city: "Chennai", 
+    rating: 4.8, category: "IIT", 
+    image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop",
+    studentCount: 8500, tuitionFee: "₹2,20,000"
+  },
+  { 
+    id: 2, name: "Anna University", location: "Chennai, India", city: "Chennai", 
+    rating: 4.5, category: "State University",
+    image: "https://images.unsplash.com/photo-1541339907198-e08756ebafe3?q=80&w=2070&auto=format&fit=crop",
+    studentCount: 18000, tuitionFee: "₹85,000"
+  },
+  { 
+    id: 3, name: "Loyola College", location: "Chennai, India", city: "Chennai", 
+    rating: 4.6, category: "Autonomous",
+    image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop",
+    studentCount: 5000, tuitionFee: "₹60,000"
+  },
+  { 
+    id: 4, name: "PSG Tech", location: "Coimbatore, India", city: "Coimbatore", 
+    rating: 4.4, category: "Autonomous",
+    image: "https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2069&auto=format&fit=crop",
+    studentCount: 7500, tuitionFee: "₹1,50,000"
+  },
+  { 
+    id: 5, name: "VIT Vellore", location: "Vellore, India", city: "Vellore", 
+    rating: 4.5, category: "Deemed",
+    image: "https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2069&auto=format&fit=crop",
+    studentCount: 25000, tuitionFee: "₹1,95,000"
+  },
+  { 
+    id: 6, name: "SRM University", location: "Chennai, India", city: "Chennai", 
+    rating: 4.3, category: "Deemed",
+    image: "https://images.unsplash.com/photo-1541339907198-e08756ebafe3?q=80&w=2070&auto=format&fit=crop",
+    studentCount: 22000, tuitionFee: "₹2,10,000"
+  }
 ];
 
 export default function Home() {
-  const { requireAuth } = useAuth();
+  const { requireAuth, isAuthenticated, openAuthModal } = useAuth();
+  const navigate = useNavigate();
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedCollegeId, setSelectedCollegeId] = useState(null);
+  
   const [activeFilters, setActiveFilters] = useState({
     stream: '',
     level: '',
@@ -256,6 +314,7 @@ export default function Home() {
   const [trendingColleges, setTrendingColleges] = useState([]);
   const [allColleges, setAllColleges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState(false);
   const [filterOptions, setFilterOptions] = useState({
     academicStreams: [],
     academicLevels: [],
@@ -273,7 +332,6 @@ export default function Home() {
     rating: false
   });
   const searchRef = useRef(null);
-  const navigate = useNavigate();
 
   const availableDepartments = activeFilters.stream ? (departmentsByStream[activeFilters.stream] || []) : [];
   const availableCourses = (() => {
@@ -324,7 +382,6 @@ export default function Home() {
       activeFilters.transport !== 'All' || activeFilters.rating !== 'Any Rating';
   };
 
-  // Get selected filters as array for display
   const getSelectedFiltersArray = () => {
     const selected = [];
     if (activeFilters.stream) {
@@ -347,7 +404,6 @@ export default function Home() {
     return selected;
   };
 
-  // Remove individual filter
   const removeFilter = (filterType) => {
     if (filterType === 'stream') {
       setActiveFilters(prev => ({ ...prev, stream: '', department: '', course: '' }));
@@ -364,6 +420,45 @@ export default function Home() {
 
   const selectedFilters = getSelectedFiltersArray();
 
+  // Handle Write a Review click from Home page
+  const handleWriteReviewClick = () => {
+  if (!isAuthenticated) {
+    openAuthModal();
+    return;
+  }
+  
+  // Clear any existing review data to prevent stale data
+  localStorage.removeItem('reviewUniversityId');
+  localStorage.removeItem('reviewUniversityName');
+  localStorage.removeItem('userDepartment');
+  localStorage.removeItem('userGraduationYear');
+  localStorage.removeItem('userCollegeName');
+
+    
+    // If college is selected, store its info
+    if (collegeId && collegeName) {
+      localStorage.setItem('reviewUniversityId', collegeId);
+      localStorage.setItem('reviewUniversityName', collegeName);
+    } else {
+      // Clear any existing review data if no college selected
+      localStorage.removeItem('reviewUniversityId');
+      localStorage.removeItem('reviewUniversityName');
+    }
+    
+    setSelectedCollegeId(collegeId);
+    setShowProfileModal(true);
+  };
+
+  // Handle profile modal success
+  const handleProfileSuccess = () => {
+  const universityId = localStorage.getItem('reviewUniversityId');
+  if (universityId) {
+    navigate(`/write-review/${universityId}`);
+  } else {
+    navigate('/write-review');
+  }
+};
+
   // Fetch trending colleges and filter options
   useEffect(() => {
     const fetchData = async () => {
@@ -373,11 +468,10 @@ export default function Home() {
           api.getFilterOptions()
         ]);
 
-        // Handle trending colleges
         if (trendingResult.success && Array.isArray(trendingResult.data) && trendingResult.data.length > 0) {
           const formatted = trendingResult.data.map((college) => ({
             ...college,
-            image: getCollegeImage(college),
+            image: getCollegeImage(college) || getFallbackImage(college.name, college.category),
             badge: college.category || 'PREMIER',
             students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
             acceptanceRate: college.acceptanceRate || 'N/A',
@@ -387,20 +481,21 @@ export default function Home() {
           }));
           setTrendingColleges(formatted);
           setAllColleges(formatted);
+          setApiError(false);
         } else {
           const formatted = fallbackColleges.map((college) => ({
             ...college,
             badge: college.category,
-            students: 'N/A',
+            students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
             acceptanceRate: 'N/A',
-            netPrice: 'N/A',
+            netPrice: college.tuitionFee || 'N/A',
             satRange: 'N/A'
           }));
           setTrendingColleges(formatted);
           setAllColleges(formatted);
+          setApiError(true);
         }
 
-        // Handle filter options
         if (filterResult.success && filterResult.data) {
           setFilterOptions(filterResult.data);
         }
@@ -409,13 +504,14 @@ export default function Home() {
         const formatted = fallbackColleges.map((college) => ({
           ...college,
           badge: college.category,
-          students: 'N/A',
+          students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
           acceptanceRate: 'N/A',
-          netPrice: 'N/A',
+          netPrice: college.tuitionFee || 'N/A',
           satRange: 'N/A'
         }));
         setTrendingColleges(formatted);
         setAllColleges(formatted);
+        setApiError(true);
       } finally {
         setLoading(false);
       }
@@ -429,22 +525,19 @@ export default function Home() {
       try {
         const params = {};
 
-        // Map frontend filter names to backend API parameters
         if (activeFilters.stream) params.academicStream = activeFilters.stream;
         if (activeFilters.level) params.academicLevel = activeFilters.level;
         if (activeFilters.department) params.department = activeFilters.department;
         if (activeFilters.location !== 'All Regions') params.city = activeFilters.location;
         if (activeFilters.rating !== 'Any Rating') params.minRating = activeFilters.rating.replace('+', '');
         if (activeFilters.transport === 'Available') params.hostelAvailable = 'true';
-
-        // Add search if present
         if (searchQuery.trim()) params.search = searchQuery.trim();
 
         const result = await api.getUniversities(params);
         if (result.success && Array.isArray(result.data)) {
           const formatted = result.data.map((college) => ({
             ...college,
-            image: getCollegeImage(college),
+            image: getCollegeImage(college) || getFallbackImage(college.name, college.category),
             badge: college.category || 'PREMIER',
             students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
             acceptanceRate: college.acceptanceRate || 'N/A',
@@ -459,16 +552,13 @@ export default function Home() {
       }
     };
 
-    // Only apply filters if we have active filters or search
     if (hasActiveFilters() || searchQuery.trim()) {
       applyFilters();
-    } else {
-      // Reset to trending colleges if no filters
+    } else if (trendingColleges.length > 0) {
       setAllColleges(trendingColleges);
     }
   }, [activeFilters, searchQuery, trendingColleges]);
 
-  // Enhanced search function - searches by name, location, city
   const handleSearchChange = async (query) => {
     setSearchQuery(query);
 
@@ -487,7 +577,7 @@ export default function Home() {
             city: college.city,
             rating: college.rating,
             category: college.category,
-            image: getCollegeImage(college)
+            image: getCollegeImage(college) || getFallbackImage(college.name, college.category)
           }));
         }
       } catch (err) {
@@ -496,15 +586,12 @@ export default function Home() {
 
       setSuggestions(suggestionsResult);
       setShowSuggestions(suggestionsResult.length > 0);
-      // Note: allColleges will be updated by the useEffect when searchQuery changes
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
-      // Note: allColleges will be reset by the useEffect when searchQuery becomes empty
     }
   };
 
-  // Handle search submit - navigate to colleges page
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
       requireAuth(() => {
@@ -529,7 +616,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
 
-      {/* Selected Filters Display - Horizontal Chips (Added without changing existing UI) */}
+      {/* Selected Filters Display */}
       {selectedFilters.length > 0 && (
         <div className="bg-white border-b border-slate-100 py-3 px-6">
           <div className="max-w-7xl mx-auto">
@@ -562,7 +649,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Hero Section with Centered Search Bar - YOUR EXISTING HERO SECTION (UNCHANGED) */}
+      {/* Hero Section */}
       <section className="relative min-h-[65vh] flex items-start justify-center pt-20 pb-16 overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50">
         <div className="absolute inset-0 z-0 bg-gradient-to-br from-indigo-50/80 via-white/90 to-purple-50/80" />
 
@@ -585,7 +672,6 @@ export default function Home() {
               Authentic reviews, real projects, and honest insights shared by students, for students. Find your perfect fit based on merit and student life.
             </p>
 
-            {/* Centered Search Bar */}
             <div className="relative max-w-2xl mx-auto z-30" ref={searchRef}>
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 z-10" size={18} />
@@ -601,7 +687,6 @@ export default function Home() {
                 />
               </div>
 
-              {/* Search Suggestions Dropdown */}
               <AnimatePresence>
                 {showSuggestions && suggestions.length > 0 && (
                   <motion.div
@@ -654,7 +739,6 @@ export default function Home() {
               </AnimatePresence>
             </div>
 
-            {/* Popular Search Tags */}
             <div className="flex flex-wrap justify-center gap-2 mt-5">
               {['Engineering', 'Management', 'Chennai', 'Coimbatore', 'IIT Madras', 'Anna University'].map((tag) => (
                 <button
@@ -676,14 +760,35 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Action Cards */}
+      {/* Action Cards with Write a Review */}
       <section className="relative z-20 pb-12 pt-2">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
-              { title: 'Write a Review', desc: 'Share your authentic campus journey', icon: Edit3, color: 'from-indigo-500 to-indigo-600', link: '/write-review', stats: '2,345+ reviews' },
-              { title: 'Explore Reviews', desc: 'Browse student reviews from real colleges', icon: GraduationCap, color: 'from-emerald-500 to-emerald-600', link: '/reviews', stats: '2,345+ reviews' },
-              { title: 'Find Community', desc: 'Connect with industry experts', icon: Users, color: 'from-amber-500 to-amber-600', link: '/community', stats: '450+ mentors' }
+              { 
+                title: 'Write a Review', 
+                desc: 'Share your authentic campus journey', 
+                icon: Edit3, 
+                color: 'from-indigo-500 to-indigo-600', 
+                action: () => handleWriteReviewClick(),
+                stats: '2,345+ reviews' 
+              },
+              { 
+                title: 'Explore Reviews', 
+                desc: 'Browse student reviews from real colleges', 
+                icon: GraduationCap, 
+                color: 'from-emerald-500 to-emerald-600', 
+                action: () => navigate('/reviews'),
+                stats: '2,345+ reviews' 
+              },
+              { 
+                title: 'Find Community', 
+                desc: 'Connect with industry experts', 
+                icon: Users, 
+                color: 'from-amber-500 to-amber-600', 
+                action: () => navigate('/community'),
+                stats: '450+ mentors' 
+              }
             ].map((card, i) => (
               <motion.div 
                 key={i}
@@ -691,7 +796,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1, duration: 0.5 }}
                 whileHover={{ y: -4 }}
-                onClick={() => navigate(card.link)}
+                onClick={card.action}
                 className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer border border-slate-100 overflow-hidden"
               >
                 <div className="p-4">
@@ -938,7 +1043,9 @@ export default function Home() {
                 <>
                   {searchQuery && <div className="mb-3 text-xs text-slate-500">Found {allColleges.length} result{allColleges.length !== 1 ? 's' : ''} for "{searchQuery}"</div>}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {allColleges.map((college, i) => (<CollegeCard key={college.id} college={college} index={i} />))}
+                    {allColleges.map((college, i) => (
+                      <CollegeCard key={college.id} college={college} index={i} />
+                    ))}
                   </div>
                   {allColleges.length === 0 && (
                     <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-slate-200">
@@ -968,7 +1075,9 @@ export default function Home() {
                   {college.image ? (
                     <img src={college.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={college.name} />
                   ) : (
-                    <div className="w-full h-full bg-slate-200" />
+                    <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+                      <School size={40} className="text-indigo-300" />
+                    </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                   <div className="absolute top-2 left-2"><span className="bg-white/95 backdrop-blur px-2 py-0.5 rounded-md text-[9px] font-black uppercase text-slate-800">#{i + 1}</span></div>
@@ -1000,6 +1109,17 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Profile Details Modal */}
+      <ProfileDetailsModal
+        isOpen={showProfileModal}
+        onClose={() => {
+          setShowProfileModal(false);
+          setSelectedCollegeId(null);
+          localStorage.removeItem('reviewUniversityId');
+          localStorage.removeItem('reviewUniversityName');
+        }}
+        onSuccess={handleProfileSuccess}
+      />
     </div>
   );
 }
