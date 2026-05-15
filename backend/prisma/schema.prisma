@@ -34,6 +34,9 @@ model User {
   mentor         Mentor?
   reviews        Review[]
   university     University?  @relation(fields: [universityId], references: [id])
+  
+  discussionLikes DiscussionLike[]
+  commentLikes    CommentLike[]
 
   @@index([email])
   @@index([role])
@@ -44,21 +47,15 @@ model User {
 
 model University {
   id              String    @id @default(cuid())
-  
-  // 1. Basic Information
   name            String    @unique
   shortName       String?   @map("short_name")
   established     String?
   type            String?
   category        String?
   naacGrade       String?   @map("naac_grade")
-  
-  // 2. Branding & Media
   logoUrl         String?   @map("logo_url")
   campusVideoUrl  String?   @map("campus_video_url")
   images          String[]  @default([])
-  
-  // 3. Academic Information
   academicStreams String[]  @default([]) @map("academic_streams")
   academicLevels  String[]  @default([]) @map("academic_levels")
   departments     String[]  @default([])
@@ -68,22 +65,16 @@ model University {
   approvedBy      String?   @map("approved_by")
   mission         String?
   vision          String?
-  
-  // 4. Facilities & Campus
   hostelAvailable   Boolean   @default(false) @map("hostel_available")
   hostelType        String?   @map("hostel_type")
   transportAvailable Boolean  @default(false) @map("transport_available")
   campusFacilities  String[]  @default([]) @map("campus_facilities")
-  
-  // 5. Location Information
   country         String?   @default("India")
   state           String?
   city            String?
   pincode         String?
   location        String?
   googleMapsLink  String?   @map("google_maps_link")
-  
-  // 6. Placement & Statistics
   rating          Float     @default(0)
   studentCount    Int?      @map("student_count")
   facultyCount    Int?      @map("faculty_count")
@@ -91,13 +82,9 @@ model University {
   highestPackage  String?   @map("highest_package")
   averagePackage  String?   @map("average_package")
   topRecruiters   String?   @map("top_recruiters")
-  
-  // 7. Fees Structure
   tuitionFee          String?   @map("tuition_fee")
   hostelFee           String?   @map("hostel_fee")
   scholarshipAvailable Boolean   @default(false) @map("scholarship_available")
-  
-  // 8. Contact & Social Links
   website         String?
   phone           String?
   email           String?
@@ -105,24 +92,17 @@ model University {
   linkedin        String?
   facebook        String?
   youtube         String?
-  
-  // 9. Description & SEO
   description     String?
   keywords        String?
-  
-  // Legacy fields
   followers       Int       @default(0)
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   isActive        Boolean   @default(true) @map("is_active")
   isFeatured      Boolean   @default(false) @map("is_featured")
   imageUrl        String?   @map("image_url")
-  
-  // Soft delete
   isTrashed       Boolean   @default(false) @map("is_trashed")
   trashedAt       DateTime? @map("trashed_at")
   
-  // Relations
   reviews         Review[]
   users           User[]
   universityCourses UniversityCourse[]
@@ -229,11 +209,27 @@ model Discussion {
   
   isTrashed Boolean   @default(false) @map("is_trashed")
   trashedAt DateTime? @map("trashed_at")
+  
+  likesRelation DiscussionLike[]
 
   @@index([authorId])
   @@index([createdAt])
   @@index([isTrashed])
   @@map("discussions")
+}
+
+model DiscussionLike {
+  id           String     @id @default(cuid())
+  discussionId String     @map("discussion_id")
+  userId       String     @map("user_id")
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@unique([discussionId, userId])
+  @@index([discussionId])
+  @@index([userId])
+  @@map("discussion_likes")
 }
 
 model Comment {
@@ -242,17 +238,37 @@ model Comment {
   likes        Int        @default(0)
   authorId     String     @map("author_id")
   discussionId String     @map("discussion_id")
+  parentId     String?    @map("parent_id")  // ✅ ADDED: For replies
   createdAt    DateTime   @default(now()) @map("created_at")
   author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  parent       Comment?   @relation("CommentReplies", fields: [parentId], references: [id])
+  replies      Comment[]  @relation("CommentReplies")
   
   isTrashed    Boolean    @default(false) @map("is_trashed")
   trashedAt    DateTime?  @map("trashed_at")
+  
+  likesRelation CommentLike[]
 
   @@index([authorId])
   @@index([discussionId])
+  @@index([parentId])  // ✅ ADDED: Index for parentId
   @@index([isTrashed])
   @@map("comments")
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  commentId String   @map("comment_id")
+  userId    String   @map("user_id")
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+  @@map("comment_likes")
 }
 
 model Mentor {
