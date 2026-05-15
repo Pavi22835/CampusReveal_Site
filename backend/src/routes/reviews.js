@@ -17,26 +17,46 @@ const {
 } = require('../controllers/reviewController');
 const { protect, adminOnly } = require('../middleware/auth');
 
-// Public routes
+// ==================== PUBLIC ROUTES ====================
+// Get all reviews (public)
 router.get('/all', getAllReviewsPublic);
+
+// Get reviews by university
 router.get('/university/:universityId', getReviewsByUniversity);
 
-// Admin only routes - Trash / Soft Delete operations
-router.get('/trashed', protect, adminOnly, getTrashedReviews);
-router.patch('/:id/soft-delete', protect, adminOnly, softDeleteReview);
-router.patch('/:id/restore', protect, adminOnly, restoreReview);
-router.delete('/:id/permanent', protect, adminOnly, permanentDeleteReview);
-
+// Get single review by ID
 router.get('/:id', getReviewById);
 
-// Protected routes (user must be logged in)
+// ==================== PROTECTED ROUTES ====================
+// Get current user's reviews
 router.get('/user/me', protect, getMyReviews);
+
+// Create a new review
 router.post('/', protect, createReview);
+
+// Like a review
 router.put('/:id/like', protect, likeReview);
 
-// Admin only routes - CRUD operations
+// ==================== ADMIN ONLY ROUTES ====================
+// Get all reviews (admin)
 router.get('/', protect, adminOnly, getAllReviews);
+
+// Get trashed reviews
+router.get('/trashed', protect, adminOnly, getTrashedReviews);
+
+// Soft delete review (move to trash)
+router.patch('/:id/soft-delete', protect, adminOnly, softDeleteReview);
+
+// Restore review from trash
+router.patch('/:id/restore', protect, adminOnly, restoreReview);
+
+// Permanently delete review
+router.delete('/:id/permanent', protect, adminOnly, permanentDeleteReview);
+
+// Update review
 router.put('/:id', protect, adminOnly, updateReview);
+
+// Hard delete review
 router.delete('/:id', protect, adminOnly, deleteReview);
 
 module.exports = router;

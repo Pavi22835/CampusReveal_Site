@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
+const { protect, adminOnly } = require('../middleware/auth');
 
 const prisma = new PrismaClient();
 
@@ -41,11 +42,9 @@ const getUniversities = async (req, res) => {
       academicStream,
       academicLevel,
       department,
-      genderType,
       scholarship,
       hostelAvailable,
       minRating,
-      minTransportScore,
       city,
       state
     } = req.query;
@@ -59,7 +58,7 @@ const getUniversities = async (req, res) => {
       if (searchWhere) where = { ...where, ...searchWhere };
     }
     
-    // Apply advanced filters
+    // Apply advanced filters - FIXED: use plural field names from schema
     if (academicStream) where.academicStreams = { has: academicStream };
     if (academicLevel) where.academicLevels = { has: academicLevel };
     if (department) where.departments = { has: department };
@@ -103,9 +102,6 @@ const getUniversities = async (req, res) => {
           category: true,
           type: true,
           established: true,
-          isTrashed: true,
-          createdAt: true,
-          updatedAt: true,
           _count: {
             select: { reviews: true }
           }
@@ -175,8 +171,6 @@ const getTrashedUniversities = async (req, res) => {
           description: true,
           isTrashed: true,
           trashedAt: true,
-          createdAt: true,
-          updatedAt: true,
           _count: {
             select: { reviews: true }
           }
@@ -316,6 +310,10 @@ const permanentDeleteUniversity = async (req, res) => {
       });
     }
     
+    // Delete related records first
+    await prisma.review.deleteMany({ where: { universityId: id } });
+    await prisma.universityCourse.deleteMany({ where: { universityId: id } });
+    
     await prisma.university.delete({
       where: { id }
     });
@@ -339,12 +337,22 @@ const permanentDeleteUniversity = async (req, res) => {
 const getUniversityById = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Validate ID format
+    if (!id || id.length < 5) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid university ID format' 
+      });
+    }
+    
     console.log('Fetching university with ID:', id);
     
     const university = await prisma.university.findUnique({
       where: { id: id },
       include: {
         reviews: {
+          where: { isTrashed: false },
           take: 10,
           orderBy: { createdAt: 'desc' },
           include: {
@@ -454,7 +462,6 @@ const searchUniversities = async (req, res) => {
         rating: true,
         studentCount: true,
         description: true,
-        academicStream: true,
         _count: {
           select: { reviews: true }
         }
@@ -505,15 +512,15 @@ const searchUniversitiesAdvanced = async (req, res) => {
     }
 
     if (degree) {
-      filters.push({ academicLevel: degree });
+      filters.push({ academicLevels: { has: degree } });
     }
 
     if (stream) {
-      filters.push({ academicStream: stream });
+      filters.push({ academicStreams: { has: stream } });
     }
 
     if (level) {
-      filters.push({ academicLevel: level });
+      filters.push({ academicLevels: { has: level } });
     }
 
     if (types.length) {
@@ -542,8 +549,8 @@ const searchUniversitiesAdvanced = async (req, res) => {
         type: true,
         category: true,
         established: true,
-        academicStream: true,
-        academicLevel: true,
+        academicStreams: true,
+        academicLevels: true,
         _count: {
           select: { reviews: true }
         }
@@ -565,7 +572,6 @@ const searchUniversitiesAdvanced = async (req, res) => {
 // @access  Public
 const getFilterOptions = async (req, res) => {
   try {
-    // Get all universities to extract unique values from array fields
     const universities = await prisma.university.findMany({
       where: { isTrashed: false },
       select: {
@@ -577,7 +583,6 @@ const getFilterOptions = async (req, res) => {
       }
     });
 
-    // Extract unique values from arrays
     const academicStreams = [...new Set(universities.flatMap(u => u.academicStreams || []))];
     const academicLevels = [...new Set(universities.flatMap(u => u.academicLevels || []))];
     const departments = [...new Set(universities.flatMap(u => u.departments || []))];
@@ -611,18 +616,7 @@ const createUniversity = async (req, res) => {
   try {
     console.log('\n=== CREATE UNIVERSITY ===');
     
-    let body = req.body;
-    
-    if (typeof body === 'string') {
-      try {
-        body = JSON.parse(body);
-        console.log('Parsed body from string');
-      } catch (e) {
-        console.log('Failed to parse body string');
-      }
-    }
-    
-    console.log('Request body received');
+    const body = req.body;
     
     const name = body?.name;
     
@@ -644,13 +638,13 @@ const createUniversity = async (req, res) => {
       });
     }
     
-    // Prepare data with all fields
     const universityData = {
       name: name.trim(),
       shortName: body.shortName || null,
       established: body.established || null,
       type: body.type || null,
       category: body.category || null,
+      naacGrade: body.naacGrade || null,
       logoUrl: body.logoUrl || null,
       imageUrl: body.imageUrl || body.logoUrl || null,
       images: Array.isArray(body.images) ? body.images : [],
@@ -659,38 +653,31 @@ const createUniversity = async (req, res) => {
       state: body.state || 'Tamil Nadu',
       pincode: body.pincode || null,
       googleMapsLink: body.googleMapsLink || null,
-      accreditation: body.accreditation || null,
       affiliation: body.affiliation || null,
       mission: body.mission || null,
       vision: body.vision || null,
-      academicStream: body.academicStream || null,
-      academicLevel: body.academicLevel || null,
-      department: body.department || null,
+      academicStreams: Array.isArray(body.academicStreams) ? body.academicStreams : [],
+      academicLevels: Array.isArray(body.academicLevels) ? body.academicLevels : [],
+      departments: Array.isArray(body.departments) ? body.departments : [],
       offeredCourses: Array.isArray(body.offeredCourses) ? body.offeredCourses : [],
-      entranceExam: body.entranceExam || null,
+      campusFacilities: Array.isArray(body.campusFacilities) ? body.campusFacilities : [],
       rating: parseFloat(body.rating) || 0,
       studentCount: parseInt(body.studentCount) || 0,
       facultyCount: body.facultyCount ? parseInt(body.facultyCount) : null,
       placementRate: body.placementRate || null,
-      medianSalary: body.medianSalary || null,
-      transportScore: body.transportScore ? parseInt(body.transportScore) : 50,
-      walkScore: body.walkScore ? parseInt(body.walkScore) : null,
-      walkDescription: body.walkDescription || null,
-      transit: body.transit || null,
-      transitDetail: body.transitDetail || null,
-      scholarship: body.scholarship === true || body.scholarship === 'true',
-      hostelAvailable: body.hostelAvailable === true || body.hostelAvailable === 'true',
-      genderType: body.genderType || 'CO_ED',
-      religiousAffiliation: body.religiousAffiliation || null,
+      highestPackage: body.highestPackage || null,
+      averagePackage: body.averagePackage || null,
       tuitionFee: body.tuitionFee || null,
       hostelFee: body.hostelFee || null,
+      hostelAvailable: body.hostelAvailable === true || body.hostelAvailable === 'true',
+      transportAvailable: body.transportAvailable === true || body.transportAvailable === 'true',
+      scholarshipAvailable: body.scholarshipAvailable === true || body.scholarshipAvailable === 'true',
       description: body.description || null,
       website: body.website || null,
       phone: body.phone || null,
       email: body.email || null,
       instagram: body.instagram || null,
       linkedin: body.linkedin || null,
-      twitter: body.twitter || null,
       isActive: body.isActive !== undefined ? body.isActive : true,
       isFeatured: body.isFeatured !== undefined ? body.isFeatured : false
     };
@@ -725,8 +712,6 @@ const updateUniversity = async (req, res) => {
     const { id } = req.params;
     const body = req.body;
     
-    console.log('Updating university with ID:', id);
-    
     const existing = await prisma.university.findUnique({
       where: { id }
     });
@@ -744,6 +729,7 @@ const updateUniversity = async (req, res) => {
       established: body.established || null,
       type: body.type || null,
       category: body.category || null,
+      naacGrade: body.naacGrade || null,
       logoUrl: body.logoUrl || null,
       imageUrl: body.imageUrl || body.logoUrl || null,
       images: Array.isArray(body.images) ? body.images : existing.images,
@@ -752,38 +738,31 @@ const updateUniversity = async (req, res) => {
       state: body.state || 'Tamil Nadu',
       pincode: body.pincode || null,
       googleMapsLink: body.googleMapsLink || null,
-      accreditation: body.accreditation || null,
       affiliation: body.affiliation || null,
       mission: body.mission || null,
       vision: body.vision || null,
-      academicStream: body.academicStream || null,
-      academicLevel: body.academicLevel || null,
-      department: body.department || null,
+      academicStreams: Array.isArray(body.academicStreams) ? body.academicStreams : existing.academicStreams,
+      academicLevels: Array.isArray(body.academicLevels) ? body.academicLevels : existing.academicLevels,
+      departments: Array.isArray(body.departments) ? body.departments : existing.departments,
       offeredCourses: Array.isArray(body.offeredCourses) ? body.offeredCourses : existing.offeredCourses,
-      entranceExam: body.entranceExam || null,
+      campusFacilities: Array.isArray(body.campusFacilities) ? body.campusFacilities : existing.campusFacilities,
       rating: body.rating !== undefined ? parseFloat(body.rating) : existing.rating,
       studentCount: body.studentCount !== undefined ? parseInt(body.studentCount) : existing.studentCount,
       facultyCount: body.facultyCount ? parseInt(body.facultyCount) : existing.facultyCount,
       placementRate: body.placementRate || null,
-      medianSalary: body.medianSalary || null,
-      transportScore: body.transportScore ? parseInt(body.transportScore) : existing.transportScore,
-      walkScore: body.walkScore ? parseInt(body.walkScore) : existing.walkScore,
-      walkDescription: body.walkDescription || null,
-      transit: body.transit || null,
-      transitDetail: body.transitDetail || null,
-      scholarship: body.scholarship !== undefined ? body.scholarship : existing.scholarship,
-      hostelAvailable: body.hostelAvailable !== undefined ? body.hostelAvailable : existing.hostelAvailable,
-      genderType: body.genderType || existing.genderType,
-      religiousAffiliation: body.religiousAffiliation || null,
+      highestPackage: body.highestPackage || null,
+      averagePackage: body.averagePackage || null,
       tuitionFee: body.tuitionFee || null,
       hostelFee: body.hostelFee || null,
+      hostelAvailable: body.hostelAvailable !== undefined ? body.hostelAvailable : existing.hostelAvailable,
+      transportAvailable: body.transportAvailable !== undefined ? body.transportAvailable : existing.transportAvailable,
+      scholarshipAvailable: body.scholarshipAvailable !== undefined ? body.scholarshipAvailable : existing.scholarshipAvailable,
       description: body.description || null,
       website: body.website || null,
       phone: body.phone || null,
       email: body.email || null,
       instagram: body.instagram || null,
       linkedin: body.linkedin || null,
-      twitter: body.twitter || null,
       isActive: body.isActive !== undefined ? body.isActive : existing.isActive,
       isFeatured: body.isFeatured !== undefined ? body.isFeatured : existing.isFeatured
     };
@@ -846,6 +825,8 @@ const deleteUniversity = async (req, res) => {
 
 // ==================== ROUTES ====================
 
+// ✅ FIXED: Added protect, adminOnly to admin routes
+
 // Public routes (order matters - specific routes first)
 router.get('/filters/options', getFilterOptions);
 router.get('/search/advanced', searchUniversitiesAdvanced);
@@ -853,18 +834,18 @@ router.get('/search', searchUniversities);
 router.get('/trending', getTrendingUniversities);
 router.get('/', getUniversities);
 
-// Trash routes (Admin only)
-router.get('/trashed', getTrashedUniversities);
-router.patch('/:id/soft-delete', softDeleteUniversity);
-router.patch('/:id/restore', restoreUniversity);
-router.delete('/:id/permanent', permanentDeleteUniversity);
+// ✅ Admin only - Trash routes
+router.get('/trashed', protect, adminOnly, getTrashedUniversities);
+router.patch('/:id/soft-delete', protect, adminOnly, softDeleteUniversity);
+router.patch('/:id/restore', protect, adminOnly, restoreUniversity);
+router.delete('/:id/permanent', protect, adminOnly, permanentDeleteUniversity);
 
 // Get single university by ID (must be after specific routes)
 router.get('/:id', getUniversityById);
 
-// CRUD routes (Admin only)
-router.post('/', createUniversity);
-router.put('/:id', updateUniversity);
-router.delete('/:id', deleteUniversity);
+// ✅ Admin only - CRUD routes
+router.post('/', protect, adminOnly, createUniversity);
+router.put('/:id', protect, adminOnly, updateUniversity);
+router.delete('/:id', protect, adminOnly, deleteUniversity);
 
 module.exports = router;

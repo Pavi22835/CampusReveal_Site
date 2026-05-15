@@ -3,30 +3,92 @@ const router = express.Router();
 const { prisma } = require('../prisma');
 const { protect, adminOnly } = require('../middleware/auth');
 
+// ==================== UNIVERSITY ROUTES ====================
+
 // @desc    Get all universities (Admin)
 // @route   GET /api/admin/universities
 // @access  Private/Admin
-router.get('/universities', async (req, res) => {
+router.get('/universities', protect, adminOnly, async (req, res) => {
   try {
     const universities = await prisma.university.findMany({
-      where: { isTrashed: false },  // Exclude trashed universities
+      where: { isTrashed: false },
       orderBy: { createdAt: 'desc' }
     });
     res.json({ success: true, data: universities });
   } catch (error) {
+    console.error('Get universities error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
+// @desc    Bulk add universities (Admin)
+// @route   POST /api/admin/universities/bulk
+// @access  Private/Admin
+router.post('/universities/bulk', protect, adminOnly, async (req, res) => {
+  try {
+    const { universities } = req.body;
+    
+    if (!Array.isArray(universities)) {
+      return res.status(400).json({ success: false, message: 'universities must be an array' });
+    }
+    
+    const results = [];
+    const errors = [];
+    
+    for (const uni of universities) {
+      try {
+        const existing = await prisma.university.findUnique({
+          where: { name: uni.name }
+        });
+        
+        if (!existing) {
+          const created = await prisma.university.create({
+            data: {
+              name: uni.name,
+              location: uni.location,
+              city: uni.city || "",
+              state: uni.state || "Tamil Nadu",
+              rating: uni.rating || 0,
+              studentCount: uni.studentCount || 0,
+              description: uni.description || ""
+            }
+          });
+          results.push(created);
+        } else {
+          errors.push({ name: uni.name, error: 'Already exists' });
+        }
+      } catch (err) {
+        errors.push({ name: uni.name, error: err.message });
+      }
+    }
+    
+    res.json({
+      success: true,
+      data: results,
+      errors: errors.length > 0 ? errors : undefined,
+      message: `Added ${results.length} new universities! ${errors.length} failed.`
+    });
+  } catch (error) {
+    console.error('Bulk add error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ==================== STATS ROUTES ====================
+
 // @desc    Get admin dashboard stats
 // @route   GET /api/admin/stats
 // @access  Private/Admin
-router.get('/stats', async (req, res) => {
+router.get('/stats', protect, adminOnly, async (req, res) => {
   try {
-    const totalUniversities = await prisma.university.count({ where: { isTrashed: false } });
-    const totalReviews = await prisma.review.count({ where: { isTrashed: false } });
-    const totalDiscussions = await prisma.discussion.count();
-    const totalUsers = await prisma.user.count({ where: { isTrashed: false } });
+    const [totalUniversities, totalReviews, totalDiscussions, totalUsers, pendingReviews] = await Promise.all([
+      prisma.university.count({ where: { isTrashed: false } }),
+      prisma.review.count({ where: { isTrashed: false } }),
+      prisma.discussion.count(),
+      prisma.user.count({ where: { isTrashed: false } }),
+      prisma.review.count({ where: { isTrashed: false, verified: false } }) // Assuming pending = not verified
+    ]);
+    
     const aggregateRating = await prisma.university.aggregate({ 
       where: { isTrashed: false },
       _avg: { rating: true } 
@@ -42,8 +104,8 @@ router.get('/stats', async (req, res) => {
         reviews: totalReviews,
         discussions: totalDiscussions,
         users: totalUsers,
-        pendingReviews: 0,
-        avgRating,
+        pendingReviews: pendingReviews || 0,
+        avgRating: parseFloat(avgRating.toFixed(1)),
         totalRatings: totalReviews,
         avgReviewsPerUni
       }
@@ -54,13 +116,15 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// ==================== USER MANAGEMENT ROUTES ====================
+
 // @desc    Get all users (Admin) - Excludes trashed users
 // @route   GET /api/admin/users
 // @access  Private/Admin
 router.get('/users', protect, adminOnly, async (req, res) => {
   try {
     const users = await prisma.user.findMany({
-      where: { isTrashed: false },  // Exclude trashed users
+      where: { isTrashed: false },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -72,7 +136,8 @@ router.get('/users', protect, adminOnly, async (req, res) => {
         credits: true,
         avatar: true,
         universityId: true,
-        createdAt: true
+        createdAt: true,
+        updatedAt: true
       }
     });
 
@@ -102,6 +167,7 @@ router.get('/users/trashed', protect, adminOnly, async (req, res) => {
         avatar: true,
         universityId: true,
         createdAt: true,
+        updatedAt: true,
         isTrashed: true,
         trashedAt: true
       }
@@ -148,7 +214,6 @@ router.get('/users/:id', protect, adminOnly, async (req, res) => {
         _count: {
           select: {
             reviews: true,
-            projects: true,
             discussions: true,
             comments: true
           }
@@ -175,10 +240,28 @@ router.put('/users/:id', protect, adminOnly, async (req, res) => {
     const { id } = req.params;
     const { name, email, role, major, graduationYear, credits } = req.body;
 
+    // Check if user exists
     const userExists = await prisma.user.findUnique({ where: { id } });
 
     if (!userExists) {
       return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Validate graduation year
+    if (graduationYear !== undefined) {
+      const year = parseInt(graduationYear);
+      const currentYear = new Date().getFullYear();
+      if (year < 1950 || year > currentYear + 10) {
+        return res.status(400).json({ success: false, message: 'Invalid graduation year' });
+      }
+    }
+
+    // Validate email format if provided
+    if (email !== undefined) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ success: false, message: 'Invalid email format' });
+      }
     }
 
     const updatedUser = await prisma.user.update({
@@ -309,10 +392,12 @@ router.delete('/users/:id/permanent', protect, adminOnly, async (req, res) => {
 
     // Delete all related records first
     await prisma.review.deleteMany({ where: { userId: id } });
-    await prisma.project.deleteMany({ where: { authorId: id } });
     await prisma.discussion.deleteMany({ where: { authorId: id } });
     await prisma.comment.deleteMany({ where: { authorId: id } });
     await prisma.mentor.deleteMany({ where: { userId: id } });
+    await prisma.discussionLike.deleteMany({ where: { userId: id } });
+    await prisma.commentLike.deleteMany({ where: { userId: id } });
+    await prisma.otp.deleteMany({ where: { phone: user.phone || '' } });
 
     // Then delete the user
     await prisma.user.delete({ where: { id } });
@@ -350,46 +435,6 @@ router.delete('/users/:id', protect, adminOnly, async (req, res) => {
     res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
     console.error('Delete user error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// @desc    Bulk add universities (Admin)
-// @route   POST /api/admin/universities/bulk
-// @access  Private/Admin
-router.post('/universities/bulk', async (req, res) => {
-  try {
-    const { universities } = req.body;
-    
-    const results = [];
-    for (const uni of universities) {
-      const existing = await prisma.university.findUnique({
-        where: { name: uni.name }
-      });
-      
-      if (!existing) {
-        const created = await prisma.university.create({
-          data: {
-            name: uni.name,
-            location: uni.location,
-            city: uni.city || "",
-            state: uni.state || "Tamil Nadu",
-            rating: uni.rating || 0,
-            studentCount: uni.studentCount || 0,
-            description: uni.description || ""
-          }
-        });
-        results.push(created);
-      }
-    }
-    
-    res.json({
-      success: true,
-      data: results,
-      message: `Added ${results.length} new universities!`
-    });
-  } catch (error) {
-    console.error('Bulk add error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
