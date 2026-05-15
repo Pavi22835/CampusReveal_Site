@@ -1,4 +1,4 @@
-/* collegeCard.css - Compact & Uniform Card Design */
+/* collegeCard.css - Compact & Uniform Card Design (No Stats, No EST) */
 
 .college-card-premium {
   background: white;
@@ -11,8 +11,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 280px;
-  max-height: 320px;
+  min-height: 250px;
+  max-height: 280px;
 }
 
 .college-card-premium:hover {
@@ -41,20 +41,36 @@
   transform: scale(1.08);
 }
 
-/* Badge styles - Smaller and compact */
+.card-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+}
+
+.placeholder-icon {
+  color: #818cf8;
+  opacity: 0.6;
+}
+
+/* Badge styles - PREMIER / UNIVERSITY / HERITAGE */
 .card-badge {
   position: absolute;
   top: 12px;
   left: 12px;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(4px);
 }
 
@@ -119,76 +135,34 @@
   opacity: 0.7;
 }
 
-/* Stats Row - Compact grid layout */
-.card-stats {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 8px 12px;
-  margin: 4px 0;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-}
-
-.stat-icon {
-  color: #6366f1;
-  opacity: 0.7;
-}
-
-.stat-item div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-label {
-  font-size: 8px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #94a3b8;
-  letter-spacing: 0.5px;
-}
-
-.stat-value {
-  font-size: 11px;
-  font-weight: 800;
-  color: #1e293b;
-}
-
+/* Stats Row - REMOVED - Hidden */
+.card-stats,
+.card-stats-three,
+.stat-three-item,
+.stat-three-value,
+.stat-three-label,
+.stat-divider-vertical,
+.stat-item,
+.stat-icon,
+.stat-label,
+.stat-value,
 .stat-divider {
-  width: 1px;
-  height: 24px;
-  background: #e2e8f0;
+  display: none;
 }
 
-/* Footer - Compact */
+/* Footer - Compact (No EST) */
 .card-footer {
   margin-top: auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding-top: 8px;
   border-top: 1px solid #f1f5f9;
 }
 
+/* EST removed - footer-meta hidden */
 .footer-meta {
-  display: flex;
-  flex-direction: column;
-}
-
-.meta-label {
-  font-size: 8px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #94a3b8;
-  letter-spacing: 0.5px;
+  display: none;
 }
 
 .card-action-btn {
@@ -225,24 +199,26 @@
   .card-title {
     font-size: 14px;
   }
-  
-  .card-stats {
-    padding: 6px 10px;
-  }
-  
-  .stat-value {
-    font-size: 10px;
-  }
 }
 
 @media (max-width: 640px) {
   .college-card-premium {
-    min-height: 260px;
-    max-height: 300px;
+    min-height: 230px;
+    max-height: 260px;
   }
   
   .card-image-wrapper {
     height: 110px;
+  }
+  
+  .card-badge {
+    padding: 3px 8px;
+    font-size: 8px;
+  }
+  
+  .card-rating {
+    padding: 3px 8px;
+    font-size: 10px;
   }
 }
 
@@ -261,4 +237,20 @@
 
 .card-footer {
   margin-top: auto;
+}
+
+/* Animation for cards */
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.college-card-premium {
+  animation: cardFadeIn 0.3s ease-out forwards;
 }
