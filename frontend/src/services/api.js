@@ -93,20 +93,19 @@ export const api = {
 
   // ================= USER PROFILE DETAILS =================
   updateUserProfile: (profileData, token) =>
-    request("/auth/update-profile", {
+    request("/auth/profile", {
       method: "PUT",
       headers: authHeader(token),
       body: JSON.stringify(profileData),
     }),
 
   getUserProfile: (token) =>
-    request("/auth/profile", {
+    request("/auth/me", {
       headers: authHeader(token),
     }),
 
   // ================= UNIVERSITIES =================
 
-  // NEW: Get universities with advanced filters (academicStream, level, department, etc.)
   getFilteredUniversities: async (filters = {}) => {
     try {
       const queryParams = {
@@ -115,7 +114,6 @@ export const api = {
         ...filters
       };
       
-      // Remove undefined/null values
       Object.keys(queryParams).forEach(key => {
         if (queryParams[key] === undefined || queryParams[key] === null || queryParams[key] === '') {
           delete queryParams[key];
@@ -157,7 +155,6 @@ export const api = {
     }
   },
 
-  // NEW: Get filter options for dropdowns (academicStreams, academicLevels, departments, genderTypes)
   getFilterOptions: async () => {
     try {
       const res = await fetch(`${API_URL}/universities/filters/options`, {
@@ -228,7 +225,6 @@ export const api = {
     }
   },
 
-  // NEW: Get ALL universities (handles pagination automatically)
   getAllUniversities: async () => {
     try {
       console.log("📡 Fetching ALL universities...");
@@ -303,7 +299,6 @@ export const api = {
     }
   },
 
-  // CREATE UNIVERSITY with all 9 sections
   createUniversity: async (data, token) => {
     try {
       console.log("📡 POST → /universities (Creating new university)");
@@ -341,7 +336,6 @@ export const api = {
     }
   },
 
-  // UPDATE UNIVERSITY with all 9 sections
   updateUniversity: async (id, data, token) => {
     try {
       console.log(`📡 PUT → /universities/${id} (Updating university)`);
@@ -585,7 +579,7 @@ export const api = {
   // ================= PROJECTS =================
 
   getProjects: (universityId, domain) => {
-    const params = new SearchParams();
+    const params = new URLSearchParams();
     params.append('limit', 1000);
 
     if (universityId) params.append("universityId", universityId);
@@ -687,6 +681,20 @@ export const api = {
       method: "POST",
       headers: authHeader(token),
       body: JSON.stringify({ content }),
+    }),
+
+  // ✅ ADDED: Like a discussion
+  likeDiscussion: (id, token) =>
+    request(`/community/discussions/${id}/like`, {
+      method: "PUT",
+      headers: authHeader(token),
+    }),
+
+  // ✅ ADDED: Like a comment
+  likeComment: (id, token) =>
+    request(`/community/comments/${id}/like`, {
+      method: "PUT",
+      headers: authHeader(token),
     }),
 
   getTrashedDiscussions: (token) =>
@@ -828,6 +836,8 @@ export const {
   getDiscussionById,
   createDiscussion,
   addComment,
+  likeDiscussion,
+  likeComment,
   getTrashedDiscussions,
   softDeleteDiscussion,
   restoreDiscussion,

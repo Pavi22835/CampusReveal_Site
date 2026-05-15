@@ -23,6 +23,12 @@ import Community from './pages/Community';
 import Colleges from './pages/Colleges';
 import Reviews from './pages/Reviews';
 
+// Static Pages
+import About from './pages/About';
+import Contact from './pages/Contact';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+
 // Admin Pages Imports - Comment out missing ones for now
 // import AdminLayout from './pages/admin/AdminLayout';
 // import Dashboard from './pages/admin/Dashboard';
@@ -73,6 +79,12 @@ function AppContent() {
         <Route path="/compare" element={<Compare />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/community" element={<Community />} />
+
+        {/* Static Pages */}
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
 
         {/* Redirect any unknown routes to home */}
         <Route path="*" element={<Home />} />
