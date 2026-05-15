@@ -2,6 +2,7 @@
   background-color: #0f172a;
   color: #f8fafc;
   border-top: 1px solid #334155;
+  margin-top: auto;
 }
 
 .footer__container {
@@ -9,64 +10,84 @@
   margin: 0 auto;
   padding: 2rem 1rem;
   display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
+  grid-template-columns: repeat(1, 1fr);
   gap: 1.5rem;
-  align-items: start;
-  justify-items: start;
 }
 
 @media (min-width: 768px) {
   .footer__container {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 
-.footer__brand {
-  color: #ffffff;
+/* Brand Section */
+.footer__brand-section {
+  grid-column: span 1;
 }
 
-.footer__brand .footer__accent {
+.footer__brand {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.footer__accent {
   color: #818cf8;
 }
 
 .footer__text {
-  color: #94a3b8;
-}
-
-.footer__heading {
-  color: #94a3b8;
   font-size: 0.75rem;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
+  color: #94a3b8;
   margin-bottom: 0.75rem;
 }
 
+.footer__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.65rem;
+  color: #64748b;
+}
+
+/* Headings */
+.footer__heading {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 0.75rem;
+}
+
+/* Lists */
+.footer__container ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer__container li {
+  margin-bottom: 0.5rem;
+}
+
+/* Links */
 .footer__link {
   color: #cbd5e1;
-  transition: color 0.2s ease-in-out;
   text-decoration: none;
+  font-size: 0.75rem;
+  transition: color 0.2s;
 }
 
 .footer__link:hover {
   color: #818cf8;
 }
 
+/* Bottom Bar */
 .footer__bottom {
   border-top: 1px solid #334155;
-  padding: 1.5rem 1rem 0.25rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   text-align: center;
-}
-
-.footer__copyright {
-  max-width: 900px;
-  margin: 0 auto;
-  text-align: center;
-  color: #94a3b8;
-  font-size: 0.75rem;
-  letter-spacing: 0.02em;
-  display: inline-block;
-  padding: 0.25rem 0 0;
+  padding: 1rem;
+  font-size: 0.7rem;
+  color: #64748b;
 }

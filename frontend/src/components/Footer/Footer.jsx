@@ -8,44 +8,61 @@ export default function Footer() {
   return (
     <footer className="footer">
       <div className="footer__container">
-        <div>
-          <h2 className="footer__brand text-xl font-black mb-2">
+        
+        {/* Brand Section */}
+        <div className="footer__brand-section">
+          <h2 className="footer__brand">
             Campus<span className="footer__accent">Reveal</span>
           </h2>
           <p className="footer__text">Empowering students with authentic insights.</p>
+          <div className="footer__stats">
+            <span>500+ Colleges</span>
+            <span>10K+ Reviews</span>
+            <span>100% Verified</span>
+          </div>
         </div>
 
+        {/* Platform Links */}
         <div>
           <h3 className="footer__heading">Platform</h3>
-          <ul className="space-y-2 text-sm">
+          <ul>
             <li><Link to="/colleges" className="footer__link">Universities</Link></li>
-            <li><Link to="/reviews" className="footer__link">Explore</Link></li>
-            <li><Link to="/reviews" className="footer__link">Reviews</Link></li>
+            <li><Link to="/reviews" className="footer__link">Student Reviews</Link></li>
           </ul>
         </div>
 
+        {/* Community Links */}
         <div>
           <h3 className="footer__heading">Community</h3>
-          <ul className="space-y-2 text-sm">
-            <li><Link to="/community" className="footer__link">Forums</Link></li>
-            <li><Link to="/community" className="footer__link">Mentorship</Link></li>
-            <li><Link to="/community" className="footer__link">Events</Link></li>
+          <ul>
+            <li><Link to="/community" className="footer__link">Community Forum</Link></li>
           </ul>
         </div>
 
+        {/* Support Links */}
         <div>
           <h3 className="footer__heading">Support</h3>
-          <ul className="space-y-2 text-sm">
-            <li><Link to="/community" className="footer__link">Community</Link></li>
-            <li><Link to="/reviews" className="footer__link">Reviews</Link></li>
-            <li><Link to="/compare" className="footer__link">Compare Colleges</Link></li>
+          <ul>
+            <li><Link to="/write-review" className="footer__link">Write a Review</Link></li>
+            <li><Link to="/help" className="footer__link">Help Center</Link></li>
+          </ul>
+        </div>
+
+        {/* Company Links */}
+        <div>
+          <h3 className="footer__heading">Company</h3>
+          <ul>
+            <li><Link to="/about" className="footer__link">About Us</Link></li>
+            <li><Link to="/contact" className="footer__link">Contact Us</Link></li>
+            <li><Link to="/privacy" className="footer__link">Privacy Policy</Link></li>
+            <li><Link to="/terms" className="footer__link">Terms of Service</Link></li>
           </ul>
         </div>
       </div>
+
+      {/* Bottom Bar */}
       <div className="footer__bottom">
-        <div className="footer__copyright">
-          © {currentYear} CampusReveal. All rights reserved.
-        </div>
+        <p>© {currentYear} CampusReveal. All rights reserved.</p>
       </div>
     </footer>
   );
