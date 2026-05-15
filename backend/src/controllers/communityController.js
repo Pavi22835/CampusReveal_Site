@@ -1,64 +1,45 @@
 const { prisma } = require('../prisma');
 
-// Helper function to check if column exists
-const isColumnExists = async (model, column) => {
-  try {
-    // Try to query with the column, if it fails, column doesn't exist
-    await prisma[model].findFirst({
-      where: { [column]: true },
-      take: 1
-    });
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
-
 // ==================== DISCUSSIONS ====================
 
-// @desc    Get all discussions (excluding trashed if column exists)
+// @desc    Get all discussions (excluding trashed)
 // @route   GET /api/community/discussions
 // @access  Public
 const getDiscussions = async (req, res) => {
   try {
-    let discussions;
+    const userId = req.user?.id;
     
-    try {
-      // Try to fetch with isTrashed filter first
-      discussions = await prisma.discussion.findMany({
-        where: { isTrashed: false },
-        include: {
-          author: {
-            select: { name: true, avatar: true, role: true }
-          },
-          _count: {
-            select: { comments: true }
-          }
+    const discussions = await prisma.discussion.findMany({
+      where: { isTrashed: false },
+      include: {
+        author: {
+          select: { name: true, avatar: true, role: true }
         },
-        orderBy: { createdAt: 'desc' }
-      });
-    } catch (error) {
-      // If column doesn't exist, fetch without filter
-      if (error.message.includes('does not exist')) {
-        discussions = await prisma.discussion.findMany({
-          include: {
-            author: {
-              select: { name: true, avatar: true, role: true }
-            },
-            _count: {
-              select: { comments: true }
-            }
-          },
-          orderBy: { createdAt: 'desc' }
+        _count: {
+          select: { comments: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    // ✅ ADDED: Check if current user liked each discussion
+    const discussionsWithLikeStatus = await Promise.all(discussions.map(async (discussion) => {
+      let isLikedByUser = false;
+      if (userId) {
+        const like = await prisma.discussionLike.findFirst({
+          where: {
+            discussionId: discussion.id,
+            userId: userId
+          }
         });
-      } else {
-        throw error;
+        isLikedByUser = !!like;
       }
-    }
+      return { ...discussion, isLikedByUser };
+    }));
     
     res.json({
       success: true,
-      data: discussions
+      data: discussionsWithLikeStatus
     });
   } catch (error) {
     console.error('Get discussions error:', error);
@@ -71,29 +52,18 @@ const getDiscussions = async (req, res) => {
 // @access  Admin
 const getTrashedDiscussions = async (req, res) => {
   try {
-    let discussions = [];
-    
-    try {
-      discussions = await prisma.discussion.findMany({
-        where: { isTrashed: true },
-        include: {
-          author: {
-            select: { name: true, avatar: true, role: true }
-          },
-          _count: {
-            select: { comments: true }
-          }
+    const discussions = await prisma.discussion.findMany({
+      where: { isTrashed: true },
+      include: {
+        author: {
+          select: { name: true, avatar: true, role: true }
         },
-        orderBy: { trashedAt: 'desc' }
-      });
-    } catch (error) {
-      // If column doesn't exist, return empty array
-      if (error.message.includes('does not exist')) {
-        discussions = [];
-      } else {
-        throw error;
-      }
-    }
+        _count: {
+          select: { comments: true }
+        }
+      },
+      orderBy: { trashedAt: 'desc' }
+    });
     
     res.json({
       success: true,
@@ -110,58 +80,83 @@ const getTrashedDiscussions = async (req, res) => {
 // @access  Public
 const getDiscussionById = async (req, res) => {
   try {
-    let discussion;
+    const userId = req.user?.id;
     
-    try {
-      discussion = await prisma.discussion.findUnique({
-        where: { id: req.params.id },
-        include: {
-          author: {
-            select: { name: true, avatar: true, role: true }
-          },
-          comments: {
-            include: {
-              author: {
-                select: { name: true, avatar: true, role: true }
-              }
+    const discussion = await prisma.discussion.findUnique({
+      where: { id: req.params.id, isTrashed: false },
+      include: {
+        author: {
+          select: { name: true, avatar: true, role: true }
+        },
+        comments: {
+          where: { parentId: null, isTrashed: false },
+          include: {
+            author: {
+              select: { name: true, avatar: true, role: true }
             },
-            orderBy: { createdAt: 'asc' }
-          },
-          _count: {
-            select: { comments: true }
-          }
-        }
-      });
-    } catch (error) {
-      // Fallback without isTrashed filter
-      discussion = await prisma.discussion.findUnique({
-        where: { id: req.params.id },
-        include: {
-          author: {
-            select: { name: true, avatar: true, role: true }
-          },
-          comments: {
-            include: {
-              author: {
-                select: { name: true, avatar: true, role: true }
-              }
+            replies: {
+              where: { isTrashed: false },
+              include: {
+                author: {
+                  select: { name: true, avatar: true, role: true }
+                }
+              },
+              orderBy: { createdAt: 'asc' }
             },
-            orderBy: { createdAt: 'asc' }
+            _count: {
+              select: { likesRelation: true }
+            }
           },
-          _count: {
-            select: { comments: true }
-          }
+          orderBy: { createdAt: 'desc' }
+        },
+        _count: {
+          select: { comments: true }
         }
-      });
-    }
+      }
+    });
     
     if (!discussion) {
       return res.status(404).json({ success: false, message: 'Discussion not found' });
     }
     
+    // ✅ ADDED: Check if current user liked the discussion
+    let isLikedByUser = false;
+    if (userId) {
+      const like = await prisma.discussionLike.findFirst({
+        where: {
+          discussionId: discussion.id,
+          userId: userId
+        }
+      });
+      isLikedByUser = !!like;
+    }
+    
+    // ✅ ADDED: Check if current user liked each comment
+    const commentsWithLikeStatus = await Promise.all(discussion.comments.map(async (comment) => {
+      let commentLiked = false;
+      if (userId) {
+        const commentLike = await prisma.commentLike.findFirst({
+          where: {
+            commentId: comment.id,
+            userId: userId
+          }
+        });
+        commentLiked = !!commentLike;
+      }
+      return { 
+        ...comment, 
+        isLikedByUser: commentLiked,
+        likes: comment._count?.likesRelation || 0
+      };
+    }));
+    
     res.json({
       success: true,
-      data: discussion
+      data: {
+        ...discussion,
+        isLikedByUser,
+        comments: commentsWithLikeStatus
+      }
     });
   } catch (error) {
     console.error('Get discussion by ID error:', error);
@@ -176,21 +171,21 @@ const createDiscussion = async (req, res) => {
   try {
     const discussion = await prisma.discussion.create({
       data: {
-        title: req.body.title,
+        title: req.body.title || '',
         content: req.body.content,
         tags: req.body.tags || [],
         authorId: req.user.id
       },
       include: {
         author: {
-          select: { name: true, avatar: true }
+          select: { name: true, avatar: true, role: true }
         }
       }
     });
     
     res.status(201).json({
       success: true,
-      data: discussion
+      data: { ...discussion, isLikedByUser: false }
     });
   } catch (error) {
     console.error('Create discussion error:', error);
@@ -250,36 +245,23 @@ const softDeleteDiscussion = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Discussion not found' });
     }
     
-    try {
-      // Check if isTrashed column exists and value
-      if (discussion.isTrashed) {
-        return res.status(400).json({ success: false, message: 'Discussion is already in trash' });
-      }
-      
-      const updatedDiscussion = await prisma.discussion.update({
-        where: { id },
-        data: {
-          isTrashed: true,
-          trashedAt: new Date()
-        }
-      });
-      
-      res.json({
-        success: true,
-        message: 'Discussion moved to trash successfully',
-        data: updatedDiscussion
-      });
-    } catch (error) {
-      // If column doesn't exist, suggest running migration
-      if (error.message.includes('does not exist')) {
-        res.status(500).json({ 
-          success: false, 
-          message: 'Database migration needed. Please run SQL ALTER TABLE discussions ADD COLUMN is_trashed BOOLEAN DEFAULT FALSE;' 
-        });
-      } else {
-        throw error;
-      }
+    if (discussion.isTrashed) {
+      return res.status(400).json({ success: false, message: 'Discussion is already in trash' });
     }
+    
+    const updatedDiscussion = await prisma.discussion.update({
+      where: { id },
+      data: {
+        isTrashed: true,
+        trashedAt: new Date()
+      }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Discussion moved to trash successfully',
+      data: updatedDiscussion
+    });
   } catch (error) {
     console.error('Soft delete discussion error:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -299,34 +281,23 @@ const restoreDiscussion = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Discussion not found' });
     }
     
-    try {
-      if (!discussion.isTrashed) {
-        return res.status(400).json({ success: false, message: 'Discussion is not in trash' });
-      }
-      
-      const restoredDiscussion = await prisma.discussion.update({
-        where: { id },
-        data: {
-          isTrashed: false,
-          trashedAt: null
-        }
-      });
-      
-      res.json({
-        success: true,
-        message: 'Discussion restored successfully',
-        data: restoredDiscussion
-      });
-    } catch (error) {
-      if (error.message.includes('does not exist')) {
-        res.status(500).json({ 
-          success: false, 
-          message: 'Database migration needed. Please run SQL ALTER TABLE discussions ADD COLUMN is_trashed BOOLEAN DEFAULT FALSE;' 
-        });
-      } else {
-        throw error;
-      }
+    if (!discussion.isTrashed) {
+      return res.status(400).json({ success: false, message: 'Discussion is not in trash' });
     }
+    
+    const restoredDiscussion = await prisma.discussion.update({
+      where: { id },
+      data: {
+        isTrashed: false,
+        trashedAt: null
+      }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Discussion restored successfully',
+      data: restoredDiscussion
+    });
   } catch (error) {
     console.error('Restore discussion error:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -346,8 +317,9 @@ const permanentDeleteDiscussion = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Discussion not found' });
     }
     
-    // First delete all comments related to this discussion
+    // Delete all comments and likes related to this discussion
     await prisma.comment.deleteMany({ where: { discussionId: id } });
+    await prisma.discussionLike.deleteMany({ where: { discussionId: id } });
     
     // Then delete the discussion
     await prisma.discussion.delete({ where: { id } });
@@ -395,13 +367,14 @@ const deleteDiscussion = async (req, res) => {
 const addComment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { content } = req.body;
+    const { content, parentId } = req.body;
     
     const comment = await prisma.comment.create({
       data: {
         content,
         authorId: req.user.id,
-        discussionId: id
+        discussionId: id,
+        parentId: parentId || null
       },
       include: {
         author: {
@@ -418,7 +391,7 @@ const addComment = async (req, res) => {
     
     res.status(201).json({
       success: true,
-      data: comment
+      data: { ...comment, isLikedByUser: false, likes: 0 }
     });
   } catch (error) {
     console.error('Add comment error:', error);
@@ -431,28 +404,18 @@ const addComment = async (req, res) => {
 // @access  Admin
 const getTrashedComments = async (req, res) => {
   try {
-    let comments = [];
-    
-    try {
-      comments = await prisma.comment.findMany({
-        where: { isTrashed: true },
-        include: {
-          author: {
-            select: { name: true, avatar: true, role: true }
-          },
-          discussion: {
-            select: { id: true, title: true }
-          }
+    const comments = await prisma.comment.findMany({
+      where: { isTrashed: true },
+      include: {
+        author: {
+          select: { name: true, avatar: true, role: true }
         },
-        orderBy: { trashedAt: 'desc' }
-      });
-    } catch (error) {
-      if (error.message.includes('does not exist')) {
-        comments = [];
-      } else {
-        throw error;
-      }
-    }
+        discussion: {
+          select: { id: true, title: true }
+        }
+      },
+      orderBy: { trashedAt: 'desc' }
+    });
     
     res.json({
       success: true,
@@ -477,40 +440,29 @@ const softDeleteComment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Comment not found' });
     }
     
-    try {
-      if (comment.isTrashed) {
-        return res.status(400).json({ success: false, message: 'Comment is already in trash' });
-      }
-      
-      const updatedComment = await prisma.comment.update({
-        where: { id },
-        data: {
-          isTrashed: true,
-          trashedAt: new Date()
-        }
-      });
-      
-      // Update discussion reply count
-      await prisma.discussion.update({
-        where: { id: comment.discussionId },
-        data: { replies: { decrement: 1 } }
-      });
-      
-      res.json({
-        success: true,
-        message: 'Comment moved to trash successfully',
-        data: updatedComment
-      });
-    } catch (error) {
-      if (error.message.includes('does not exist')) {
-        res.status(500).json({ 
-          success: false, 
-          message: 'Database migration needed. Please run SQL ALTER TABLE comments ADD COLUMN is_trashed BOOLEAN DEFAULT FALSE;' 
-        });
-      } else {
-        throw error;
-      }
+    if (comment.isTrashed) {
+      return res.status(400).json({ success: false, message: 'Comment is already in trash' });
     }
+    
+    const updatedComment = await prisma.comment.update({
+      where: { id },
+      data: {
+        isTrashed: true,
+        trashedAt: new Date()
+      }
+    });
+    
+    // Update discussion reply count
+    await prisma.discussion.update({
+      where: { id: comment.discussionId },
+      data: { replies: { decrement: 1 } }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Comment moved to trash successfully',
+      data: updatedComment
+    });
   } catch (error) {
     console.error('Soft delete comment error:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -530,40 +482,29 @@ const restoreComment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Comment not found' });
     }
     
-    try {
-      if (!comment.isTrashed) {
-        return res.status(400).json({ success: false, message: 'Comment is not in trash' });
-      }
-      
-      const restoredComment = await prisma.comment.update({
-        where: { id },
-        data: {
-          isTrashed: false,
-          trashedAt: null
-        }
-      });
-      
-      // Update discussion reply count
-      await prisma.discussion.update({
-        where: { id: comment.discussionId },
-        data: { replies: { increment: 1 } }
-      });
-      
-      res.json({
-        success: true,
-        message: 'Comment restored successfully',
-        data: restoredComment
-      });
-    } catch (error) {
-      if (error.message.includes('does not exist')) {
-        res.status(500).json({ 
-          success: false, 
-          message: 'Database migration needed. Please run SQL ALTER TABLE comments ADD COLUMN is_trashed BOOLEAN DEFAULT FALSE;' 
-        });
-      } else {
-        throw error;
-      }
+    if (!comment.isTrashed) {
+      return res.status(400).json({ success: false, message: 'Comment is not in trash' });
     }
+    
+    const restoredComment = await prisma.comment.update({
+      where: { id },
+      data: {
+        isTrashed: false,
+        trashedAt: null
+      }
+    });
+    
+    // Update discussion reply count
+    await prisma.discussion.update({
+      where: { id: comment.discussionId },
+      data: { replies: { increment: 1 } }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Comment restored successfully',
+      data: restoredComment
+    });
   } catch (error) {
     console.error('Restore comment error:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -583,6 +524,13 @@ const permanentDeleteComment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Comment not found' });
     }
     
+    // Delete comment likes first
+    await prisma.commentLike.deleteMany({ where: { commentId: id } });
+    
+    // Delete replies first
+    await prisma.comment.deleteMany({ where: { parentId: id } });
+    
+    // Then delete the comment
     await prisma.comment.delete({ where: { id } });
     
     res.json({
@@ -597,41 +545,23 @@ const permanentDeleteComment = async (req, res) => {
 
 // ==================== MENTORS ====================
 
-// @desc    Get mentors (excluding trashed if column exists)
+// @desc    Get mentors
 // @route   GET /api/community/mentors
 // @access  Public
 const getMentors = async (req, res) => {
   try {
-    let mentors;
-    
-    try {
-      mentors = await prisma.mentor.findMany({
-        where: { 
-          availability: true,
-          isTrashed: false
-        },
-        include: {
-          user: {
-            select: { name: true, avatar: true, role: true, major: true }
-          }
-        },
-        take: 10
-      });
-    } catch (error) {
-      if (error.message.includes('does not exist')) {
-        mentors = await prisma.mentor.findMany({
-          where: { availability: true },
-          include: {
-            user: {
-              select: { name: true, avatar: true, role: true, major: true }
-            }
-          },
-          take: 10
-        });
-      } else {
-        throw error;
-      }
-    }
+    const mentors = await prisma.mentor.findMany({
+      where: { 
+        availability: true,
+        isTrashed: false
+      },
+      include: {
+        user: {
+          select: { name: true, avatar: true, role: true, major: true }
+        }
+      },
+      take: 10
+    });
     
     res.json({
       success: true,
@@ -648,25 +578,15 @@ const getMentors = async (req, res) => {
 // @access  Admin
 const getTrashedMentors = async (req, res) => {
   try {
-    let mentors = [];
-    
-    try {
-      mentors = await prisma.mentor.findMany({
-        where: { isTrashed: true },
-        include: {
-          user: {
-            select: { name: true, avatar: true, role: true, major: true }
-          }
-        },
-        orderBy: { trashedAt: 'desc' }
-      });
-    } catch (error) {
-      if (error.message.includes('does not exist')) {
-        mentors = [];
-      } else {
-        throw error;
-      }
-    }
+    const mentors = await prisma.mentor.findMany({
+      where: { isTrashed: true },
+      include: {
+        user: {
+          select: { name: true, avatar: true, role: true, major: true }
+        }
+      },
+      orderBy: { trashedAt: 'desc' }
+    });
     
     res.json({
       success: true,
@@ -691,35 +611,24 @@ const softDeleteMentor = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Mentor not found' });
     }
     
-    try {
-      if (mentor.isTrashed) {
-        return res.status(400).json({ success: false, message: 'Mentor is already in trash' });
-      }
-      
-      const updatedMentor = await prisma.mentor.update({
-        where: { id },
-        data: {
-          isTrashed: true,
-          trashedAt: new Date(),
-          availability: false
-        }
-      });
-      
-      res.json({
-        success: true,
-        message: 'Mentor moved to trash successfully',
-        data: updatedMentor
-      });
-    } catch (error) {
-      if (error.message.includes('does not exist')) {
-        res.status(500).json({ 
-          success: false, 
-          message: 'Database migration needed. Please run SQL ALTER TABLE mentors ADD COLUMN is_trashed BOOLEAN DEFAULT FALSE;' 
-        });
-      } else {
-        throw error;
-      }
+    if (mentor.isTrashed) {
+      return res.status(400).json({ success: false, message: 'Mentor is already in trash' });
     }
+    
+    const updatedMentor = await prisma.mentor.update({
+      where: { id },
+      data: {
+        isTrashed: true,
+        trashedAt: new Date(),
+        availability: false
+      }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Mentor moved to trash successfully',
+      data: updatedMentor
+    });
   } catch (error) {
     console.error('Soft delete mentor error:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -739,34 +648,23 @@ const restoreMentor = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Mentor not found' });
     }
     
-    try {
-      if (!mentor.isTrashed) {
-        return res.status(400).json({ success: false, message: 'Mentor is not in trash' });
-      }
-      
-      const restoredMentor = await prisma.mentor.update({
-        where: { id },
-        data: {
-          isTrashed: false,
-          trashedAt: null
-        }
-      });
-      
-      res.json({
-        success: true,
-        message: 'Mentor restored successfully',
-        data: restoredMentor
-      });
-    } catch (error) {
-      if (error.message.includes('does not exist')) {
-        res.status(500).json({ 
-          success: false, 
-          message: 'Database migration needed. Please run SQL ALTER TABLE mentors ADD COLUMN is_trashed BOOLEAN DEFAULT FALSE;' 
-        });
-      } else {
-        throw error;
-      }
+    if (!mentor.isTrashed) {
+      return res.status(400).json({ success: false, message: 'Mentor is not in trash' });
     }
+    
+    const restoredMentor = await prisma.mentor.update({
+      where: { id },
+      data: {
+        isTrashed: false,
+        trashedAt: null
+      }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Mentor restored successfully',
+      data: restoredMentor
+    });
   } catch (error) {
     console.error('Restore mentor error:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -798,193 +696,138 @@ const permanentDeleteMentor = async (req, res) => {
   }
 };
 
-// ==================== EVENTS ====================
+// ==================== LIKE / UNLIKE DISCUSSION ====================
 
-// @desc    Get events (excluding trashed if column exists)
-// @route   GET /api/community/events
-// @access  Public
-const getEvents = async (req, res) => {
-  try {
-    let events;
-    
-    try {
-      events = await prisma.event.findMany({
-        where: {
-          date: { gte: new Date() },
-          isTrashed: false
-        },
-        orderBy: { date: 'asc' },
-        take: 10
-      });
-    } catch (error) {
-      if (error.message.includes('does not exist')) {
-        events = await prisma.event.findMany({
-          where: {
-            date: { gte: new Date() }
-          },
-          orderBy: { date: 'asc' },
-          take: 10
-        });
-      } else {
-        throw error;
-      }
-    }
-    
-    res.json({
-      success: true,
-      data: events
-    });
-  } catch (error) {
-    console.error('Get events error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Get all trashed events
-// @route   GET /api/community/events/trashed
-// @access  Admin
-const getTrashedEvents = async (req, res) => {
-  try {
-    let events = [];
-    
-    try {
-      events = await prisma.event.findMany({
-        where: { isTrashed: true },
-        orderBy: { trashedAt: 'desc' }
-      });
-    } catch (error) {
-      if (error.message.includes('does not exist')) {
-        events = [];
-      } else {
-        throw error;
-      }
-    }
-    
-    res.json({
-      success: true,
-      data: events
-    });
-  } catch (error) {
-    console.error('Get trashed events error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Soft delete event
-// @route   PATCH /api/community/events/:id/soft-delete
-// @access  Admin
-const softDeleteEvent = async (req, res) => {
+// @desc    Like or unlike a discussion
+// @route   PUT /api/community/discussions/:id/like
+// @access  Private
+const likeDiscussion = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const event = await prisma.event.findUnique({ where: { id } });
-    
-    if (!event) {
-      return res.status(404).json({ success: false, message: 'Event not found' });
+    const userId = req.user.id;
+
+    const discussion = await prisma.discussion.findUnique({
+      where: { id }
+    });
+
+    if (!discussion) {
+      return res.status(404).json({ success: false, message: 'Discussion not found' });
     }
-    
-    try {
-      if (event.isTrashed) {
-        return res.status(400).json({ success: false, message: 'Event is already in trash' });
+
+    // Find existing like
+    const existingLike = await prisma.discussionLike.findFirst({
+      where: {
+        discussionId: id,
+        userId: userId
       }
-      
-      const updatedEvent = await prisma.event.update({
+    });
+
+    if (existingLike) {
+      // Unlike
+      await prisma.discussionLike.delete({
+        where: { id: existingLike.id }
+      });
+
+      const updatedDiscussion = await prisma.discussion.update({
         where: { id },
+        data: { likes: { decrement: 1 } }
+      });
+
+      return res.json({ 
+        success: true, 
+        liked: false, 
+        likesCount: updatedDiscussion.likes
+      });
+    } else {
+      // Like
+      await prisma.discussionLike.create({
         data: {
-          isTrashed: true,
-          trashedAt: new Date()
+          discussionId: id,
+          userId: userId
         }
       });
-      
-      res.json({
-        success: true,
-        message: 'Event moved to trash successfully',
-        data: updatedEvent
+
+      const updatedDiscussion = await prisma.discussion.update({
+        where: { id },
+        data: { likes: { increment: 1 } }
       });
-    } catch (error) {
-      if (error.message.includes('does not exist')) {
-        res.status(500).json({ 
-          success: false, 
-          message: 'Database migration needed. Please run SQL ALTER TABLE events ADD COLUMN is_trashed BOOLEAN DEFAULT FALSE;' 
-        });
-      } else {
-        throw error;
-      }
+
+      return res.json({ 
+        success: true, 
+        liked: true, 
+        likesCount: updatedDiscussion.likes
+      });
     }
   } catch (error) {
-    console.error('Soft delete event error:', error);
+    console.error('Like discussion error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Restore event
-// @route   PATCH /api/community/events/:id/restore
-// @access  Admin
-const restoreEvent = async (req, res) => {
+// ==================== LIKE / UNLIKE COMMENT ====================
+
+// @desc    Like or unlike a comment
+// @route   PUT /api/community/comments/:id/like
+// @access  Private
+const likeComment = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const event = await prisma.event.findUnique({ where: { id } });
-    
-    if (!event) {
-      return res.status(404).json({ success: false, message: 'Event not found' });
+    const userId = req.user.id;
+
+    const comment = await prisma.comment.findUnique({
+      where: { id }
+    });
+
+    if (!comment) {
+      return res.status(404).json({ success: false, message: 'Comment not found' });
     }
-    
-    try {
-      if (!event.isTrashed) {
-        return res.status(400).json({ success: false, message: 'Event is not in trash' });
+
+    // Find existing like
+    const existingLike = await prisma.commentLike.findFirst({
+      where: {
+        commentId: id,
+        userId: userId
       }
-      
-      const restoredEvent = await prisma.event.update({
+    });
+
+    if (existingLike) {
+      // Unlike
+      await prisma.commentLike.delete({
+        where: { id: existingLike.id }
+      });
+
+      const updatedComment = await prisma.comment.update({
         where: { id },
+        data: { likes: { decrement: 1 } }
+      });
+
+      return res.json({ 
+        success: true, 
+        liked: false, 
+        likesCount: updatedComment.likes
+      });
+    } else {
+      // Like
+      await prisma.commentLike.create({
         data: {
-          isTrashed: false,
-          trashedAt: null
+          commentId: id,
+          userId: userId
         }
       });
-      
-      res.json({
-        success: true,
-        message: 'Event restored successfully',
-        data: restoredEvent
-      });
-    } catch (error) {
-      if (error.message.includes('does not exist')) {
-        res.status(500).json({ 
-          success: false, 
-          message: 'Database migration needed. Please run SQL ALTER TABLE events ADD COLUMN is_trashed BOOLEAN DEFAULT FALSE;' 
-        });
-      } else {
-        throw error;
-      }
-    }
-  } catch (error) {
-    console.error('Restore event error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
 
-// @desc    Permanently delete event
-// @route   DELETE /api/community/events/:id/permanent
-// @access  Admin
-const permanentDeleteEvent = async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const event = await prisma.event.findUnique({ where: { id } });
-    
-    if (!event) {
-      return res.status(404).json({ success: false, message: 'Event not found' });
+      const updatedComment = await prisma.comment.update({
+        where: { id },
+        data: { likes: { increment: 1 } }
+      });
+
+      return res.json({ 
+        success: true, 
+        liked: true, 
+        likesCount: updatedComment.likes
+      });
     }
-    
-    await prisma.event.delete({ where: { id } });
-    
-    res.json({
-      success: true,
-      message: 'Event permanently deleted successfully'
-    });
   } catch (error) {
-    console.error('Permanent delete event error:', error);
+    console.error('Like comment error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -1009,9 +852,6 @@ module.exports = {
   softDeleteMentor,
   restoreMentor,
   permanentDeleteMentor,
-  getEvents,
-  getTrashedEvents,
-  softDeleteEvent,
-  restoreEvent,
-  permanentDeleteEvent
+  likeDiscussion,
+  likeComment
 };
