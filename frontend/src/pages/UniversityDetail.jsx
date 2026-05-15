@@ -8,45 +8,76 @@ import {
   Library, Bus, Utensils, Award, TrendingUp, Calendar,
   DollarSign, Home, Video, Activity, Target,
   Info, XCircle, Coffee, Briefcase, UserCheck, School,
-  Verified, Phone, Mail
+  Verified, Phone, Mail, CalendarDays, AwardIcon,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
 import ProfileDetailsModal from "../components/ProfileDetailsModal/ProfileDetailsModal";
 import './UniversityDetail.css';
 
-// ==================== COMPONENTS ====================
-
-const HeroImageSlider = ({ images }) => {
-  const [index, setIndex] = useState(0);
+// ==================== IMAGE SLIDER COMPONENT ====================
+const ImageGallerySlider = ({ images }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  
   const displayImages = images && images.length > 0 ? images : [
     'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?q=80&w=2070&auto=format&fit=crop'
   ];
 
-  const paginate = (newDirection) => {
-    setIndex((prev) => (prev + newDirection + displayImages.length) % displayImages.length);
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % displayImages.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
   };
 
   useEffect(() => {
-    const timer = setInterval(() => paginate(1), 5000);
-    return () => clearInterval(timer);
-  }, [displayImages.length]);
+    if (!isHovered) {
+      const timer = setInterval(nextSlide, 4000);
+      return () => clearInterval(timer);
+    }
+  }, [isHovered, currentIndex]);
 
   return (
-    <div className="hero-slider-wrap">
+    <div 
+      className="hero-gallery-slider"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <AnimatePresence mode="wait">
         <motion.img
-          key={index}
-          src={displayImages[index]}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1 }}
-          className="hero-background-img"
-          alt="Campus"
+          key={currentIndex}
+          src={displayImages[currentIndex]}
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.5 }}
+          className="gallery-slide-image"
+          alt="Campus view"
         />
       </AnimatePresence>
-      <div className="hero-slider-overlay" />
+      
+      {displayImages.length > 1 && (
+        <>
+          <button onClick={prevSlide} className="gallery-nav prev">
+            <ChevronLeft size={24} />
+          </button>
+          <button onClick={nextSlide} className="gallery-nav next">
+            <ChevronRight size={24} />
+          </button>
+          <div className="gallery-dots">
+            {displayImages.map((_, idx) => (
+              <button
+                key={idx}
+                className={`gallery-dot ${idx === currentIndex ? 'active' : ''}`}
+                onClick={() => setCurrentIndex(idx)}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -59,16 +90,16 @@ const renderStars = (rating) => {
   const stars = [];
   
   for (let i = 0; i < fullStars; i++) {
-    stars.push(<Star key={`full-${i}`} size={14} fill="#f59e0b" color="#f59e0b" />);
+    stars.push(<Star key={`full-${i}`} size={16} fill="#f59e0b" color="#f59e0b" />);
   }
   
   if (hasHalfStar) {
-    stars.push(<StarHalf key="half" size={14} fill="#f59e0b" color="#f59e0b" />);
+    stars.push(<StarHalf key="half" size={16} fill="#f59e0b" color="#f59e0b" />);
   }
   
   const emptyStars = 5 - stars.length;
   for (let i = 0; i < emptyStars; i++) {
-    stars.push(<Star key={`empty-${i}`} size={14} color="#e5e7eb" />);
+    stars.push(<Star key={`empty-${i}`} size={16} color="#e5e7eb" />);
   }
   
   return stars;
@@ -79,7 +110,7 @@ const renderStars = (rating) => {
 export default function UniversityDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { requireAuth } = useAuth();
+  const { requireAuth, isAuthenticated, openAuthModal } = useAuth();
   const [university, setUniversity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -191,6 +222,41 @@ export default function UniversityDetail() {
     setActiveTab(label);
   };
 
+  // ✅ UPDATED: Handle Write Review Click - Pass university details
+  const handleWriteReviewClick = () => {
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
+    }
+    
+    // Clear any existing review data first to prevent stale data
+    localStorage.removeItem('reviewUniversityId');
+    localStorage.removeItem('reviewUniversityName');
+    localStorage.removeItem('userDepartment');
+    localStorage.removeItem('userGraduationYear');
+    localStorage.removeItem('userCollegeName');
+    
+    // Store the current university details
+    if (university) {
+      localStorage.setItem('reviewUniversityId', university.id);
+      localStorage.setItem('reviewUniversityName', university.name);
+    }
+    
+    setShowProfileModal(true);
+  };
+
+  // Handle profile modal success
+  const handleProfileSuccess = () => {
+    const universityId = localStorage.getItem('reviewUniversityId');
+    if (universityId) {
+      navigate(`/write-review/${universityId}`);
+    } else if (university) {
+      navigate(`/write-review/${university.id}`);
+    } else {
+      navigate('/write-review');
+    }
+  };
+
   if (loading) return (
     <div className="loading-state">
       <div className="spinner"></div>
@@ -215,6 +281,8 @@ export default function UniversityDetail() {
   const reviewCountDisplay = reviews.length >= 1000 ? `${(reviews.length / 1000).toFixed(1)}k` : `${reviews.length}`;
   const ratingValue = university.rating ? Number(university.rating).toFixed(1) : '0.0';
 
+  const memberSince = university.established || (university.createdAt ? new Date(university.createdAt).getFullYear() : '2024');
+
   const verdictCategories = [
     { label: "Academics", score: averageRatings.academics || 4.0, color: "#3b82f6" },
     { label: "Faculty", score: averageRatings.faculty || 4.0, color: "#8b5cf6" },
@@ -224,6 +292,24 @@ export default function UniversityDetail() {
     { label: "Placements", score: averageRatings.placements || 4.0, color: "#ef4444" },
     { label: "Student Life", score: averageRatings.studentLife || 4.0, color: "#ec4899" },
     { label: "Sports", score: averageRatings.sports || 4.0, color: "#f97316" }
+  ];
+
+  const heroStats = [
+    { 
+      icon: TrendingUp, 
+      value: university.placementRate || '95%', 
+      label: 'PLACEMENTS'
+    },
+    { 
+      icon: UserCheck, 
+      value: university.facultyCount ? `${university.facultyCount}+` : '300+', 
+      label: 'FACULTY'
+    },
+    { 
+      icon: Users, 
+      value: university.studentCount ? `${Math.floor(university.studentCount / 1000)}k+` : '6k+', 
+      label: 'STUDENTS'
+    }
   ];
 
   return (
@@ -238,50 +324,44 @@ export default function UniversityDetail() {
           <span className="current">{university.name}</span>
         </div>
 
-        {/* Hero Section Grid */}
-        <section className="hero-grid">
-          <div className="banner-column">
-            <HeroImageSlider images={galleryImages} />
-            <div className="banner-overlay-content">
-              <div className="hero-badges">
-                <span className="badge-primary">{university.category || 'Engineering'}</span>
-                <span className="badge-rating">
-                  <Star size={12} fill="currentColor" /> {ratingValue} ({reviewCountDisplay} Reviews)
-                </span>
-                {university.naacGrade && (
-                  <span className="badge-naac">
-                    <Verified size={12} /> NAAC {university.naacGrade} Accredited
-                  </span>
-                )}
+        {/* SPLIT HERO SECTION - Left Text + Right Gallery */}
+        <div className="split-hero-section">
+          <div className="hero-left-content">
+            <div className="hero-badge-top">
+              <AwardIcon size={14} />
+              <span>Top Ranked Institution</span>
+            </div>
+            <h1 className="hero-college-name">{university.name}</h1>
+            <div className="hero-location">
+              <MapPin size={16} />
+              <span>{addressText}</span>
+            </div>
+            <div className="hero-meta">
+              <div className="member-since">
+                <CalendarDays size={14} />
+                <span>Member since: {memberSince}</span>
               </div>
-              <h1 className="banner-title">{university.name}</h1>
-              <div className="banner-metadata">
-                <span className="meta-item"><MapPin size={14} /> {addressText}</span>
-                <span className="meta-item"><Calendar size={14} /> Est. {university.established || 'N/A'}</span>
+              <div className="hero-rating">
+                <div className="rating-stars">{renderStars(ratingValue)}</div>
+                <span className="rating-value">{ratingValue}/5</span>
+                <span className="review-count">({reviewCountDisplay} Reviews)</span>
               </div>
+            </div>
+            <div className="hero-stats">
+              {heroStats.map((stat, index) => (
+                <div key={index} className="hero-stat">
+                  <stat.icon size={24} />
+                  <div className="stat-value">{stat.value}</div>
+                  <div className="stat-label">{stat.label}</div>
+                </div>
+              ))}
             </div>
           </div>
-
-          <div className="stats-column">
-            <div className="stat-card">
-              <TrendingUp className="stat-icon" size={32} />
-              <div className="stat-value">{university.placementRate || 'Not disclosed'}</div>
-              <div className="stat-label">PLACEMENTS</div>
-            </div>
-            <div className="stat-card">
-              <UserCheck className="stat-icon" size={32} />
-              <div className="stat-value">{university.facultyCount ? `${university.facultyCount}+` : 'Not disclosed'}</div>
-              <div className="stat-label">EXPERT FACULTY</div>
-            </div>
-            <div className="stat-card">
-              <Users className="stat-icon" size={32} />
-              <div className="stat-value">{university.studentCount ? `${Math.floor(university.studentCount / 1000)}k+` : 'Not disclosed'}</div>
-              <div className="stat-label">ACTIVE STUDENTS</div>
-            </div>
+          <div className="hero-right-gallery">
+            <ImageGallerySlider images={galleryImages} />
           </div>
-        </section>
+        </div>
 
-        {/* Tab Switcher */}
         <nav className="tab-navigation">
           {tabs.map(tab => (
             <button key={tab.id} 
@@ -292,7 +372,6 @@ export default function UniversityDetail() {
           ))}
         </nav>
 
-        {/* Main Content Area */}
         <div className="content-grid">
           <div className="main-content">
             {activeTab === 'Overview' && (
@@ -302,7 +381,6 @@ export default function UniversityDetail() {
                   <h3 className="section-title-xl">{university.name}</h3>
                   <p className="about-text-new">{university.description || 'No description available.'}</p>
                 </div>
-                
                 <div className="mv-grid-new">
                   {university.mission && (
                     <motion.div 
@@ -317,7 +395,6 @@ export default function UniversityDetail() {
                       <p className="mv-card-text">{university.mission}</p>
                     </motion.div>
                   )}
-                  
                   {university.vision && (
                     <motion.div 
                       initial={{ opacity: 0, x: 20 }}
@@ -352,7 +429,6 @@ export default function UniversityDetail() {
                     </div>
                   </div>
                 </div>
-
                 <div className="verdict-grid">
                   {verdictCategories.map((item, idx) => (
                     <div key={idx} className="verdict-item">
@@ -382,7 +458,7 @@ export default function UniversityDetail() {
                   { label: "Est. Year", value: university.established, icon: Calendar, color: "blue" },
                   { label: "NAAC Grade", value: university.naacGrade, icon: Award, color: "violet" },
                   { label: "Avg. Package", value: university.averagePackage, icon: TrendingUp, color: "blue" },
-                  { label: "Highest Package", value: university.highestPackage, icon: Award, color: "violet" },
+                  { label: "Highest Package", value: university.highestPackage, icon: AwardIcon, color: "violet" },
                   { label: "Total Students", value: university.studentCount ? university.studentCount.toLocaleString() : 'N/A', icon: Users, color: "green" },
                   { label: "Total Faculty", value: university.facultyCount ? university.facultyCount.toLocaleString() : 'N/A', icon: GraduationCap, color: "purple" },
                 ].filter(stat => stat.value).map((stat, idx) => (
@@ -411,7 +487,6 @@ export default function UniversityDetail() {
                   <h3 className="section-title">Campus Facilities</h3>
                   <div className="section-subtitle-new">World-class amenities for a holistic campus experience</div>
                 </div>
-                
                 <div className="facilities-grid-modern">
                   {activeFacilities.length > 0 ? activeFacilities.map((facility, i) => {
                     const getIcon = () => {
@@ -427,7 +502,6 @@ export default function UniversityDetail() {
                       if (name.includes('auditorium')) return <Video size={22} />;
                       return <CheckCircle size={22} />;
                     };
-                    
                     return (
                       <motion.div 
                         key={i}
@@ -448,7 +522,6 @@ export default function UniversityDetail() {
                     <div className="no-facilities">No facilities data available.</div>
                   )}
                 </div>
-
                 <div className="facility-footer-badges">
                   {university.hostelAvailable && (
                     <div className="status-badge-modern blue">
@@ -500,7 +573,6 @@ export default function UniversityDetail() {
                       )}
                     </div>
                   </div>
-                  
                   <div className="scholarship-info-box">
                     <h4 className="scholarship-title">SCHOLARSHIPS</h4>
                     <p className="scholarship-desc">
@@ -522,9 +594,13 @@ export default function UniversityDetail() {
               <div className="reviews-container-new info-card">
                 <div className="reviews-header-main">
                   <h3 className="section-title">Community Reviews</h3>
-                  <button onClick={() => setShowProfileModal(true)} className="write-review-btn-new">Write a Review</button>
+                  <button 
+                    onClick={handleWriteReviewClick}
+                    className="write-review-btn-new"
+                  >
+                    Write a Review
+                  </button>
                 </div>
-                
                 <div className="reviews-list-new">
                   {reviews.length > 0 ? reviews.map((review, i) => (
                     <motion.div 
@@ -541,13 +617,10 @@ export default function UniversityDetail() {
                           <span className="review-date-new">{new Date(review.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      
                       <div className="review-stars-new">
                         {renderStars(review.rating || 0)}
                       </div>
-                      
                       <p className="review-text-new">{review.content || review.comment || 'No review content available.'}</p>
-                      
                       {(review.pros?.length > 0 || review.cons?.length > 0) && (
                         <div className="review-tags-new">
                           {review.pros?.slice(0, 2).map((pro, index) => (
@@ -564,7 +637,10 @@ export default function UniversityDetail() {
                       <MessageSquare size={48} />
                       <h3>No verified reviews yet</h3>
                       <p>Be the first to share your journey with thousands of prospective students.</p>
-                      <button onClick={() => setShowProfileModal(true)} className="write-review-btn-new primary">
+                      <button 
+                        onClick={handleWriteReviewClick}
+                        className="write-review-btn-new primary"
+                      >
                         Write a Review
                       </button>
                     </div>
@@ -574,7 +650,6 @@ export default function UniversityDetail() {
             )}
           </div>
 
-          {/* Sidebar */}
           <aside className="content-sidebar">
             <div className="location-card info-card">
               <h3>Campus Location</h3>
@@ -591,33 +666,33 @@ export default function UniversityDetail() {
                 Open in Maps <ArrowRight size={16} />
               </button>
               <div className="contact-info">
-                  <div className="c-row">
-                    <div className="c-label-group">
-                      <Phone size={14} />
-                      <span>Phone</span>
-                    </div>
-                    <strong>{university.phone || 'Not available'}</strong>
+                <div className="c-row">
+                  <div className="c-label-group">
+                    <Phone size={14} />
+                    <span>Phone</span>
                   </div>
-                  <div className="c-row">
-                    <div className="c-label-group">
-                      <Mail size={14} />
-                      <span>Email</span>
-                    </div>
-                    <strong>{university.email || 'Not available'}</strong>
+                  <strong>{university.phone || 'Not available'}</strong>
+                </div>
+                <div className="c-row">
+                  <div className="c-label-group">
+                    <Mail size={14} />
+                    <span>Email</span>
                   </div>
-                  <div className="c-row">
-                    <div className="c-label-group">
-                      <Globe size={14} />
-                      <span>Website</span>
-                    </div>
-                    <strong>
-                      {university.website ? (
-                        <a href={university.website.startsWith('http') ? university.website : `https://${university.website}`} target="_blank" rel="noreferrer">
-                          {university.website.replace(/^https?:\/\//, '')}
-                        </a>
-                      ) : 'Not available'}
-                    </strong>
+                  <strong>{university.email || 'Not available'}</strong>
+                </div>
+                <div className="c-row">
+                  <div className="c-label-group">
+                    <Globe size={14} />
+                    <span>Website</span>
                   </div>
+                  <strong>
+                    {university.website ? (
+                      <a href={university.website.startsWith('http') ? university.website : `https://${university.website}`} target="_blank" rel="noreferrer">
+                        {university.website.replace(/^https?:\/\//, '')}
+                      </a>
+                    ) : 'Not available'}
+                  </strong>
+                </div>
               </div>
             </div>
           </aside>
@@ -626,8 +701,12 @@ export default function UniversityDetail() {
 
       <ProfileDetailsModal
         isOpen={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-        onSuccess={() => navigate(`/write-review/${university.id}`)}
+        onClose={() => {
+          setShowProfileModal(false);
+          localStorage.removeItem('reviewUniversityId');
+          localStorage.removeItem('reviewUniversityName');
+        }}
+        onSuccess={handleProfileSuccess}
       />
     </div>
   );
