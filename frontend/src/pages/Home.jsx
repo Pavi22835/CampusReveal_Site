@@ -13,7 +13,7 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import ProfileDetailsModal from '../components/ProfileDetailsModal/ProfileDetailsModal';
 
-// ==================== FILTER DATA ====================
+// ==================== FILTER DATA (Only UI labels, no hardcoded university data) ====================
 
 const academicStreams = [
   { id: 'science_tech', name: 'Science & Technology', icon: '🔬' },
@@ -31,175 +31,6 @@ const academicLevels = [
   { id: 'pg', name: 'PG (Postgraduate)', icon: '📚' },
   { id: 'phd', name: 'PhD / Doctorate', icon: '🔬' }
 ];
-
-const departmentsByStream = {
-  science_tech: [
-    'Computer Science', 'Information Technology', 'Artificial Intelligence', 
-    'Data Science', 'Cyber Security', 'Software Engineering'
-  ],
-  engineering: [
-    'Computer Science Engineering', 'Electronics & Communication Engineering', 'Mechanical Engineering',
-    'Civil Engineering', 'Electrical & Electronics Engineering', 'Mechatronics Engineering',
-    'Robotics Engineering'
-  ],
-  arts_science: [
-    'Physics', 'Chemistry', 'Mathematics', 'Computer Science', 'Biotechnology', 'Environmental Science',
-    'English', 'Economics', 'Psychology', 'Political Science', 'Sociology', 'History'
-  ],
-  commerce: [
-    'Commerce', 'Accounting & Finance', 'Business Administration', 'Business Analytics', 'Finance & Banking'
-  ],
-  law: [
-    'Law (LLB)', 'Corporate Law', 'Criminal Law'
-  ],
-  design: [
-    'UI/UX Design', 'Animation & VFX', 'Graphic Design', 'Fashion Design', 'Film & Media Studies'
-  ],
-  professional: [
-    'Hotel Management', 'Tourism & Hospitality', 'Event Management', 'Aviation Management'
-  ]
-};
-
-const coursesByDeptAndLevel = {
-  'Computer Science': {
-    ug: ['B.Sc Computer Science', 'BCA', 'B.Tech Computer Science Engineering'],
-    pg: ['M.Sc Computer Science', 'MCA', 'M.Tech Computer Science'],
-    diploma: ['Diploma in Computer Science', 'Advanced Diploma in IT'],
-    phd: ['PhD in Computer Science', 'PhD in Information Technology']
-  },
-  'Information Technology': {
-    ug: ['B.Sc IT', 'B.Tech IT', 'BCA'],
-    pg: ['M.Sc IT', 'M.Tech IT', 'MCA'],
-    diploma: ['Diploma in IT'],
-    phd: ['PhD in Information Technology']
-  },
-  'Artificial Intelligence': {
-    ug: ['B.Sc AI', 'B.Tech AI & ML', 'BCA AI'],
-    pg: ['M.Sc AI', 'M.Tech AI', 'PG Diploma in AI'],
-    phd: ['PhD in Artificial Intelligence']
-  },
-  'Data Science': {
-    ug: ['B.Sc Data Science', 'B.Tech Data Science', 'BCA Data Analytics'],
-    pg: ['M.Sc Data Science', 'M.Tech Data Science'],
-    phd: ['PhD in Data Science']
-  },
-  'Cyber Security': {
-    ug: ['B.Sc Cyber Security', 'B.Tech Cyber Security', 'BCA Cyber Security'],
-    pg: ['M.Sc Cyber Security', 'M.Tech Cyber Security'],
-    phd: ['PhD in Cyber Security']
-  },
-  'Computer Science Engineering': {
-    ug: ['B.Tech CSE', 'BE CSE'],
-    pg: ['M.Tech CSE', 'ME CSE'],
-    phd: ['PhD in CSE']
-  },
-  'Electronics & Communication Engineering': {
-    ug: ['B.Tech ECE', 'BE ECE'],
-    pg: ['M.Tech ECE', 'ME ECE'],
-    phd: ['PhD in ECE']
-  },
-  'Mechanical Engineering': {
-    ug: ['B.Tech Mechanical', 'BE Mechanical'],
-    pg: ['M.Tech Mechanical', 'ME Mechanical'],
-    phd: ['PhD in Mechanical Engineering']
-  },
-  'Civil Engineering': {
-    ug: ['B.Tech Civil', 'BE Civil'],
-    pg: ['M.Tech Civil', 'ME Civil'],
-    phd: ['PhD in Civil Engineering']
-  },
-  'Electrical & Electronics Engineering': {
-    ug: ['B.Tech EEE', 'BE EEE'],
-    pg: ['M.Tech EEE', 'ME EEE'],
-    phd: ['PhD in EEE']
-  },
-  'Physics': {
-    ug: ['B.Sc Physics'],
-    pg: ['M.Sc Physics'],
-    phd: ['PhD in Physics']
-  },
-  'Chemistry': {
-    ug: ['B.Sc Chemistry'],
-    pg: ['M.Sc Chemistry'],
-    phd: ['PhD in Chemistry']
-  },
-  'Mathematics': {
-    ug: ['B.Sc Mathematics'],
-    pg: ['M.Sc Mathematics'],
-    phd: ['PhD in Mathematics']
-  },
-  'Biotechnology': {
-    ug: ['B.Sc Biotechnology'],
-    pg: ['M.Sc Biotechnology'],
-    phd: ['PhD in Biotechnology']
-  },
-  'Commerce': {
-    ug: ['B.Com', 'B.Com Accounts', 'B.Com Corporate Secretaryship'],
-    pg: ['M.Com', 'M.Com Finance'],
-    phd: ['PhD in Commerce']
-  },
-  'Accounting & Finance': {
-    ug: ['B.Com Accounting & Finance', 'BBA Finance'],
-    pg: ['M.Com Finance', 'MBA Finance'],
-    phd: ['PhD in Finance']
-  },
-  'Business Administration': {
-    ug: ['BBA', 'BBM', 'BMS'],
-    pg: ['MBA', 'PGDM'],
-    phd: ['PhD in Management']
-  },
-  'English': {
-    ug: ['BA English', 'BA English Literature'],
-    pg: ['MA English', 'MA English Literature'],
-    phd: ['PhD in English']
-  },
-  'Economics': {
-    ug: ['BA Economics'],
-    pg: ['MA Economics'],
-    phd: ['PhD in Economics']
-  },
-  'Psychology': {
-    ug: ['BA Psychology', 'B.Sc Psychology'],
-    pg: ['MA Psychology', 'M.Sc Psychology'],
-    phd: ['PhD in Psychology']
-  },
-  'Law (LLB)': {
-    ug: ['BA LLB', 'BBA LLB', 'B.Com LLB', 'LLB'],
-    pg: ['LLM'],
-    phd: ['PhD in Law']
-  },
-  'UI/UX Design': {
-    ug: ['B.Des UI/UX', 'B.Sc UI/UX'],
-    pg: ['M.Des UI/UX', 'M.Sc UI/UX'],
-    phd: ['PhD in Design']
-  },
-  'Animation & VFX': {
-    ug: ['B.Sc Animation', 'B.Des Animation'],
-    pg: ['M.Sc Animation', 'M.Des Animation'],
-    phd: ['PhD in Animation']
-  },
-  'Hotel Management': {
-    ug: ['BHM', 'B.Sc Hotel Management'],
-    pg: ['MHM', 'MBA Hospitality'],
-    diploma: ['Diploma in Hotel Management'],
-    phd: ['PhD in Hospitality']
-  },
-  'Aviation Management': {
-    ug: ['BBA Aviation', 'B.Sc Aviation'],
-    pg: ['MBA Aviation Management'],
-    diploma: ['Diploma in Aviation']
-  }
-};
-
-const getDefaultCourses = (level) => {
-  const defaults = {
-    ug: ['Bachelor of Arts', 'Bachelor of Science', 'Bachelor of Commerce', 'Bachelor of Business Administration'],
-    pg: ['Master of Arts', 'Master of Science', 'Master of Commerce', 'Master of Business Administration'],
-    diploma: ['Diploma Program', 'Advanced Diploma'],
-    phd: ['Doctor of Philosophy']
-  };
-  return defaults[level] || defaults.ug;
-};
 
 const getCollegeImage = (college) => {
   if (Array.isArray(college.images) && college.images.length > 0) {
@@ -220,77 +51,7 @@ const getCollegeImage = (college) => {
   return null;
 };
 
-const getFallbackImage = (collegeName, category) => {
-  const name = (collegeName || '').toLowerCase();
-  
-  if (name.includes('iit') || name.includes('nit')) {
-    return 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop';
-  }
-  if (name.includes('anna university')) {
-    return 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?q=80&w=2070&auto=format&fit=crop';
-  }
-  if (name.includes('vit') || name.includes('vellore')) {
-    return 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2069&auto=format&fit=crop';
-  }
-  if (name.includes('srm')) {
-    return 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?q=80&w=2070&auto=format&fit=crop';
-  }
-  if (name.includes('loyola')) {
-    return 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop';
-  }
-  if (name.includes('psg')) {
-    return 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2069&auto=format&fit=crop';
-  }
-  
-  return 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2069&auto=format&fit=crop';
-};
-
-const tamilNaduLocations = [
-  'All Regions', 'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Tirunelveli',
-  'Salem', 'Erode', 'Vellore', 'Thoothukkudi', 'Dindigul', 'Thanjavur',
-  'Ranipet', 'Sivakasi', 'Karur', 'Udhagamandalam', 'Hosur', 'Nagercoil',
-  'Kanchipuram', 'Sriperumbudur', 'Kattankulathur', 'Pudukkottai', 'Nagapattinam',
-  'Kumbakonam', 'Tiruvannamalai', 'Villupuram', 'Cuddalore', 'Namakkal'
-];
-
-const fallbackColleges = [
-  { 
-    id: 1, name: "IIT Madras", location: "Chennai, India", city: "Chennai", 
-    rating: 4.8, category: "IIT", 
-    image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop",
-    studentCount: 8500, tuitionFee: "₹2,20,000"
-  },
-  { 
-    id: 2, name: "Anna University", location: "Chennai, India", city: "Chennai", 
-    rating: 4.5, category: "State University",
-    image: "https://images.unsplash.com/photo-1541339907198-e08756ebafe3?q=80&w=2070&auto=format&fit=crop",
-    studentCount: 18000, tuitionFee: "₹85,000"
-  },
-  { 
-    id: 3, name: "Loyola College", location: "Chennai, India", city: "Chennai", 
-    rating: 4.6, category: "Autonomous",
-    image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop",
-    studentCount: 5000, tuitionFee: "₹60,000"
-  },
-  { 
-    id: 4, name: "PSG Tech", location: "Coimbatore, India", city: "Coimbatore", 
-    rating: 4.4, category: "Autonomous",
-    image: "https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2069&auto=format&fit=crop",
-    studentCount: 7500, tuitionFee: "₹1,50,000"
-  },
-  { 
-    id: 5, name: "VIT Vellore", location: "Vellore, India", city: "Vellore", 
-    rating: 4.5, category: "Deemed",
-    image: "https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2069&auto=format&fit=crop",
-    studentCount: 25000, tuitionFee: "₹1,95,000"
-  },
-  { 
-    id: 6, name: "SRM University", location: "Chennai, India", city: "Chennai", 
-    rating: 4.3, category: "Deemed",
-    image: "https://images.unsplash.com/photo-1541339907198-e08756ebafe3?q=80&w=2070&auto=format&fit=crop",
-    studentCount: 22000, tuitionFee: "₹2,10,000"
-  }
-];
+const defaultLocationOptions = ['All Regions', 'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli'];
 
 export default function Home() {
   const { requireAuth, isAuthenticated, openAuthModal } = useAuth();
@@ -314,7 +75,6 @@ export default function Home() {
   const [trendingColleges, setTrendingColleges] = useState([]);
   const [allColleges, setAllColleges] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [apiError, setApiError] = useState(false);
   const [filterOptions, setFilterOptions] = useState({
     academicStreams: [],
     academicLevels: [],
@@ -338,14 +98,12 @@ export default function Home() {
   const statsRef = useRef(null);
   const [statsAnimated, setStatsAnimated] = useState(false);
   const [statValues, setStatValues] = useState([0, 0, 0, 0]);
-
   const statsData = [
     { label: 'Universities', target: 2500, icon: Building2, format: 'comma' },
     { label: 'Student Reviews', target: 45000, icon: MessageSquare, format: 'thousand' },
     { label: 'Communities', target: 12000, icon: Globe, format: 'thousand' },
     { label: 'Happy Graduates', target: 30000, icon: ShieldCheck, format: 'thousand' }
   ];
-
   const formatStatValue = (value, format) => {
     if (format === 'thousand') {
       if (value <= 0) return '0';
@@ -357,46 +115,61 @@ export default function Home() {
     return `${value}+`;
   };
 
+  // Get dynamic stream options from API or fallback to UI labels
   const streamOptions = (() => {
-    const raw = Array.isArray(filterOptions?.academicStreams) && filterOptions.academicStreams.length
-      ? filterOptions.academicStreams
-      : academicStreams.map(s => s.id);
-    return raw.map(s => {
-      const found = academicStreams.find(a => a.id === s || a.name === s);
-      return found ? found : { id: s, name: typeof s === 'string' ? s : String(s), icon: '📚' };
-    });
+    if (Array.isArray(filterOptions?.academicStreams) && filterOptions.academicStreams.length) {
+      return filterOptions.academicStreams.map(s => {
+        const found = academicStreams.find(a => a.id === s || a.name === s);
+        return found || { id: s, name: s, icon: '📚' };
+      });
+    }
+    return academicStreams;
   })();
 
+  // Get dynamic level options from API or fallback to UI labels
   const levelOptions = (() => {
-    const raw = Array.isArray(filterOptions?.academicLevels) && filterOptions.academicLevels.length
-      ? filterOptions.academicLevels
-      : academicLevels.map(l => l.id);
-    return raw.map(l => {
-      const found = academicLevels.find(a => a.id === l || a.name === l);
-      return found ? found : { id: l, name: typeof l === 'string' ? l : String(l), icon: '📜' };
-    });
+    if (Array.isArray(filterOptions?.academicLevels) && filterOptions.academicLevels.length) {
+      return filterOptions.academicLevels.map(l => {
+        const found = academicLevels.find(a => a.id === l || a.name === l);
+        return found || { id: l, name: l, icon: '📜' };
+      });
+    }
+    return academicLevels;
   })();
+
+  // Get dynamic departments from API
   const availableDepartments = Array.isArray(filterOptions?.departments) && filterOptions.departments.length
     ? filterOptions.departments
-    : activeFilters.stream ? (departmentsByStream[activeFilters.stream] || []) : [];
+    : [];
+
+  // Get dynamic courses from API based on selected department
   const availableCourses = (() => {
     if (Array.isArray(filterOptions?.offeredCourses) && filterOptions.offeredCourses.length) {
       const normalizedDept = activeFilters.department?.toLowerCase() || '';
-      return filterOptions.offeredCourses
-        .filter(course => !normalizedDept || course.toLowerCase().includes(normalizedDept))
-        .slice(0, 80);
+      if (normalizedDept) {
+        return filterOptions.offeredCourses
+          .filter(course => course.toLowerCase().includes(normalizedDept))
+          .slice(0, 80);
+      }
+      return filterOptions.offeredCourses.slice(0, 80);
     }
-    if (!activeFilters.department || !activeFilters.level) return [];
-    const deptCourses = coursesByDeptAndLevel[activeFilters.department];
-    if (deptCourses && deptCourses[activeFilters.level]) {
-      return deptCourses[activeFilters.level];
-    }
-    return getDefaultCourses(activeFilters.level);
+    return [];
   })();
 
-  const locationOptions = ((Array.isArray(filterOptions?.cities) && filterOptions.cities.length) || (Array.isArray(filterOptions?.states) && filterOptions.states.length))
-    ? [...new Set([...(filterOptions.states || []), ...(filterOptions.cities || [])])].sort()
-    : tamilNaduLocations;
+  // Get dynamic location options from API
+  const locationOptions = (() => {
+    const locations = [];
+    if (Array.isArray(filterOptions?.cities) && filterOptions.cities.length) {
+      locations.push(...filterOptions.cities);
+    }
+    if (Array.isArray(filterOptions?.states) && filterOptions.states.length) {
+      locations.push(...filterOptions.states);
+    }
+    if (locations.length) {
+      return ['All Regions', ...new Set(locations)].sort();
+    }
+    return defaultLocationOptions;
+  })();
 
   const types = ['All', 'Private', 'Public'];
   const transportOptions = ['All', 'Available', 'Not Available'];
@@ -440,10 +213,12 @@ export default function Home() {
   const getSelectedFiltersArray = () => {
     const selected = [];
     if (activeFilters.stream) {
-      selected.push({ type: 'stream', label: activeFilters.stream });
+      const streamName = streamOptions.find(s => s.id === activeFilters.stream)?.name || activeFilters.stream;
+      selected.push({ type: 'stream', label: streamName });
     }
     if (activeFilters.level) {
-      selected.push({ type: 'level', label: activeFilters.level });
+      const levelName = levelOptions.find(l => l.id === activeFilters.level)?.name || activeFilters.level;
+      selected.push({ type: 'level', label: levelName });
     }
     if (activeFilters.department) {
       selected.push({ type: 'department', label: activeFilters.department });
@@ -495,7 +270,6 @@ export default function Home() {
       return;
     }
 
-    // Clear any existing review data to prevent stale data
     localStorage.removeItem('reviewUniversityId');
     localStorage.removeItem('reviewUniversityName');
     localStorage.removeItem('userDepartment');
@@ -515,28 +289,30 @@ export default function Home() {
 
   // Handle profile modal success
   const handleProfileSuccess = () => {
-  const universityId = localStorage.getItem('reviewUniversityId');
-  if (universityId) {
-    navigate(`/write-review/${universityId}`);
-  } else {
-    navigate('/write-review');
-  }
-};
+    const universityId = localStorage.getItem('reviewUniversityId');
+    if (universityId) {
+      navigate(`/write-review/${universityId}`);
+    } else {
+      navigate('/write-review');
+    }
+  };
 
-  // Fetch trending colleges and filter options
+  // Fetch trending colleges, filter options, and statistics
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        const [trendingResult, filterResult] = await Promise.all([
+        const [trendingResult, filterResult, statsResult] = await Promise.all([
           api.getTrendingUniversities(),
-          api.getFilterOptions()
+          api.getFilterOptions(),
+          api.getStatistics()
         ]);
 
         if (trendingResult.success && Array.isArray(trendingResult.data) && trendingResult.data.length > 0) {
           const formatted = trendingResult.data.map((college) => ({
             ...college,
-            image: getCollegeImage(college) || getFallbackImage(college.name, college.category),
-            badge: college.category || 'PREMIER',
+            image: getCollegeImage(college),
+            badge: college.category || 'University',
             students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
             acceptanceRate: college.acceptanceRate || 'N/A',
             netPrice: college.tuitionFee ? `₹${college.tuitionFee}` : 'N/A',
@@ -545,37 +321,35 @@ export default function Home() {
           }));
           setTrendingColleges(formatted);
           setAllColleges(formatted);
-          setApiError(false);
         } else {
-          const formatted = fallbackColleges.map((college) => ({
-            ...college,
-            badge: college.category,
-            students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
-            acceptanceRate: 'N/A',
-            netPrice: college.tuitionFee || 'N/A',
-            satRange: 'N/A'
-          }));
-          setTrendingColleges(formatted);
-          setAllColleges(formatted);
-          setApiError(true);
+          setTrendingColleges([]);
+          setAllColleges([]);
         }
 
         if (filterResult.success && filterResult.data) {
-          setFilterOptions(filterResult.data);
+          setFilterOptions({
+            academicStreams: filterResult.data.academicStreams || [],
+            academicLevels: filterResult.data.academicLevels || [],
+            departments: filterResult.data.departments || [],
+            cities: filterResult.data.cities || [],
+            states: filterResult.data.states || [],
+            offeredCourses: filterResult.data.offeredCourses || [],
+            types: filterResult.data.types || []
+          });
+        }
+
+        if (statsResult.success && statsResult.data) {
+          setStatsData([
+            { label: 'Universities', target: statsResult.data.universities || 0, icon: Building2, format: 'comma' },
+            { label: 'Student Reviews', target: statsResult.data.studentReviews || 0, icon: MessageSquare, format: 'thousand' },
+            { label: 'Communities', target: statsResult.data.communities || 0, icon: Globe, format: 'thousand' },
+            { label: 'Happy Graduates', target: statsResult.data.happyGraduates || 0, icon: ShieldCheck, format: 'thousand' }
+          ]);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
-        const formatted = fallbackColleges.map((college) => ({
-          ...college,
-          badge: college.category,
-          students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
-          acceptanceRate: 'N/A',
-          netPrice: college.tuitionFee || 'N/A',
-          satRange: 'N/A'
-        }));
-        setTrendingColleges(formatted);
-        setAllColleges(formatted);
-        setApiError(true);
+        setTrendingColleges([]);
+        setAllColleges([]);
       } finally {
         setLoading(false);
       }
@@ -634,9 +408,9 @@ export default function Home() {
       if (activeFilters.transport === 'Available') params.transportAvailable = 'true';
       if (activeFilters.transport === 'Not Available') params.transportAvailable = 'false';
       if (activeFilters.location && activeFilters.location !== 'All Regions') {
-        if (filterOptions.cities.includes(activeFilters.location)) {
+        if (filterOptions.cities?.includes(activeFilters.location)) {
           params.city = activeFilters.location;
-        } else if (filterOptions.states.includes(activeFilters.location)) {
+        } else if (filterOptions.states?.includes(activeFilters.location)) {
           params.state = activeFilters.location;
         } else {
           params.city = activeFilters.location;
@@ -653,8 +427,8 @@ export default function Home() {
         if (result.success && Array.isArray(result.data)) {
           const formatted = result.data.map((college) => ({
             ...college,
-            image: getCollegeImage(college) || getFallbackImage(college.name, college.category),
-            badge: college.category || 'PREMIER',
+            image: getCollegeImage(college),
+            badge: college.category || 'University',
             students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
             acceptanceRate: college.acceptanceRate || 'N/A',
             netPrice: college.tuitionFee ? `₹${college.tuitionFee}` : 'N/A',
@@ -693,7 +467,7 @@ export default function Home() {
             city: college.city,
             rating: college.rating,
             category: college.category,
-            image: getCollegeImage(college) || getFallbackImage(college.name, college.category)
+            image: getCollegeImage(college)
           }));
         }
       } catch (err) {
@@ -728,8 +502,6 @@ export default function Home() {
     setShowSuggestions(false);
     requireAuth(() => navigate(`/university/${college.id}`));
   };
-
-  const homeColleges = allColleges.slice(0, 9);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
@@ -858,7 +630,7 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap justify-center gap-2 mt-5">
-              {['Engineering', 'Management', 'Chennai', 'Coimbatore', 'IIT Madras', 'Anna University'].map((tag) => (
+              {['Engineering', 'Management', 'Chennai', 'Coimbatore'].map((tag) => (
                 <button
                   key={tag}
                   onClick={() => {
@@ -889,7 +661,7 @@ export default function Home() {
                 icon: Edit3, 
                 color: 'from-indigo-500 to-indigo-600', 
                 action: () => handleWriteReviewClick(),
-                stats: '2,345+ reviews' 
+                stats: statsData[1]?.target ? `${Math.round(statsData[1].target / 1000)}k+ reviews` : 'Join now' 
               },
               { 
                 title: 'Explore Reviews', 
@@ -897,7 +669,7 @@ export default function Home() {
                 icon: GraduationCap, 
                 color: 'from-emerald-500 to-emerald-600', 
                 action: () => navigate('/reviews'),
-                stats: '2,345+ reviews' 
+                stats: statsData[1]?.target ? `${Math.round(statsData[1].target / 1000)}k+ reviews` : 'Discover now' 
               },
               { 
                 title: 'Find Community', 
@@ -905,7 +677,7 @@ export default function Home() {
                 icon: Users, 
                 color: 'from-amber-500 to-amber-600', 
                 action: () => navigate('/community'),
-                stats: '450+ mentors' 
+                stats: statsData[2]?.target ? `${Math.round(statsData[2].target / 1000)}k+ members` : 'Join community' 
               }
             ].map((card, i) => (
               <motion.div 
@@ -1000,11 +772,10 @@ export default function Home() {
                       <div className="px-4 pb-3 space-y-1">
                         {levelOptions.map(level => (
                           <label key={level.id} className="flex items-center gap-2 py-1.5 cursor-pointer group">
-                            <input type="radio" name="level" checked={activeFilters.level === level.id} onChange={() => handleLevelChange(level.id)} className="w-3.5 h-3.5 accent-indigo-600" disabled={!activeFilters.stream} />
-                            <span className={`text-xs ${!activeFilters.stream ? 'text-slate-300' : activeFilters.level === level.id ? 'text-indigo-600 font-medium' : 'text-slate-600'} group-hover:text-indigo-600`}>{level.icon} {level.name}</span>
+                            <input type="radio" name="level" checked={activeFilters.level === level.id} onChange={() => handleLevelChange(level.id)} className="w-3.5 h-3.5 accent-indigo-600" />
+                            <span className={`text-xs ${activeFilters.level === level.id ? 'text-indigo-600 font-medium' : 'text-slate-600'} group-hover:text-indigo-600`}>{level.icon} {level.name}</span>
                           </label>
                         ))}
-                        {!activeFilters.stream && <p className="text-[10px] text-slate-400 italic mt-1">Select stream first</p>}
                       </div>
                     )}
                   </div>
@@ -1026,7 +797,9 @@ export default function Home() {
                               </label>
                             ))}
                           </div>
-                        ) : <p className="text-[10px] text-slate-400 italic">Select stream first</p>}
+                        ) : (
+                          <p className="text-[10px] text-slate-400 italic">No departments available</p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1048,7 +821,9 @@ export default function Home() {
                               </label>
                             ))}
                           </div>
-                        ) : <p className="text-[10px] text-slate-400 italic">Select department and level first</p>}
+                        ) : (
+                          <p className="text-[10px] text-slate-400 italic">No courses available</p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1061,9 +836,14 @@ export default function Home() {
                     </button>
                     {expandedSections.location && (
                       <div className="px-4 pb-3">
-                          <select value={activeFilters.location} onChange={(e) => setActiveFilters(prev => ({ ...prev, location: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="All Regions">All Regions</option>
-                            {locationOptions.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                        <select 
+                          value={activeFilters.location} 
+                          onChange={(e) => setActiveFilters(prev => ({ ...prev, location: e.target.value }))} 
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                          {locationOptions.map(loc => (
+                            <option key={loc} value={loc}>{loc}</option>
+                          ))}
                         </select>
                       </div>
                     )}
@@ -1130,8 +910,8 @@ export default function Home() {
                   <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50">
                     <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Active Filters</p>
                     <div className="flex flex-wrap gap-1">
-                      {activeFilters.stream && <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[9px] font-medium">{academicStreams.find(s => s.id === activeFilters.stream)?.name}<button onClick={() => setActiveFilters(prev => ({ ...prev, stream: '', level: '', department: '', course: '' }))}>×</button></span>}
-                      {activeFilters.level && <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[9px] font-medium">{academicLevels.find(l => l.id === activeFilters.level)?.name}<button onClick={() => setActiveFilters(prev => ({ ...prev, level: '', course: '' }))}>×</button></span>}
+                      {activeFilters.stream && <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[9px] font-medium">{streamOptions.find(s => s.id === activeFilters.stream)?.name}<button onClick={() => setActiveFilters(prev => ({ ...prev, stream: '', level: '', department: '', course: '' }))}>×</button></span>}
+                      {activeFilters.level && <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[9px] font-medium">{levelOptions.find(l => l.id === activeFilters.level)?.name}<button onClick={() => setActiveFilters(prev => ({ ...prev, level: '', course: '' }))}>×</button></span>}
                       {activeFilters.department && <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[9px] font-medium">{activeFilters.department}<button onClick={() => setActiveFilters(prev => ({ ...prev, department: '', course: '' }))}>×</button></span>}
                       {activeFilters.course && <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[9px] font-medium">{activeFilters.course}<button onClick={() => setActiveFilters(prev => ({ ...prev, course: '' }))}>×</button></span>}
                       {activeFilters.location !== 'All Regions' && <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[9px] font-medium">📍 {activeFilters.location}<button onClick={() => setActiveFilters(prev => ({ ...prev, location: 'All Regions' }))}>×</button></span>}
@@ -1148,8 +928,8 @@ export default function Home() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Heart size={14} className="text-indigo-600" />
                     <span className="text-xs font-medium text-slate-600">Showing results for:</span>
-                    {activeFilters.stream && <span className="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold text-indigo-600 shadow-sm">{academicStreams.find(s => s.id === activeFilters.stream)?.name}</span>}
-                    {activeFilters.level && <span className="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold text-indigo-600 shadow-sm">{academicLevels.find(l => l.id === activeFilters.level)?.name}</span>}
+                    {activeFilters.stream && <span className="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold text-indigo-600 shadow-sm">{streamOptions.find(s => s.id === activeFilters.stream)?.name}</span>}
+                    {activeFilters.level && <span className="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold text-indigo-600 shadow-sm">{levelOptions.find(l => l.id === activeFilters.level)?.name}</span>}
                     {activeFilters.department && <span className="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold text-indigo-600 shadow-sm">{activeFilters.department}</span>}
                     {activeFilters.course && <span className="px-2 py-0.5 bg-indigo-600 text-white rounded-full text-[10px] font-bold shadow-sm">{activeFilters.course}</span>}
                   </div>
@@ -1187,29 +967,38 @@ export default function Home() {
             <div><div className="flex items-center gap-1.5 mb-2"><TrendingUp size={16} className="text-indigo-600" /><span className="text-[10px] font-black uppercase tracking-wider text-indigo-600">Trending Now</span></div><h2 className="text-2xl font-display font-black text-slate-900">Most Popular Universities</h2></div>
             <button onClick={() => navigate('/colleges')} className="px-4 py-1.5 bg-white text-slate-700 font-bold rounded-lg flex items-center gap-1.5 hover:bg-indigo-50 hover:text-indigo-600 transition-all text-xs shadow-sm border border-slate-200">Search <ChevronRight size={12} /></button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {trendingColleges.slice(0, 3).map((college, i) => (
-              <motion.div key={college.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} whileHover={{ y: -3 }} onClick={() => requireAuth(() => navigate(`/university/${college.id}`))} className="group bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all cursor-pointer border border-slate-100">
-                <div className="relative h-36 overflow-hidden bg-slate-100">
-                  {college.image ? (
-                    <img src={college.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={college.name} />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
-                      <School size={40} className="text-indigo-300" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                  <div className="absolute top-2 left-2"><span className="bg-white/95 backdrop-blur px-2 py-0.5 rounded-md text-[9px] font-black uppercase text-slate-800">#{i + 1}</span></div>
-                  {college.rating && <div className="absolute top-2 right-2 bg-amber-500/90 backdrop-blur px-1.5 py-0.5 rounded-md flex items-center gap-0.5"><Star size={8} fill="white" className="text-white" /><span className="text-[9px] font-bold text-white">{college.rating}</span></div>}
-                </div>
-                <div className="p-3">
-                  <h3 className="font-bold text-slate-900 text-sm mb-0.5 line-clamp-1">{college.name}</h3>
-                  <div className="flex items-center gap-1 text-slate-500 text-[10px] mb-2"><MapPin size={9} /> {college.location || 'India'}</div>
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100"><div className="flex items-center gap-2 text-[9px] font-bold"><span className="text-slate-500">{college.students}</span><span className="text-indigo-600">{college.netPrice}</span></div><Award size={12} className="text-slate-300 group-hover:text-indigo-500 transition" /></div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-16"><div className="w-10 h-10 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
+          ) : trendingColleges.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {trendingColleges.slice(0, 3).map((college, i) => (
+                <motion.div key={college.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} whileHover={{ y: -3 }} onClick={() => requireAuth(() => navigate(`/university/${college.id}`))} className="group bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all cursor-pointer border border-slate-100">
+                  <div className="relative h-36 overflow-hidden bg-slate-100">
+                    {college.image ? (
+                      <img src={college.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={college.name} />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+                        <School size={40} className="text-indigo-300" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                    <div className="absolute top-2 left-2"><span className="bg-white/95 backdrop-blur px-2 py-0.5 rounded-md text-[9px] font-black uppercase text-slate-800">#{i + 1}</span></div>
+                    {college.rating && <div className="absolute top-2 right-2 bg-amber-500/90 backdrop-blur px-1.5 py-0.5 rounded-md flex items-center gap-0.5"><Star size={8} fill="white" className="text-white" /><span className="text-[9px] font-bold text-white">{college.rating}</span></div>}
+                  </div>
+                  <div className="p-3">
+                    <h3 className="font-bold text-slate-900 text-sm mb-0.5 line-clamp-1">{college.name}</h3>
+                    <div className="flex items-center gap-1 text-slate-500 text-[10px] mb-2"><MapPin size={9} /> {college.location || 'India'}</div>
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100"><div className="flex items-center gap-2 text-[9px] font-bold"><span className="text-slate-500">{college.students}</span><span className="text-indigo-600">{college.netPrice}</span></div><Award size={12} className="text-slate-300 group-hover:text-indigo-500 transition" /></div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-slate-200">
+              <School size={40} className="mx-auto text-slate-300 mb-2" />
+              <p className="text-slate-400 text-sm font-medium">No trending universities available at the moment</p>
+            </div>
+          )}
         </div>
       </section>
 
