@@ -46,8 +46,24 @@ export const api = {
   getMe: (token) => 
     request('/auth/me', { headers: authHeader(token) }),
   
-  // Universities
-  getUniversities: (token) => request('/admin/universities', { headers: authHeader(token) }),
+  // ============================================
+  // UNIVERSITIES - Main CRUD
+  // ============================================
+  
+  // Get ALL active universities (not trashed) - for public display
+  getUniversities: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return request(`/universities${queryString ? `?${queryString}` : ''}`);
+  },
+  
+  // Get universities for ADMIN (includes pagination, search, etc.)
+  getAdminUniversities: (token, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return request(`/admin/universities${queryString ? `?${queryString}` : ''}`, { 
+      headers: authHeader(token) 
+    });
+  },
+  
   getUniversity: (id) => request(`/universities/${id}`),
   
   createUniversity: async (data, token) => {
@@ -68,25 +84,40 @@ export const api = {
   },
   
   updateUniversity: (id, data, token) => 
-    request(`/universities/${id}`, { method: 'PUT', headers: authHeader(token), body: JSON.stringify(data) }),
-    
-  deleteUniversity: (id, token) => 
-    request(`/universities/${id}`, { method: 'DELETE', headers: authHeader(token) }),
+    request(`/universities/${id}`, { 
+      method: 'PUT', 
+      headers: authHeader(token), 
+      body: JSON.stringify(data) 
+    }),
   
-  // Universities Trash / Soft Delete APIs
+  // ============================================
+  // UNIVERSITIES - SOFT DELETE / TRASH APIs
+  // ============================================
+  
+  // Get all trashed (soft-deleted) universities
   getTrashedUniversities: (token) => 
     request('/universities/trashed', { headers: authHeader(token) }),
   
+  // Soft delete university (move to trash)
   softDeleteUniversity: (id, token) => 
     request(`/universities/${id}/soft-delete`, { method: 'PATCH', headers: authHeader(token) }),
   
+  // Restore university from trash
   restoreUniversity: (id, token) => 
     request(`/universities/${id}/restore`, { method: 'PATCH', headers: authHeader(token) }),
   
+  // Permanently delete university (hard delete)
   permanentDeleteUniversity: (id, token) => 
     request(`/universities/${id}/permanent`, { method: 'DELETE', headers: authHeader(token) }),
   
-  // Reviews
+  // Legacy delete (will be removed - use softDelete instead)
+  deleteUniversity: (id, token) => 
+    request(`/universities/${id}`, { method: 'DELETE', headers: authHeader(token) }),
+  
+  // ============================================
+  // REVIEWS
+  // ============================================
+  
   getReviews: (token) => request('/reviews', { headers: authHeader(token) }),
   getReviewById: (id, token) => request(`/reviews/${id}`, { headers: authHeader(token) }),
   getAllReviews: () => request('/reviews/all'),
@@ -115,7 +146,10 @@ export const api = {
   deleteReview: (id, token) => 
     request(`/reviews/${id}`, { method: 'DELETE', headers: authHeader(token) }),
 
-  // Users (Admin)
+  // ============================================
+  // USERS (Admin)
+  // ============================================
+  
   getAdminUsers: (token) => request('/admin/users', { headers: authHeader(token) }),
   
   // Users Trash / Soft Delete APIs
@@ -140,10 +174,16 @@ export const api = {
   deleteUser: (id, token) => 
     request(`/admin/users/${id}`, { method: 'DELETE', headers: authHeader(token) }),
 
+  // ============================================
   // Admin Stats
-  getAdminStats: () => request('/admin/stats'),
+  // ============================================
+  
+  getAdminStats: (token) => request('/admin/stats', { headers: authHeader(token) }),
 
+  // ============================================
   // Community - Discussions
+  // ============================================
+  
   getDiscussions: () => request('/community/discussions'),
   getDiscussionById: (id) => request(`/community/discussions/${id}`),
   createDiscussion: (data, token) => 
@@ -151,7 +191,7 @@ export const api = {
   addComment: (id, content, token) => 
     request(`/community/discussions/${id}/comments`, { method: 'POST', headers: authHeader(token), body: JSON.stringify({ content }) }),
 
-  // Community - Discussions Trash / Soft Delete APIs
+  // Discussions Trash / Soft Delete APIs
   getTrashedDiscussions: (token) => 
     request('/community/discussions/trashed', { headers: authHeader(token) }),
   
@@ -170,7 +210,10 @@ export const api = {
   deleteDiscussion: (id, token) => 
     request(`/community/discussions/${id}`, { method: 'DELETE', headers: authHeader(token) }),
 
-  // Community - Comments Trash / Soft Delete APIs
+  // ============================================
+  // Community - Comments
+  // ============================================
+  
   getTrashedComments: (token) => 
     request('/community/comments/trashed', { headers: authHeader(token) }),
   
@@ -183,10 +226,12 @@ export const api = {
   permanentDeleteComment: (id, token) => 
     request(`/community/comments/${id}/permanent`, { method: 'DELETE', headers: authHeader(token) }),
 
+  // ============================================
   // Community - Mentors
+  // ============================================
+  
   getMentors: () => request('/community/mentors'),
   
-  // Community - Mentors Trash / Soft Delete APIs
   getTrashedMentors: (token) => 
     request('/community/mentors/trashed', { headers: authHeader(token) }),
   
@@ -199,10 +244,12 @@ export const api = {
   permanentDeleteMentor: (id, token) => 
     request(`/community/mentors/${id}/permanent`, { method: 'DELETE', headers: authHeader(token) }),
 
+  // ============================================
   // Community - Events
+  // ============================================
+  
   getEvents: () => request('/community/events'),
   
-  // Community - Events Trash / Soft Delete APIs
   getTrashedEvents: (token) => 
     request('/community/events/trashed', { headers: authHeader(token) }),
   
@@ -221,17 +268,18 @@ export const {
   login,
   getMe,
   getUniversities,
+  getAdminUniversities,
   getUniversity,
   createUniversity,
   updateUniversity,
   deleteUniversity,
-  getAdminUsers,
-  getAdminStats,
-  getReviews,
   getTrashedUniversities,
   softDeleteUniversity,
   restoreUniversity,
   permanentDeleteUniversity,
+  getAdminUsers,
+  getAdminStats,
+  getReviews,
   getTrashedReviews,
   softDeleteReview,
   restoreReview,

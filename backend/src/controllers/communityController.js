@@ -82,26 +82,16 @@ const getDiscussionById = async (req, res) => {
   try {
     const userId = req.user?.id;
     
-    const discussion = await prisma.discussion.findUnique({
+    const discussion = await prisma.discussion.findFirst({
       where: { id: req.params.id, isTrashed: false },
       include: {
         author: {
           select: { name: true, avatar: true, role: true }
         },
         comments: {
-          where: { parentId: null, isTrashed: false },
           include: {
             author: {
               select: { name: true, avatar: true, role: true }
-            },
-            replies: {
-              where: { isTrashed: false },
-              include: {
-                author: {
-                  select: { name: true, avatar: true, role: true }
-                }
-              },
-              orderBy: { createdAt: 'asc' }
             },
             _count: {
               select: { likesRelation: true }

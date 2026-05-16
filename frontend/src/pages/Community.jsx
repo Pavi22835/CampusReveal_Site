@@ -275,24 +275,36 @@ export default function Community() {
     if (likingPost === postId) return;
     setLikingPost(postId);
     
+    let previousLiked = false;
+    let previousLikes = 0;
     try {
       const post = posts.find(p => p.id === postId);
-      const isLiked = post?.liked || false;
-      const currentLikes = post?.likes || 0;
+      previousLiked = post?.liked || false;
+      previousLikes = post?.likes || 0;
       
       setPosts(prev => prev.map(post => 
         post.id === postId 
           ? { 
               ...post, 
-              likes: isLiked ? currentLikes - 1 : currentLikes + 1, 
-              liked: !isLiked 
+              likes: previousLiked ? previousLikes - 1 : previousLikes + 1, 
+              liked: !previousLiked 
             }
           : post
       ));
       
       const result = await api.likeDiscussion(postId, token);
       
-      if (!result?.success) {
+      if (result?.success) {
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { 
+                ...post,
+                likes: typeof result.likesCount === 'number' ? result.likesCount : (isLiked ? currentLikes - 1 : currentLikes + 1),
+                liked: result.liked !== undefined ? result.liked : !isLiked
+              }
+            : post
+        ));
+      } else {
         setPosts(prev => prev.map(post => 
           post.id === postId 
             ? { 
@@ -306,14 +318,11 @@ export default function Community() {
       }
     } catch (err) {
       console.error('Error liking post:', err);
-      const post = posts.find(p => p.id === postId);
-      if (post) {
-        setPosts(prev => prev.map(p => 
-          p.id === postId 
-            ? { ...p, likes: post.liked ? p.likes - 1 : p.likes + 1, liked: !post.liked }
-            : p
-        ));
-      }
+      setPosts(prev => prev.map(p => 
+        p.id === postId 
+          ? { ...p, likes: previousLikes, liked: previousLiked }
+          : p
+      ));
     } finally {
       setLikingPost(null);
     }
@@ -329,22 +338,21 @@ export default function Community() {
     if (likingComment === commentId) return;
     setLikingComment(commentId);
     
+    let previousCommentLiked = false;
+    let previousCommentLikes = 0;
     try {
-      let currentLiked = false;
-      let currentLikes = 0;
-      
       setPosts(prev => prev.map(post => {
         if (post.id !== postId) return post;
         return {
           ...post,
           commentsList: post.commentsList.map(comment => {
             if (comment.id !== commentId) return comment;
-            currentLiked = comment.liked || false;
-            currentLikes = comment.likes || 0;
+            previousCommentLiked = comment.liked || false;
+            previousCommentLikes = comment.likes || 0;
             return {
               ...comment,
-              likes: currentLiked ? currentLikes - 1 : currentLikes + 1,
-              liked: !currentLiked
+              likes: previousCommentLiked ? previousCommentLikes - 1 : previousCommentLikes + 1,
+              liked: !previousCommentLiked
             };
           })
         };
@@ -352,7 +360,22 @@ export default function Community() {
       
       const result = await api.likeComment(commentId, token);
       
-      if (!result?.success) {
+      if (result?.success) {
+        setPosts(prev => prev.map(post => {
+          if (post.id !== postId) return post;
+          return {
+            ...post,
+            commentsList: post.commentsList.map(comment => {
+              if (comment.id !== commentId) return comment;
+              return {
+                ...comment,
+                likes: typeof result.likesCount === 'number' ? result.likesCount : (currentLiked ? currentLikes - 1 : currentLikes + 1),
+                liked: result.liked !== undefined ? result.liked : !currentLiked
+              };
+            })
+          };
+        }));
+      } else {
         setPosts(prev => prev.map(post => {
           if (post.id !== postId) return post;
           return {
@@ -370,6 +393,20 @@ export default function Community() {
       }
     } catch (err) {
       console.error('Error liking comment:', err);
+      setPosts(prev => prev.map(post => {
+        if (post.id !== postId) return post;
+        return {
+          ...post,
+          commentsList: post.commentsList.map(comment => {
+            if (comment.id !== commentId) return comment;
+            return {
+              ...comment,
+              likes: previousCommentLikes,
+              liked: previousCommentLiked
+            };
+          })
+        };
+      }));
     } finally {
       setLikingComment(null);
     }
