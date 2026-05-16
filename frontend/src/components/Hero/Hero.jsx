@@ -8,7 +8,7 @@ import './hero.css';
 
 const Hero = ({ setSearchQuery }) => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, requireAuth } = useAuth();
+  const { user, isAuthenticated, requireAuth, openAuthModal } = useAuth();
   const [input, setInput] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -129,7 +129,10 @@ const Hero = ({ setSearchQuery }) => {
 
   // ================= HANDLE WRITE REVIEW CLICK =================
   const handleWriteReviewClick = () => {
-    // Show profile details modal directly
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
+    }
     setShowProfileModal(true);
   };
 

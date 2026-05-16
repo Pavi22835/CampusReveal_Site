@@ -447,6 +447,7 @@ const getTrendingUniversities = async (req, res) => {
         city: true,
         rating: true,
         imageUrl: true,
+        images: true,
         logoUrl: true,
         studentCount: true,
         category: true,
@@ -490,6 +491,7 @@ const searchUniversities = async (req, res) => {
         city: true,
         rating: true,
         imageUrl: true,
+        images: true,
         logoUrl: true,
         _count: {
           select: { reviews: true }
@@ -550,6 +552,7 @@ const searchUniversitiesAdvanced = async (req, res) => {
         state: true,
         rating: true,
         imageUrl: true,
+        images: true,
         logoUrl: true,
         studentCount: true,
         tuitionFee: true,

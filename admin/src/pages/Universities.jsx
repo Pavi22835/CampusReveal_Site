@@ -17,7 +17,8 @@ import {
   Calendar,
   Archive,
   RotateCcw,
-  BookOpen
+  BookOpen,
+  DollarSign
 } from 'lucide-react';
 import './Universities.css';
 
@@ -43,15 +44,15 @@ const Universities = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
+ 
   useEffect(() => {
     fetchUniversities();
     fetchTrashedUniversities();
-  }, []);
+  }, [token]);
 
   const fetchUniversities = async () => {
     try {
-      const result = await api.getUniversities();
+      const result = await api.getUniversities(token);
       if (result.success) {
         const activeUniversities = result.data.filter(uni => !uni.isTrashed);
         setUniversities(activeUniversities);
@@ -69,7 +70,7 @@ const Universities = () => {
       if (result?.success) {
         setTrashedUniversities(result.data);
       } else {
-        const allResult = await api.getUniversities();
+        const allResult = await api.getUniversities(token);
         if (allResult.success) {
           const trashed = allResult.data.filter(uni => uni.isTrashed);
           setTrashedUniversities(trashed);
@@ -239,6 +240,10 @@ const Universities = () => {
         <div className="detail-item">
           <BookOpen size={14} />
           <span>{uni._count?.reviews || 0} Reviews</span>
+        </div>
+        <div className="detail-item">
+          <DollarSign size={14} />
+          <span>{uni.tuitionFee ? `₹${uni.tuitionFee.toLocaleString()}` : 'Fee N/A'}</span>
         </div>
         <div className="detail-item">
           <Calendar size={14} />
@@ -487,6 +492,7 @@ const Universities = () => {
                   <th>Rating</th>
                   <th>Students</th>
                   <th>Reviews</th>
+                  <th>Fee</th>
                   <th>Updated</th>
                   <th>Actions</th>
                 </tr>
@@ -509,6 +515,7 @@ const Universities = () => {
                       </td>
                       <td>{uni.studentCount?.toLocaleString() || 'N/A'}</td>
                       <td>{uni._count?.reviews || 0}</td>
+                      <td>{uni.tuitionFee ? `₹${uni.tuitionFee.toLocaleString()}` : 'N/A'}</td>
                       <td className="updated-date">{formatDate(uni.updatedAt || uni.createdAt)}</td>
                       <td className="actions">
                         <button onClick={() => handleView(uni.id)} className="view-btn" title="View">

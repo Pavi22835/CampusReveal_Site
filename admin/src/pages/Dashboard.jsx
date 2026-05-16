@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { 
   GraduationCap, 
   Star, 
@@ -25,13 +26,15 @@ const Dashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
+  const { token } = useAuth();
+
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [token]);
 
   const fetchDashboardData = async () => {
     try {
-      const response = await api.getAdminStats();
+      const response = await api.getAdminStats(token);
       if (!response.success) {
         throw new Error(response.message || 'Failed to load dashboard stats');
       }
