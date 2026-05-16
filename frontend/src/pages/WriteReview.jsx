@@ -512,14 +512,14 @@ export default function WriteReview() {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-1 justify-center">
+                    <div className="flex flex-wrap gap-2 justify-center">
                       {ratingSections.map((section) => (
                         <button
                           key={section.id}
                           onClick={() => setActiveSection(section.id)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          className={`min-w-max whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                             activeSection === section.id 
-                              ? `bg-${section.color}-600 text-white shadow-sm` 
+                              ? 'bg-indigo-600 text-white shadow-sm' 
                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                           }`}
                         >

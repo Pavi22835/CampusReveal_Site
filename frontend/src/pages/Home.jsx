@@ -319,7 +319,10 @@ export default function Home() {
     academicStreams: [],
     academicLevels: [],
     departments: [],
-    genderTypes: []
+    cities: [],
+    states: [],
+    offeredCourses: [],
+    types: []
   });
   const [expandedSections, setExpandedSections] = useState({
     stream: true,
@@ -332,9 +335,57 @@ export default function Home() {
     rating: false
   });
   const searchRef = useRef(null);
+  const statsRef = useRef(null);
+  const [statsAnimated, setStatsAnimated] = useState(false);
+  const [statValues, setStatValues] = useState([0, 0, 0, 0]);
 
-  const availableDepartments = activeFilters.stream ? (departmentsByStream[activeFilters.stream] || []) : [];
+  const statsData = [
+    { label: 'Universities', target: 2500, icon: Building2, format: 'comma' },
+    { label: 'Student Reviews', target: 45000, icon: MessageSquare, format: 'thousand' },
+    { label: 'Communities', target: 12000, icon: Globe, format: 'thousand' },
+    { label: 'Happy Graduates', target: 30000, icon: ShieldCheck, format: 'thousand' }
+  ];
+
+  const formatStatValue = (value, format) => {
+    if (format === 'thousand') {
+      if (value <= 0) return '0';
+      return `${Math.round(value / 1000)}k+`;
+    }
+    if (format === 'comma') {
+      return `${value.toLocaleString()}+`;
+    }
+    return `${value}+`;
+  };
+
+  const streamOptions = (() => {
+    const raw = Array.isArray(filterOptions?.academicStreams) && filterOptions.academicStreams.length
+      ? filterOptions.academicStreams
+      : academicStreams.map(s => s.id);
+    return raw.map(s => {
+      const found = academicStreams.find(a => a.id === s || a.name === s);
+      return found ? found : { id: s, name: typeof s === 'string' ? s : String(s), icon: '📚' };
+    });
+  })();
+
+  const levelOptions = (() => {
+    const raw = Array.isArray(filterOptions?.academicLevels) && filterOptions.academicLevels.length
+      ? filterOptions.academicLevels
+      : academicLevels.map(l => l.id);
+    return raw.map(l => {
+      const found = academicLevels.find(a => a.id === l || a.name === l);
+      return found ? found : { id: l, name: typeof l === 'string' ? l : String(l), icon: '📜' };
+    });
+  })();
+  const availableDepartments = Array.isArray(filterOptions?.departments) && filterOptions.departments.length
+    ? filterOptions.departments
+    : activeFilters.stream ? (departmentsByStream[activeFilters.stream] || []) : [];
   const availableCourses = (() => {
+    if (Array.isArray(filterOptions?.offeredCourses) && filterOptions.offeredCourses.length) {
+      const normalizedDept = activeFilters.department?.toLowerCase() || '';
+      return filterOptions.offeredCourses
+        .filter(course => !normalizedDept || course.toLowerCase().includes(normalizedDept))
+        .slice(0, 80);
+    }
     if (!activeFilters.department || !activeFilters.level) return [];
     const deptCourses = coursesByDeptAndLevel[activeFilters.department];
     if (deptCourses && deptCourses[activeFilters.level]) {
@@ -342,6 +393,10 @@ export default function Home() {
     }
     return getDefaultCourses(activeFilters.level);
   })();
+
+  const locationOptions = ((Array.isArray(filterOptions?.cities) && filterOptions.cities.length) || (Array.isArray(filterOptions?.states) && filterOptions.states.length))
+    ? [...new Set([...(filterOptions.states || []), ...(filterOptions.cities || [])])].sort()
+    : tamilNaduLocations;
 
   const types = ['All', 'Private', 'Public'];
   const transportOptions = ['All', 'Available', 'Not Available'];
@@ -385,12 +440,10 @@ export default function Home() {
   const getSelectedFiltersArray = () => {
     const selected = [];
     if (activeFilters.stream) {
-      const stream = academicStreams.find(s => s.id === activeFilters.stream);
-      if (stream) selected.push({ type: 'stream', label: stream.name });
+      selected.push({ type: 'stream', label: activeFilters.stream });
     }
     if (activeFilters.level) {
-      const level = academicLevels.find(l => l.id === activeFilters.level);
-      if (level) selected.push({ type: 'level', label: level.name });
+      selected.push({ type: 'level', label: activeFilters.level });
     }
     if (activeFilters.department) {
       selected.push({ type: 'department', label: activeFilters.department });
@@ -400,6 +453,15 @@ export default function Home() {
     }
     if (activeFilters.location !== 'All Regions') {
       selected.push({ type: 'location', label: activeFilters.location });
+    }
+    if (activeFilters.transport !== 'All') {
+      selected.push({ type: 'transport', label: activeFilters.transport });
+    }
+    if (activeFilters.rating !== 'Any Rating') {
+      selected.push({ type: 'rating', label: activeFilters.rating });
+    }
+    if (activeFilters.type !== 'All') {
+      selected.push({ type: 'type', label: activeFilters.type });
     }
     return selected;
   };
@@ -415,6 +477,12 @@ export default function Home() {
       setActiveFilters(prev => ({ ...prev, course: '' }));
     } else if (filterType === 'location') {
       setActiveFilters(prev => ({ ...prev, location: 'All Regions' }));
+    } else if (filterType === 'transport') {
+      setActiveFilters(prev => ({ ...prev, transport: 'All' }));
+    } else if (filterType === 'rating') {
+      setActiveFilters(prev => ({ ...prev, rating: 'Any Rating' }));
+    } else if (filterType === 'type') {
+      setActiveFilters(prev => ({ ...prev, type: 'All' }));
     }
   };
 
@@ -422,30 +490,26 @@ export default function Home() {
 
   // Handle Write a Review click from Home page
   const handleWriteReviewClick = () => {
-  if (!isAuthenticated) {
-    openAuthModal();
-    return;
-  }
-  
-  // Clear any existing review data to prevent stale data
-  localStorage.removeItem('reviewUniversityId');
-  localStorage.removeItem('reviewUniversityName');
-  localStorage.removeItem('userDepartment');
-  localStorage.removeItem('userGraduationYear');
-  localStorage.removeItem('userCollegeName');
-
-    
-    // If college is selected, store its info
-    if (collegeId && collegeName) {
-      localStorage.setItem('reviewUniversityId', collegeId);
-      localStorage.setItem('reviewUniversityName', collegeName);
-    } else {
-      // Clear any existing review data if no college selected
-      localStorage.removeItem('reviewUniversityId');
-      localStorage.removeItem('reviewUniversityName');
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
     }
-    
-    setSelectedCollegeId(collegeId);
+
+    // Clear any existing review data to prevent stale data
+    localStorage.removeItem('reviewUniversityId');
+    localStorage.removeItem('reviewUniversityName');
+    localStorage.removeItem('userDepartment');
+    localStorage.removeItem('userGraduationYear');
+    localStorage.removeItem('userCollegeName');
+
+    if (selectedCollegeId) {
+      const selectedCollege = allColleges.find((college) => String(college.id) === String(selectedCollegeId));
+      if (selectedCollege) {
+        localStorage.setItem('reviewUniversityId', selectedCollegeId);
+        localStorage.setItem('reviewUniversityName', selectedCollege.name);
+      }
+    }
+
     setShowProfileModal(true);
   };
 
@@ -519,21 +583,73 @@ export default function Home() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (!statsRef.current || statsAnimated) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setStatsAnimated(true);
+        }
+      },
+      { threshold: 0.35 }
+    );
+
+    observer.observe(statsRef.current);
+    return () => observer.disconnect();
+  }, [statsAnimated]);
+
+  useEffect(() => {
+    if (!statsAnimated) return;
+
+    const duration = 1600;
+    const startTime = performance.now();
+    const targets = statsData.map((stat) => stat.target);
+    let rafId = null;
+
+    const animate = (time) => {
+      const progress = Math.min((time - startTime) / duration, 1);
+      const updated = targets.map((target) => Math.round(target * progress));
+      setStatValues(updated);
+
+      if (progress < 1) {
+        rafId = requestAnimationFrame(animate);
+      }
+    };
+
+    rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafId);
+  }, [statsAnimated]);
+
   // Apply filters when they change
   useEffect(() => {
+    const buildFilterQuery = () => {
+      const params = {};
+      if (activeFilters.stream) params.academicStream = activeFilters.stream;
+      if (activeFilters.level) params.academicLevel = activeFilters.level;
+      if (activeFilters.department) params.department = activeFilters.department;
+      if (activeFilters.course) params.course = activeFilters.course;
+      if (activeFilters.type && activeFilters.type !== 'All') params.type = activeFilters.type;
+      if (activeFilters.rating && activeFilters.rating !== 'Any Rating') params.minRating = activeFilters.rating.replace('+', '');
+      if (activeFilters.transport === 'Available') params.transportAvailable = 'true';
+      if (activeFilters.transport === 'Not Available') params.transportAvailable = 'false';
+      if (activeFilters.location && activeFilters.location !== 'All Regions') {
+        if (filterOptions.cities.includes(activeFilters.location)) {
+          params.city = activeFilters.location;
+        } else if (filterOptions.states.includes(activeFilters.location)) {
+          params.state = activeFilters.location;
+        } else {
+          params.city = activeFilters.location;
+        }
+      }
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+      return params;
+    };
+
     const applyFilters = async () => {
       try {
-        const params = {};
-
-        if (activeFilters.stream) params.academicStream = activeFilters.stream;
-        if (activeFilters.level) params.academicLevel = activeFilters.level;
-        if (activeFilters.department) params.department = activeFilters.department;
-        if (activeFilters.location !== 'All Regions') params.city = activeFilters.location;
-        if (activeFilters.rating !== 'Any Rating') params.minRating = activeFilters.rating.replace('+', '');
-        if (activeFilters.transport === 'Available') params.hostelAvailable = 'true';
-        if (searchQuery.trim()) params.search = searchQuery.trim();
-
-        const result = await api.getUniversities(params);
+        const params = buildFilterQuery();
+        const result = await api.getFilteredUniversities(params);
         if (result.success && Array.isArray(result.data)) {
           const formatted = result.data.map((college) => ({
             ...college,
@@ -557,7 +673,7 @@ export default function Home() {
     } else if (trendingColleges.length > 0) {
       setAllColleges(trendingColleges);
     }
-  }, [activeFilters, searchQuery, trendingColleges]);
+  }, [activeFilters, searchQuery, filterOptions, trendingColleges]);
 
   const handleSearchChange = async (query) => {
     setSearchQuery(query);
@@ -612,6 +728,8 @@ export default function Home() {
     setShowSuggestions(false);
     requireAuth(() => navigate(`/university/${college.id}`));
   };
+
+  const homeColleges = allColleges.slice(0, 9);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
@@ -819,9 +937,9 @@ export default function Home() {
       </section>
 
       {/* University Explorer Section */}
-      <section id="university-explorer" className="py-10 bg-white">
+      <section id="university-explorer" className="pt-14 pb-10 bg-white">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-100 rounded-full text-indigo-700 text-[10px] font-bold mb-2 uppercase tracking-wider">
                 <Filter size={10} /> Find Your Perfect Course
@@ -862,7 +980,7 @@ export default function Home() {
                     </button>
                     {expandedSections.stream && (
                       <div className="px-4 pb-3 space-y-1">
-                        {academicStreams.map(stream => (
+                        {streamOptions.map(stream => (
                           <label key={stream.id} className="flex items-center gap-2 py-1.5 cursor-pointer group">
                             <input type="radio" name="stream" checked={activeFilters.stream === stream.id} onChange={() => handleStreamChange(stream.id)} className="w-3.5 h-3.5 accent-indigo-600" />
                             <span className={`text-xs ${activeFilters.stream === stream.id ? 'text-indigo-600 font-medium' : 'text-slate-600'} group-hover:text-indigo-600`}>{stream.icon} {stream.name}</span>
@@ -880,7 +998,7 @@ export default function Home() {
                     </button>
                     {expandedSections.level && (
                       <div className="px-4 pb-3 space-y-1">
-                        {academicLevels.map(level => (
+                        {levelOptions.map(level => (
                           <label key={level.id} className="flex items-center gap-2 py-1.5 cursor-pointer group">
                             <input type="radio" name="level" checked={activeFilters.level === level.id} onChange={() => handleLevelChange(level.id)} className="w-3.5 h-3.5 accent-indigo-600" disabled={!activeFilters.stream} />
                             <span className={`text-xs ${!activeFilters.stream ? 'text-slate-300' : activeFilters.level === level.id ? 'text-indigo-600 font-medium' : 'text-slate-600'} group-hover:text-indigo-600`}>{level.icon} {level.name}</span>
@@ -943,8 +1061,9 @@ export default function Home() {
                     </button>
                     {expandedSections.location && (
                       <div className="px-4 pb-3">
-                        <select value={activeFilters.location} onChange={(e) => setActiveFilters(prev => ({ ...prev, location: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500">
-                          {tamilNaduLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                          <select value={activeFilters.location} onChange={(e) => setActiveFilters(prev => ({ ...prev, location: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="All Regions">All Regions</option>
+                            {locationOptions.map(loc => <option key={loc} value={loc}>{loc}</option>)}
                         </select>
                       </div>
                     )}
@@ -1096,13 +1215,26 @@ export default function Home() {
 
       {/* Stats Section */}
       <section className="py-10 bg-indigo-700">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-6" ref={statsRef}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-white">
-            {[{ label: 'Universities', val: '2,500+', icon: Building2 }, { label: 'Student Reviews', val: '45k+', icon: MessageSquare }, { label: 'Communities', val: '12k+', icon: Globe }, { label: 'Happy Graduates', val: '30k+', icon: ShieldCheck }].map((stat, i) => (
-              <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }} className="flex flex-col items-center">
-                <div className="w-10 h-10 bg-white/15 rounded-lg flex items-center justify-center mb-2"><stat.icon size={18} /></div>
-                <div className="text-2xl font-display font-black mb-0.5">{stat.val}</div>
-                <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">{stat.label}</div>
+            {statsData.map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ delay: i * 0.1 }}
+                className="flex flex-col items-center"
+              >
+                <div className="w-10 h-10 bg-white/15 rounded-lg flex items-center justify-center mb-2">
+                  <stat.icon size={18} />
+                </div>
+                <div className="text-2xl font-display font-black mb-0.5">
+                  {formatStatValue(statValues[i], stat.format)}
+                </div>
+                <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+                  {stat.label}
+                </div>
               </motion.div>
             ))}
           </div>
