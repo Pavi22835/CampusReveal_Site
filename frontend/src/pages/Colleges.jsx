@@ -261,12 +261,11 @@ const Colleges = () => {
               className="college-card"
               onClick={() => navigate(`/university/${college.id}`)}
             >
-              {/* Logo on Left, Name on Right - Flex Row */}
-              <div className="college-header-row">
+              <div className="college-card-header">
                 <div className="college-logo">
                   {college.logoUrl ? (
-                    <img 
-                      src={college.logoUrl} 
+                    <img
+                      src={college.logoUrl}
                       alt={`${college.name} logo`}
                       className="college-logo-img"
                       onError={(e) => {
@@ -283,13 +282,11 @@ const Colleges = () => {
                     </svg>
                   </div>
                 </div>
-                <div className="college-header-info">
+                <div>
                   <h3 className="college-name">{college.name}</h3>
-                  <div className="college-location">{college.location}</div>
+                  <p className="college-location">{college.location}</p>
                 </div>
               </div>
-              
-              <p className="college-description">{college.description}</p>
               
               <div className="college-stats">
                 <div className="stat">
@@ -300,14 +297,10 @@ const Colleges = () => {
                   <span className="stat-label">FEE</span>
                   <span className="stat-value">{college.netPrice}</span>
                 </div>
-                <div className="stat">
-                  <span className="stat-label">ACCEPTANCE</span>
-                  <span className="stat-value">{college.acceptanceRate}</span>
-                </div>
               </div>
               
               <div className="card-footer">
-                <button className="details-btn">Details →</button>
+                <button className="details-btn">View Details</button>
               </div>
             </div>
           ))}
