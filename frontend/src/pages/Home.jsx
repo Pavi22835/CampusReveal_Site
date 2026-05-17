@@ -98,12 +98,13 @@ export default function Home() {
   const statsRef = useRef(null);
   const [statsAnimated, setStatsAnimated] = useState(false);
   const [statValues, setStatValues] = useState([0, 0, 0, 0]);
-  const statsData = [
+  const [statsData, setStatsData] = useState([
     { label: 'Universities', target: 2500, icon: Building2, format: 'comma' },
     { label: 'Student Reviews', target: 45000, icon: MessageSquare, format: 'thousand' },
     { label: 'Communities', target: 12000, icon: Globe, format: 'thousand' },
     { label: 'Happy Graduates', target: 30000, icon: ShieldCheck, format: 'thousand' }
-  ];
+  ]);
+  
   const formatStatValue = (value, format) => {
     if (format === 'thousand') {
       if (value <= 0) return '0';
@@ -202,6 +203,7 @@ export default function Home() {
     });
     setSearchQuery('');
     setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   const hasActiveFilters = () => {
@@ -393,7 +395,7 @@ export default function Home() {
 
     rafId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafId);
-  }, [statsAnimated]);
+  }, [statsAnimated, statsData]);
 
   // Apply filters when they change
   useEffect(() => {
@@ -484,10 +486,8 @@ export default function Home() {
 
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
-      requireAuth(() => {
-        navigate(`/colleges?search=${encodeURIComponent(searchQuery.trim())}`);
-        setShowSuggestions(false);
-      });
+      navigate(`/colleges?search=${encodeURIComponent(searchQuery.trim())}`);
+      setShowSuggestions(false);
     }
   };
 
@@ -500,7 +500,7 @@ export default function Home() {
   const handleSuggestionClick = (college) => {
     setSearchQuery(college.name);
     setShowSuggestions(false);
-    requireAuth(() => navigate(`/university/${college.id}`));
+    navigate(`/university/${college.id}`);
   };
 
   return (
@@ -540,173 +540,139 @@ export default function Home() {
       )}
 
       {/* Hero Section */}
-      <section className="relative min-h-[65vh] flex items-start justify-center pt-20 pb-16 overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-        <div className="absolute inset-0 z-0 bg-gradient-to-br from-indigo-50/80 via-white/90 to-purple-50/80" />
+    <section className="relative min-h-auto pt-20 md:pt-24 pb-12 overflow-visible bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+  <div className="absolute inset-0 z-0 bg-gradient-to-br from-indigo-50/80 via-white/90 to-purple-50/80" />
 
-        <div className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center mt-4">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="w-full"
-          >
-            <motion.h1 
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-black text-slate-900 leading-[1.2] tracking-tight mb-3 flex flex-wrap justify-center items-baseline gap-x-2 gap-y-1"
-            >
-              <span className="whitespace-nowrap">Unveiling the</span>
-              <span className="whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Next Frontier</span>
-              <span className="whitespace-nowrap">of Education.</span>
-            </motion.h1>
-            
-            <p className="text-sm md:text-base text-slate-600 font-medium leading-relaxed mb-6 max-w-2xl mx-auto">
-              Authentic reviews, real projects, and honest insights shared by students, for students. Find your perfect fit based on merit and student life.
-            </p>
+  <div className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center mt-4 overflow-visible">
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
+      className="w-full overflow-visible"
+    >
+      <motion.h1 
+        className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-black text-slate-900 leading-[1.2] tracking-tight mb-3 flex flex-wrap justify-center items-baseline gap-x-2 gap-y-1"
+      >
+        <span className="whitespace-nowrap">Unveiling the</span>
+        <span className="whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Next Frontier</span>
+        <span className="whitespace-nowrap">of Education.</span>
+      </motion.h1>
+      
+      <p className="text-sm md:text-base text-slate-600 font-medium leading-relaxed mb-6 max-w-2xl mx-auto">
+        Authentic reviews, real projects, and honest insights shared by students, for students. Find your perfect fit based on merit and student life.
+      </p>
 
-            <div className="relative max-w-2xl mx-auto z-30" ref={searchRef}>
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 z-10" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Search by college name, location, city..." 
-                  value={searchQuery}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  onFocus={() => searchQuery.length > 0 && setShowSuggestions(true)}
-                  className="w-full h-12 pl-11 pr-4 bg-gradient-to-r from-indigo-50 via-white to-purple-50 rounded-xl shadow-lg shadow-indigo-200/50 border-2 border-indigo-300 font-bold text-slate-800 placeholder:text-indigo-400 placeholder:font-semibold focus:outline-none focus:ring-4 focus:ring-indigo-400/50 focus:border-indigo-500 transition-all text-sm"
-                  style={{ caretColor: '#4f46e5' }}
-                />
-              </div>
-
-              <AnimatePresence>
-                {showSuggestions && suggestions.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50"
-                  >
-                    <div className="px-4 py-2 bg-slate-50 border-b border-slate-100">
-                      <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider flex items-center gap-2">
-                        <Command size={11} /> SUGGESTED INSTITUTIONS ({suggestions.length})
-                      </span>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {suggestions.map((college) => (
-                        <button
-                          key={college.id}
-                          onClick={() => handleSuggestionClick(college)}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50 transition-all border-b border-slate-50 last:border-0 group text-left"
-                        >
-                          <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-slate-100 flex items-center justify-center">
-                            {college.image ? (
-                              <img src={college.image} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <School size={18} className="text-slate-400" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                              {college.name}
-                            </p>
-                            <div className="flex items-center gap-3 mt-0.5">
-                              <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500">
-                                <MapPin size={9} /> {college.location || college.city || 'India'}
-                              </span>
-                              {college.rating && (
-                                <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600">
-                                  <Star size={9} fill="currentColor" /> {college.rating}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <ArrowRight size={14} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all shrink-0" />
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-2 mt-5">
-              {['Engineering', 'Management', 'Chennai', 'Coimbatore'].map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => {
-                    requireAuth(() => {
-                      setSearchQuery(tag);
-                      handleSearchChange(tag);
-                      navigate(`/colleges?search=${encodeURIComponent(tag)}`);
-                    });
-                  }}
-                  className="px-3 py-1 bg-white/70 backdrop-blur-sm rounded-full text-[10px] font-medium text-slate-600 hover:bg-indigo-100 hover:text-indigo-700 transition-all border border-slate-200"
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Action Cards with Write a Review */}
-      <section className="relative z-20 pb-12 pt-2">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              { 
-                title: 'Write a Review', 
-                desc: 'Share your authentic campus journey', 
-                icon: Edit3, 
-                color: 'from-indigo-500 to-indigo-600', 
-                action: () => handleWriteReviewClick(),
-                stats: statsData[1]?.target ? `${Math.round(statsData[1].target / 1000)}k+ reviews` : 'Join now' 
-              },
-              { 
-                title: 'Explore Reviews', 
-                desc: 'Browse student reviews from real colleges', 
-                icon: GraduationCap, 
-                color: 'from-emerald-500 to-emerald-600', 
-                action: () => navigate('/reviews'),
-                stats: statsData[1]?.target ? `${Math.round(statsData[1].target / 1000)}k+ reviews` : 'Discover now' 
-              },
-              { 
-                title: 'Find Community', 
-                desc: 'Connect with industry experts', 
-                icon: Users, 
-                color: 'from-amber-500 to-amber-600', 
-                action: () => navigate('/community'),
-                stats: statsData[2]?.target ? `${Math.round(statsData[2].target / 1000)}k+ members` : 'Join community' 
+      <div className="relative max-w-2xl mx-auto z-[9999]" ref={searchRef}>
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 z-10" size={18} />
+          <input 
+            type="text" 
+            placeholder="Search by college name, location, city..." 
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onKeyPress={handleKeyPress}
+            onFocus={() => {
+              if (searchQuery.length > 0 && suggestions.length > 0) {
+                setShowSuggestions(true);
               }
-            ].map((card, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
-                whileHover={{ y: -4 }}
-                onClick={card.action}
-                className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer border border-slate-100 overflow-hidden"
-              >
-                <div className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${card.color} text-white flex items-center justify-center shadow-sm shrink-0`}>
-                      <card.icon size={18} />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400">{card.stats}</span>
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900 mt-3 mb-1">{card.title}</h3>
-                  <p className="text-xs text-slate-500 leading-relaxed mb-3">{card.desc}</p>
-                  <div className="flex items-center justify-end text-indigo-600 font-semibold text-xs gap-1 group-hover:gap-2 transition-all">
-                    Get Started <ArrowRight size={12} />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+            }}
+            className="w-full h-12 pl-11 pr-12 bg-gradient-to-r from-indigo-50 via-white to-purple-50 rounded-xl shadow-lg shadow-indigo-200/50 border-2 border-indigo-300 font-bold text-slate-800 placeholder:text-indigo-400 placeholder:font-semibold focus:outline-none focus:ring-4 focus:ring-indigo-400/50 focus:border-indigo-500 transition-all text-sm relative z-10"
+            style={{ caretColor: '#4f46e5' }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSuggestions([]);
+                setShowSuggestions(false);
+              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 transition-colors z-20"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
-      </section>
+
+        <AnimatePresence>
+          {showSuggestions && suggestions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              style={{ 
+                position: 'absolute', 
+                top: '100%', 
+                left: 0, 
+                right: 0, 
+                zIndex: 99999,
+                marginTop: '12px'
+              }}
+              className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden"
+            >
+              <div className="px-5 py-3 bg-gradient-to-r from-slate-50 to-indigo-50/30 border-b border-slate-100">
+                <span className="text-[11px] font-bold uppercase text-indigo-600 tracking-wider flex items-center gap-2">
+                  <Command size={12} /> SUGGESTED INSTITUTIONS ({suggestions.length})
+                </span>
+              </div>
+              <div className="max-h-[400px] overflow-y-auto">
+                {suggestions.map((college) => (
+                  <button
+                    key={college.id}
+                    onClick={() => handleSuggestionClick(college)}
+                    className="w-full flex items-start gap-4 px-5 py-4 hover:bg-indigo-50 transition-all border-b border-slate-100 last:border-0 group text-left"
+                  >
+                    <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center shadow-sm">
+                      {college.image ? (
+                        <img src={college.image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <School size={24} className="text-indigo-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors break-words mb-1">
+                        {college.name}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                          <MapPin size={12} /> {college.location || college.city || 'India'}
+                        </span>
+                        {college.rating && (
+                          <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
+                            <Star size={12} fill="currentColor" /> {college.rating}
+                          </span>
+                        )}
+                        {college.category && (
+                          <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
+                            {college.category}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <ArrowRight size={18} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all shrink-0 mt-2" />
+                  </button>
+                ))}
+              </div>
+              <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-100 text-center">
+                <button 
+                  onClick={() => {
+                    setShowSuggestions(false);
+                    if (searchQuery.trim()) {
+                      navigate(`/colleges?search=${encodeURIComponent(searchQuery.trim())}`);
+                    }
+                  }}
+                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors flex items-center justify-center gap-1 mx-auto"
+                >
+                  View all results <ArrowRight size={12} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  </div>
+</section>
 
       {/* University Explorer Section */}
       <section id="university-explorer" className="pt-14 pb-10 bg-white">
@@ -960,7 +926,71 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trending Universities Section */}
+      
+     
+
+      {/* Action Cards Section - Moved to Bottom */}
+      <section className="relative z-20 py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-display font-black text-slate-900 mb-3">Ready to Get Started?</h2>
+            <p className="text-slate-500 text-sm max-w-2xl mx-auto">Join thousands of students who have already found their perfect college and shared their experiences</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { 
+                title: 'Write a Review', 
+                desc: 'Share your authentic campus journey and help fellow students make informed decisions', 
+                icon: Edit3, 
+                color: 'from-indigo-500 to-indigo-600', 
+                action: () => handleWriteReviewClick(),
+                stats: statsData[1]?.target ? `${Math.round(statsData[1].target / 1000)}k+ reviews` : 'Join now' 
+              },
+              { 
+                title: 'Explore Reviews', 
+                desc: 'Browse through thousands of genuine student reviews from real colleges across India', 
+                icon: GraduationCap, 
+                color: 'from-emerald-500 to-emerald-600', 
+                action: () => navigate('/reviews'),
+                stats: statsData[1]?.target ? `${Math.round(statsData[1].target / 1000)}k+ reviews` : 'Discover now' 
+              },
+              { 
+                title: 'Find Community', 
+                desc: 'Connect with industry experts, alumni, and fellow students to grow your network', 
+                icon: Users, 
+                color: 'from-amber-500 to-amber-600', 
+                action: () => navigate('/community'),
+                stats: statsData[2]?.target ? `${Math.round(statsData[2].target / 1000)}k+ members` : 'Join community' 
+              }
+            ].map((card, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1, duration: 0.5 }}
+                whileHover={{ y: -4 }}
+                onClick={card.action}
+                className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer border border-slate-100 overflow-hidden"
+              >
+                <div className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} text-white flex items-center justify-center shadow-sm shrink-0`}>
+                      <card.icon size={20} />
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-full">{card.stats}</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 mt-4 mb-2">{card.title}</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed mb-4">{card.desc}</p>
+                  <div className="flex items-center justify-end text-indigo-600 font-semibold text-sm gap-1 group-hover:gap-2 transition-all">
+                    Get Started <ArrowRight size={14} />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="py-10 bg-gradient-to-br from-slate-50 to-indigo-50/30">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-3">
@@ -972,7 +1002,7 @@ export default function Home() {
           ) : trendingColleges.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {trendingColleges.slice(0, 3).map((college, i) => (
-                <motion.div key={college.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} whileHover={{ y: -3 }} onClick={() => requireAuth(() => navigate(`/university/${college.id}`))} className="group bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all cursor-pointer border border-slate-100">
+                <motion.div key={college.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} whileHover={{ y: -3 }} onClick={() => navigate(`/university/${college.id}`)} className="group bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all cursor-pointer border border-slate-100">
                   <div className="relative h-36 overflow-hidden bg-slate-100">
                     {college.image ? (
                       <img src={college.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={college.name} />
@@ -1002,7 +1032,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
+       {/* Stats Section */}
       <section className="py-10 bg-indigo-700">
         <div className="max-w-7xl mx-auto px-6" ref={statsRef}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-white">
