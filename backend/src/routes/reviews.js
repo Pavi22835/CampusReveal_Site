@@ -24,25 +24,26 @@ router.get('/all', getAllReviewsPublic);
 // Get reviews by university
 router.get('/university/:universityId', getReviewsByUniversity);
 
-// Get single review by ID
-router.get('/:id', getReviewById);
+// ==================== ADMIN ONLY ROUTES (MUST COME BEFORE /:id) ====================
+// Get all reviews (admin)
+router.get('/', protect, adminOnly, getAllReviews);
+
+// Get trashed reviews - MOVED HERE (BEFORE /:id)
+router.get('/trashed', protect, adminOnly, getTrashedReviews);
 
 // ==================== PROTECTED ROUTES ====================
 // Get current user's reviews
 router.get('/user/me', protect, getMyReviews);
+
+// ==================== DYNAMIC ROUTES (WITH PARAMETERS) - MUST BE LAST ====================
+// Get single review by ID - MOVED TO BOTTOM
+router.get('/:id', getReviewById);
 
 // Create a new review
 router.post('/', protect, createReview);
 
 // Like a review
 router.put('/:id/like', protect, likeReview);
-
-// ==================== ADMIN ONLY ROUTES ====================
-// Get all reviews (admin)
-router.get('/', protect, adminOnly, getAllReviews);
-
-// Get trashed reviews
-router.get('/trashed', protect, adminOnly, getTrashedReviews);
 
 // Soft delete review (move to trash)
 router.patch('/:id/soft-delete', protect, adminOnly, softDeleteReview);

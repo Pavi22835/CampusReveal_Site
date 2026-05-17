@@ -20,12 +20,6 @@ const {
   softDeleteMentor,
   restoreMentor,
   permanentDeleteMentor,
-  // ❌ REMOVE these event imports
-  // getEvents,
-  // getTrashedEvents,
-  // softDeleteEvent,
-  // restoreEvent,
-  // permanentDeleteEvent,
   likeDiscussion,
   likeComment
 } = require('../controllers/communityController');
@@ -35,18 +29,16 @@ const { protect, adminOnly } = require('../middleware/auth');
 
 // Public routes
 router.get('/discussions', getDiscussions);
-router.get('/discussions/:id', getDiscussionById);
 
-// Protected routes (user must be logged in)
+// ==================== STATIC ROUTES - MUST COME BEFORE DYNAMIC ROUTES ====================
+// Admin only routes - Discussion Trash operations (STATIC - no parameters)
+router.get('/discussions/trashed', protect, adminOnly, getTrashedDiscussions);
+
+// ==================== DYNAMIC ROUTES (WITH :id PARAMETER) - MUST COME AFTER STATIC ROUTES ====================
+router.get('/discussions/:id', getDiscussionById);
 router.post('/discussions', protect, createDiscussion);
 router.post('/discussions/:id/comments', protect, addComment);
-
-// Like/Unlike routes
 router.put('/discussions/:id/like', protect, likeDiscussion);
-router.put('/comments/:id/like', protect, likeComment);
-
-// Admin only routes - Discussion Trash operations
-router.get('/discussions/trashed', protect, adminOnly, getTrashedDiscussions);
 router.put('/discussions/:id', protect, adminOnly, updateDiscussion);
 router.patch('/discussions/:id/soft-delete', protect, adminOnly, softDeleteDiscussion);
 router.patch('/discussions/:id/restore', protect, adminOnly, restoreDiscussion);
@@ -55,8 +47,11 @@ router.delete('/discussions/:id', protect, adminOnly, deleteDiscussion);
 
 // ==================== COMMENT ROUTES ====================
 
-// Admin only routes - Comment Trash operations
+// Static routes first
 router.get('/comments/trashed', protect, adminOnly, getTrashedComments);
+
+// Dynamic routes with :id parameter
+router.put('/comments/:id/like', protect, likeComment);
 router.patch('/comments/:id/soft-delete', protect, adminOnly, softDeleteComment);
 router.patch('/comments/:id/restore', protect, adminOnly, restoreComment);
 router.delete('/comments/:id/permanent', protect, adminOnly, permanentDeleteComment);
@@ -66,12 +61,12 @@ router.delete('/comments/:id/permanent', protect, adminOnly, permanentDeleteComm
 // Public routes
 router.get('/mentors', getMentors);
 
-// Admin only routes - Mentor Trash operations
+// Static routes first
 router.get('/mentors/trashed', protect, adminOnly, getTrashedMentors);
+
+// Dynamic routes with :id parameter
 router.patch('/mentors/:id/soft-delete', protect, adminOnly, softDeleteMentor);
 router.patch('/mentors/:id/restore', protect, adminOnly, restoreMentor);
 router.delete('/mentors/:id/permanent', protect, adminOnly, permanentDeleteMentor);
-
-// ❌ REMOVE ALL EVENT ROUTES BELOW
 
 module.exports = router;
