@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
+import {
   MapPin, Star, ArrowRight, ChevronRight, ShieldCheck, Users, Edit3,
   Search, GraduationCap, Building2, Globe, Sparkles, MessageSquare,
   Filter, SlidersHorizontal, X, Command, School, TrendingUp, Award,
@@ -54,11 +54,11 @@ const getCollegeImage = (college) => {
 const defaultLocationOptions = ['All Regions', 'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli'];
 
 export default function Home() {
-  const { requireAuth, isAuthenticated, openAuthModal } = useAuth();
+  const { requireAuth, isAuthenticated, openAuthModal, token } = useAuth();
   const navigate = useNavigate();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedCollegeId, setSelectedCollegeId] = useState(null);
-  
+
   const [activeFilters, setActiveFilters] = useState({
     stream: '',
     level: '',
@@ -75,6 +75,7 @@ export default function Home() {
   const [trendingColleges, setTrendingColleges] = useState([]);
   const [allColleges, setAllColleges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [displayColleges, setDisplayColleges] = useState([]);
   const [filterOptions, setFilterOptions] = useState({
     academicStreams: [],
     academicLevels: [],
@@ -104,7 +105,7 @@ export default function Home() {
     { label: 'Communities', target: 12000, icon: Globe, format: 'thousand' },
     { label: 'Happy Graduates', target: 30000, icon: ShieldCheck, format: 'thousand' }
   ]);
-  
+
   const formatStatValue = (value, format) => {
     if (format === 'thousand') {
       if (value <= 0) return '0';
@@ -204,6 +205,10 @@ export default function Home() {
     setSearchQuery('');
     setSuggestions([]);
     setShowSuggestions(false);
+    // Reset to show trending colleges
+    if (trendingColleges.length > 0) {
+      setDisplayColleges(trendingColleges.slice(0, 6));
+    }
   };
 
   const hasActiveFilters = () => {
@@ -299,35 +304,59 @@ export default function Home() {
     }
   };
 
-  // Fetch trending colleges, filter options, and statistics
+  // Fetch trending colleges, filter options
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [trendingResult, filterResult, statsResult] = await Promise.all([
-          api.getTrendingUniversities(),
-          api.getFilterOptions(),
-          api.getStatistics()
-        ]);
+        console.log('Fetching universities data...');
 
-        if (trendingResult.success && Array.isArray(trendingResult.data) && trendingResult.data.length > 0) {
-          const formatted = trendingResult.data.map((college) => ({
-            ...college,
-            image: getCollegeImage(college),
-            badge: college.category || 'University',
-            students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
-            acceptanceRate: college.acceptanceRate || 'N/A',
-            netPrice: college.tuitionFee ? `₹${college.tuitionFee}` : 'N/A',
-            satRange: 'N/A',
-            location: college.location || college.city || 'India'
-          }));
-          setTrendingColleges(formatted);
-          setAllColleges(formatted);
-        } else {
-          setTrendingColleges([]);
-          setAllColleges([]);
+        // Fetch all universities first
+        const universitiesResult = await api.getUniversities(token);
+        console.log('Universities Response:', universitiesResult);
+
+        // Try to fetch filter options
+        let filterResult = { success: false, data: {} };
+        try {
+          filterResult = await api.getFilterOptions();
+          console.log('Filter Options Response:', filterResult);
+        } catch (err) {
+          console.warn('Filter options not available:', err);
         }
 
+        // Handle universities data
+        if (universitiesResult.success && Array.isArray(universitiesResult.data)) {
+          // Filter out trashed universities
+          const activeUniversities = universitiesResult.data.filter(uni => !uni.isTrashed);
+
+          const formatted = activeUniversities.map((college) => ({
+            ...college,
+            id: college.id,
+            name: college.name,
+            location: college.location || college.city || 'India',
+            city: college.city,
+            rating: college.rating || 4.0,
+            studentCount: college.studentCount,
+            tuitionFee: college.tuitionFee,
+            category: college.category || 'University',
+            image: getCollegeImage(college),
+            students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
+            netPrice: college.tuitionFee ? `₹${college.tuitionFee.toLocaleString()}` : 'N/A'
+          }));
+
+          setTrendingColleges(formatted);
+          setAllColleges(formatted);
+          // Show first 6 cards only
+          setDisplayColleges(formatted.slice(0, 6));
+          console.log('Set display colleges:', formatted.slice(0, 6).length, 'universities');
+        } else {
+          console.warn('No universities found or API returned empty');
+          setTrendingColleges([]);
+          setAllColleges([]);
+          setDisplayColleges([]);
+        }
+
+        // Handle filter options if available
         if (filterResult.success && filterResult.data) {
           setFilterOptions({
             academicStreams: filterResult.data.academicStreams || [],
@@ -339,25 +368,17 @@ export default function Home() {
             types: filterResult.data.types || []
           });
         }
-
-        if (statsResult.success && statsResult.data) {
-          setStatsData([
-            { label: 'Universities', target: statsResult.data.universities || 0, icon: Building2, format: 'comma' },
-            { label: 'Student Reviews', target: statsResult.data.studentReviews || 0, icon: MessageSquare, format: 'thousand' },
-            { label: 'Communities', target: statsResult.data.communities || 0, icon: Globe, format: 'thousand' },
-            { label: 'Happy Graduates', target: statsResult.data.happyGraduates || 0, icon: ShieldCheck, format: 'thousand' }
-          ]);
-        }
       } catch (error) {
         console.error('Error fetching data:', error);
         setTrendingColleges([]);
         setAllColleges([]);
+        setDisplayColleges([]);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (!statsRef.current || statsAnimated) return;
@@ -397,59 +418,70 @@ export default function Home() {
     return () => cancelAnimationFrame(rafId);
   }, [statsAnimated, statsData]);
 
-  // Apply filters when they change
+  // Apply filters when they change - Always show max 6 cards
   useEffect(() => {
-    const buildFilterQuery = () => {
-      const params = {};
-      if (activeFilters.stream) params.academicStream = activeFilters.stream;
-      if (activeFilters.level) params.academicLevel = activeFilters.level;
-      if (activeFilters.department) params.department = activeFilters.department;
-      if (activeFilters.course) params.course = activeFilters.course;
-      if (activeFilters.type && activeFilters.type !== 'All') params.type = activeFilters.type;
-      if (activeFilters.rating && activeFilters.rating !== 'Any Rating') params.minRating = activeFilters.rating.replace('+', '');
-      if (activeFilters.transport === 'Available') params.transportAvailable = 'true';
-      if (activeFilters.transport === 'Not Available') params.transportAvailable = 'false';
-      if (activeFilters.location && activeFilters.location !== 'All Regions') {
-        if (filterOptions.cities?.includes(activeFilters.location)) {
-          params.city = activeFilters.location;
-        } else if (filterOptions.states?.includes(activeFilters.location)) {
-          params.state = activeFilters.location;
-        } else {
-          params.city = activeFilters.location;
-        }
-      }
-      if (searchQuery.trim()) params.search = searchQuery.trim();
-      return params;
-    };
+    const applyFilters = () => {
+      let filtered = [...allColleges];
 
-    const applyFilters = async () => {
-      try {
-        const params = buildFilterQuery();
-        const result = await api.getFilteredUniversities(params);
-        if (result.success && Array.isArray(result.data)) {
-          const formatted = result.data.map((college) => ({
-            ...college,
-            image: getCollegeImage(college),
-            badge: college.category || 'University',
-            students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
-            acceptanceRate: college.acceptanceRate || 'N/A',
-            netPrice: college.tuitionFee ? `₹${college.tuitionFee}` : 'N/A',
-            satRange: 'N/A',
-            location: college.location || college.city || 'India'
-          }));
-          setAllColleges(formatted);
-        }
-      } catch (error) {
-        console.error('Error applying filters:', error);
+      // Apply stream filter
+      if (activeFilters.stream) {
+        filtered = filtered.filter(college =>
+          college.academicStream === activeFilters.stream ||
+          college.stream === activeFilters.stream
+        );
       }
+
+      // Apply level filter
+      if (activeFilters.level) {
+        filtered = filtered.filter(college =>
+          college.academicLevel === activeFilters.level ||
+          college.level === activeFilters.level
+        );
+      }
+
+      // Apply department filter
+      if (activeFilters.department) {
+        filtered = filtered.filter(college =>
+          college.department?.toLowerCase() === activeFilters.department.toLowerCase()
+        );
+      }
+
+      // Apply course filter
+      if (activeFilters.course) {
+        filtered = filtered.filter(college =>
+          college.course?.toLowerCase() === activeFilters.course.toLowerCase()
+        );
+      }
+
+      // Apply location filter
+      if (activeFilters.location && activeFilters.location !== 'All Regions') {
+        filtered = filtered.filter(college =>
+          college.location === activeFilters.location ||
+          college.city === activeFilters.location ||
+          college.state === activeFilters.location
+        );
+      }
+
+      // Apply search query
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        filtered = filtered.filter(college =>
+          college.name?.toLowerCase().includes(query) ||
+          college.location?.toLowerCase().includes(query) ||
+          college.city?.toLowerCase().includes(query)
+        );
+      }
+
+      // Always show only first 6 cards
+      setDisplayColleges(filtered.slice(0, 6));
     };
 
     if (hasActiveFilters() || searchQuery.trim()) {
       applyFilters();
-    } else if (trendingColleges.length > 0) {
-      setAllColleges(trendingColleges);
+    } else if (allColleges.length > 0) {
+      setDisplayColleges(allColleges.slice(0, 6));
     }
-  }, [activeFilters, searchQuery, filterOptions, trendingColleges]);
+  }, [activeFilters, searchQuery, allColleges]);
 
   const handleSearchChange = async (query) => {
     setSearchQuery(query);
@@ -460,6 +492,7 @@ export default function Home() {
 
       try {
         const searchResult = await api.searchUniversities(searchTerm);
+        console.log('Search suggestions:', searchResult);
         if (searchResult.success && Array.isArray(searchResult.data)) {
           suggestionsResult = searchResult.data.slice(0, 6).map(college => ({
             ...college,
@@ -540,139 +573,139 @@ export default function Home() {
       )}
 
       {/* Hero Section */}
-    <section className="relative min-h-auto pt-20 md:pt-24 pb-12 overflow-visible bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-  <div className="absolute inset-0 z-0 bg-gradient-to-br from-indigo-50/80 via-white/90 to-purple-50/80" />
+      <section className="relative min-h-auto pt-20 md:pt-24 pb-12 overflow-visible bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-indigo-50/80 via-white/90 to-purple-50/80" />
 
-  <div className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center mt-4 overflow-visible">
-    <motion.div 
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
-      className="w-full overflow-visible"
-    >
-      <motion.h1 
-        className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-black text-slate-900 leading-[1.2] tracking-tight mb-3 flex flex-wrap justify-center items-baseline gap-x-2 gap-y-1"
-      >
-        <span className="whitespace-nowrap">Unveiling the</span>
-        <span className="whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Next Frontier</span>
-        <span className="whitespace-nowrap">of Education.</span>
-      </motion.h1>
-      
-      <p className="text-sm md:text-base text-slate-600 font-medium leading-relaxed mb-6 max-w-2xl mx-auto">
-        Authentic reviews, real projects, and honest insights shared by students, for students. Find your perfect fit based on merit and student life.
-      </p>
-
-      <div className="relative max-w-2xl mx-auto z-[9999]" ref={searchRef}>
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 z-10" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search by college name, location, city..." 
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onKeyPress={handleKeyPress}
-            onFocus={() => {
-              if (searchQuery.length > 0 && suggestions.length > 0) {
-                setShowSuggestions(true);
-              }
-            }}
-            className="w-full h-12 pl-11 pr-12 bg-gradient-to-r from-indigo-50 via-white to-purple-50 rounded-xl shadow-lg shadow-indigo-200/50 border-2 border-indigo-300 font-bold text-slate-800 placeholder:text-indigo-400 placeholder:font-semibold focus:outline-none focus:ring-4 focus:ring-indigo-400/50 focus:border-indigo-500 transition-all text-sm relative z-10"
-            style={{ caretColor: '#4f46e5' }}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSuggestions([]);
-                setShowSuggestions(false);
-              }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 transition-colors z-20"
+        <div className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center mt-4 overflow-visible">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="w-full overflow-visible"
+          >
+            <motion.h1
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-black text-slate-900 leading-[1.2] tracking-tight mb-3 flex flex-wrap justify-center items-baseline gap-x-2 gap-y-1"
             >
-              <X size={18} />
-            </button>
-          )}
-        </div>
+              <span className="whitespace-nowrap">Unveiling the</span>
+              <span className="whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Next Frontier</span>
+              <span className="whitespace-nowrap">of Education.</span>
+            </motion.h1>
 
-        <AnimatePresence>
-          {showSuggestions && suggestions.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              style={{ 
-                position: 'absolute', 
-                top: '100%', 
-                left: 0, 
-                right: 0, 
-                zIndex: 99999,
-                marginTop: '12px'
-              }}
-              className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden"
-            >
-              <div className="px-5 py-3 bg-gradient-to-r from-slate-50 to-indigo-50/30 border-b border-slate-100">
-                <span className="text-[11px] font-bold uppercase text-indigo-600 tracking-wider flex items-center gap-2">
-                  <Command size={12} /> SUGGESTED INSTITUTIONS ({suggestions.length})
-                </span>
-              </div>
-              <div className="max-h-[400px] overflow-y-auto">
-                {suggestions.map((college) => (
-                  <button
-                    key={college.id}
-                    onClick={() => handleSuggestionClick(college)}
-                    className="w-full flex items-start gap-4 px-5 py-4 hover:bg-indigo-50 transition-all border-b border-slate-100 last:border-0 group text-left"
-                  >
-                    <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center shadow-sm">
-                      {college.image ? (
-                        <img src={college.image} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <School size={24} className="text-indigo-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors break-words mb-1">
-                        {college.name}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                          <MapPin size={12} /> {college.location || college.city || 'India'}
-                        </span>
-                        {college.rating && (
-                          <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
-                            <Star size={12} fill="currentColor" /> {college.rating}
-                          </span>
-                        )}
-                        {college.category && (
-                          <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
-                            {college.category}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <ArrowRight size={18} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all shrink-0 mt-2" />
-                  </button>
-                ))}
-              </div>
-              <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-100 text-center">
-                <button 
-                  onClick={() => {
-                    setShowSuggestions(false);
-                    if (searchQuery.trim()) {
-                      navigate(`/colleges?search=${encodeURIComponent(searchQuery.trim())}`);
+            <p className="text-sm md:text-base text-slate-600 font-medium leading-relaxed mb-6 max-w-2xl mx-auto">
+              Authentic reviews, real projects, and honest insights shared by students, for students. Find your perfect fit based on merit and student life.
+            </p>
+
+            <div className="relative max-w-2xl mx-auto z-[9999]" ref={searchRef}>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 z-10" size={18} />
+                <input
+                  type="text"
+                  placeholder="Search by college name, location, city..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  onFocus={() => {
+                    if (searchQuery.length > 0 && suggestions.length > 0) {
+                      setShowSuggestions(true);
                     }
                   }}
-                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors flex items-center justify-center gap-1 mx-auto"
-                >
-                  View all results <ArrowRight size={12} />
-                </button>
+                  className="w-full h-12 pl-11 pr-12 bg-gradient-to-r from-indigo-50 via-white to-purple-50 rounded-xl shadow-lg shadow-indigo-200/50 border-2 border-indigo-300 font-bold text-slate-800 placeholder:text-indigo-400 placeholder:font-semibold focus:outline-none focus:ring-4 focus:ring-indigo-400/50 focus:border-indigo-500 transition-all text-sm relative z-10"
+                  style={{ caretColor: '#4f46e5' }}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSuggestions([]);
+                      setShowSuggestions(false);
+                    }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 transition-colors z-20"
+                  >
+                    <X size={18} />
+                  </button>
+                )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.div>
-  </div>
-</section>
+
+              <AnimatePresence>
+                {showSuggestions && suggestions.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      zIndex: 99999,
+                      marginTop: '12px'
+                    }}
+                    className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden"
+                  >
+                    <div className="px-5 py-3 bg-gradient-to-r from-slate-50 to-indigo-50/30 border-b border-slate-100">
+                      <span className="text-[11px] font-bold uppercase text-indigo-600 tracking-wider flex items-center gap-2">
+                        <Command size={12} /> SUGGESTED INSTITUTIONS ({suggestions.length})
+                      </span>
+                    </div>
+                    <div className="max-h-[400px] overflow-y-auto">
+                      {suggestions.map((college) => (
+                        <button
+                          key={college.id}
+                          onClick={() => handleSuggestionClick(college)}
+                          className="w-full flex items-start gap-4 px-5 py-4 hover:bg-indigo-50 transition-all border-b border-slate-100 last:border-0 group text-left"
+                        >
+                          <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center shadow-sm">
+                            {college.image ? (
+                              <img src={college.image} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <School size={24} className="text-indigo-400" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors break-words mb-1">
+                              {college.name}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                              <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                                <MapPin size={12} /> {college.location || college.city || 'India'}
+                              </span>
+                              {college.rating && (
+                                <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
+                                  <Star size={12} fill="currentColor" /> {college.rating}
+                                </span>
+                              )}
+                              {college.category && (
+                                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
+                                  {college.category}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <ArrowRight size={18} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all shrink-0 mt-2" />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-100 text-center">
+                      <button
+                        onClick={() => {
+                          setShowSuggestions(false);
+                          if (searchQuery.trim()) {
+                            navigate(`/colleges?search=${encodeURIComponent(searchQuery.trim())}`);
+                          }
+                        }}
+                        className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors flex items-center justify-center gap-1 mx-auto"
+                      >
+                        View all results <ArrowRight size={12} />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
       {/* University Explorer Section */}
       <section id="university-explorer" className="pt-14 pb-10 bg-white">
@@ -685,7 +718,7 @@ export default function Home() {
               <h2 className="text-3xl font-display font-black text-slate-900 tracking-tight">University Explorer</h2>
               <p className="text-slate-500 text-sm mt-1">Select your stream, level, department and course to find matching colleges</p>
             </div>
-            <button 
+            <button
               onClick={() => navigate('/colleges')}
               className="mt-3 sm:mt-0 px-5 py-2 bg-white border border-indigo-200 text-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-50 hover:border-indigo-300 transition-all flex items-center gap-2 shadow-sm"
             >
@@ -802,9 +835,9 @@ export default function Home() {
                     </button>
                     {expandedSections.location && (
                       <div className="px-4 pb-3">
-                        <select 
-                          value={activeFilters.location} 
-                          onChange={(e) => setActiveFilters(prev => ({ ...prev, location: e.target.value }))} 
+                        <select
+                          value={activeFilters.location}
+                          onChange={(e) => setActiveFilters(prev => ({ ...prev, location: e.target.value }))}
                           className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                         >
                           {locationOptions.map(loc => (
@@ -887,7 +920,7 @@ export default function Home() {
               </div>
             </aside>
 
-            {/* Colleges Grid */}
+            {/* Colleges Grid - Always shows max 6 dynamic cards */}
             <div className="lg:col-span-9">
               {(activeFilters.stream || activeFilters.level || activeFilters.department || activeFilters.course) && (
                 <div className="mb-4 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
@@ -906,13 +939,19 @@ export default function Home() {
                 <div className="flex justify-center py-16"><div className="w-10 h-10 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
               ) : (
                 <>
-                  {searchQuery && <div className="mb-3 text-xs text-slate-500">Found {allColleges.length} result{allColleges.length !== 1 ? 's' : ''} for "{searchQuery}"</div>}
+                  {searchQuery && displayColleges.length > 0 && (
+                    <div className="mb-3 text-xs text-slate-500">
+                      Found {allColleges.length} result{allColleges.length !== 1 ? 's' : ''} for "{searchQuery}"
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {allColleges.map((college, i) => (
+                    {displayColleges.map((college, i) => (
                       <CollegeCard key={college.id} college={college} index={i} />
                     ))}
                   </div>
-                  {allColleges.length === 0 && (
+
+                  {displayColleges.length === 0 && !loading && (
                     <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-slate-200">
                       <School size={40} className="mx-auto text-slate-300 mb-2" />
                       <p className="text-slate-400 text-sm font-medium">No colleges found matching your criteria</p>
@@ -926,10 +965,7 @@ export default function Home() {
         </div>
       </section>
 
-      
-     
-
-      {/* Action Cards Section - Moved to Bottom */}
+      {/* Action Cards Section */}
       <section className="relative z-20 py-16 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-10">
@@ -937,56 +973,83 @@ export default function Home() {
             <p className="text-slate-500 text-sm max-w-2xl mx-auto">Join thousands of students who have already found their perfect college and shared their experiences</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { 
-                title: 'Write a Review', 
-                desc: 'Share your authentic campus journey and help fellow students make informed decisions', 
-                icon: Edit3, 
-                color: 'from-indigo-500 to-indigo-600', 
-                action: () => handleWriteReviewClick(),
-                stats: statsData[1]?.target ? `${Math.round(statsData[1].target / 1000)}k+ reviews` : 'Join now' 
-              },
-              { 
-                title: 'Explore Reviews', 
-                desc: 'Browse through thousands of genuine student reviews from real colleges across India', 
-                icon: GraduationCap, 
-                color: 'from-emerald-500 to-emerald-600', 
-                action: () => navigate('/reviews'),
-                stats: statsData[1]?.target ? `${Math.round(statsData[1].target / 1000)}k+ reviews` : 'Discover now' 
-              },
-              { 
-                title: 'Find Community', 
-                desc: 'Connect with industry experts, alumni, and fellow students to grow your network', 
-                icon: Users, 
-                color: 'from-amber-500 to-amber-600', 
-                action: () => navigate('/community'),
-                stats: statsData[2]?.target ? `${Math.round(statsData[2].target / 1000)}k+ members` : 'Join community' 
-              }
-            ].map((card, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
-                whileHover={{ y: -4 }}
-                onClick={card.action}
-                className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer border border-slate-100 overflow-hidden"
-              >
-                <div className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} text-white flex items-center justify-center shadow-sm shrink-0`}>
-                      <card.icon size={20} />
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-full">{card.stats}</span>
+            {/* Write a Review Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0, duration: 0.5 }}
+              whileHover={{ y: -4 }}
+              onClick={() => handleWriteReviewClick()}
+              className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer border border-slate-100 overflow-hidden"
+            >
+              <div className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
+                    <Edit3 size={20} />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mt-4 mb-2">{card.title}</h3>
-                  <p className="text-sm text-slate-500 leading-relaxed mb-4">{card.desc}</p>
-                  <div className="flex items-center justify-end text-indigo-600 font-semibold text-sm gap-1 group-hover:gap-2 transition-all">
-                    Get Started <ArrowRight size={14} />
-                  </div>
+                  <span className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-full">
+                    {allColleges.length}+ Universities
+                  </span>
                 </div>
-              </motion.div>
-            ))}
+                <h3 className="text-lg font-bold text-slate-900 mt-4 mb-2">Write a Review</h3>
+                <p className="text-sm text-slate-500 leading-relaxed mb-4">Share your authentic campus journey and help fellow students make informed decisions</p>
+                <div className="flex items-center justify-end text-indigo-600 font-semibold text-sm gap-1 group-hover:gap-2 transition-all">
+                  Get Started <ArrowRight size={14} />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Explore Reviews Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.5 }}
+              whileHover={{ y: -4 }}
+              onClick={() => navigate('/reviews')}
+              className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer border border-slate-100 overflow-hidden"
+            >
+              <div className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center shadow-sm shrink-0">
+                    <GraduationCap size={20} />
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-full">
+                    {allColleges.length}+ Universities
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mt-4 mb-2">Explore Reviews</h3>
+                <p className="text-sm text-slate-500 leading-relaxed mb-4">Browse through thousands of genuine student reviews from real colleges across India</p>
+                <div className="flex items-center justify-end text-indigo-600 font-semibold text-sm gap-1 group-hover:gap-2 transition-all">
+                  Get Started <ArrowRight size={14} />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Find Community Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              whileHover={{ y: -4 }}
+              onClick={() => navigate('/community')}
+              className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer border border-slate-100 overflow-hidden"
+            >
+              <div className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center shadow-sm shrink-0">
+                    <Users size={20} />
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-full">
+                    {allColleges.length}+ Universities
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mt-4 mb-2">Find Community</h3>
+                <p className="text-sm text-slate-500 leading-relaxed mb-4">Connect with industry experts, alumni, and fellow students to grow your network</p>
+                <div className="flex items-center justify-end text-indigo-600 font-semibold text-sm gap-1 group-hover:gap-2 transition-all">
+                  Get Started <ArrowRight size={14} />
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -1032,7 +1095,7 @@ export default function Home() {
         </div>
       </section>
 
-       {/* Stats Section */}
+      {/* Stats Section */}
       <section className="py-10 bg-indigo-700">
         <div className="max-w-7xl mx-auto px-6" ref={statsRef}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-white">

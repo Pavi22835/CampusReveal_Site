@@ -240,19 +240,13 @@ export default function Navbar() {
               </AnimatePresence>
             </div>
           ) : (
-            // Logged Out: Show Login and Sign Up buttons
+            // Logged Out: Show only Login button (Sign Up removed)
             <div className="flex items-center gap-3">
               <button
                 onClick={openAuthModal}
-                className="px-4 py-2 border border-indigo-500/50 text-indigo-400 rounded-xl font-bold text-sm hover:bg-indigo-500/10 transition-colors"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => navigate('/register')}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-500 transition-colors"
               >
-                Sign Up
+                Login
               </button>
             </div>
           )}
@@ -375,24 +369,16 @@ export default function Navbar() {
                     </button>
                   </>
                 ) : (
+                  // Mobile menu - Logged out: Show only Login button
                   <div className="space-y-3 pt-2">
                     <button
                       onClick={() => {
                         setShowMobileMenu(false);
                         openAuthModal();
                       }}
-                      className="w-full px-4 py-3 border border-indigo-500/50 text-indigo-400 rounded-xl font-bold text-sm hover:bg-indigo-500/10 transition-colors"
-                    >
-                      Login
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMobileMenu(false);
-                        navigate('/register');
-                      }}
                       className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-500 transition-colors"
                     >
-                      Sign Up
+                      Login
                     </button>
                   </div>
                 )}
