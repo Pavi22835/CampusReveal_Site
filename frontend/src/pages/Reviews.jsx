@@ -7,7 +7,7 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { Search, Star, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import Navbar from '../components/Navbar';
+import Navbar from '../components/Navbar/Navbar';
 import './Reviews.css';
 
 export default function Reviews() {
