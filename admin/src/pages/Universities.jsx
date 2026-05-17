@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { 
-  GraduationCap, 
-  Search, 
-  Plus, 
+import {
+  GraduationCap,
+  Search,
+  Plus,
   Eye,
-  Edit, 
+  Edit,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -44,7 +44,7 @@ const Universities = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
- 
+
   useEffect(() => {
     fetchUniversities();
     fetchTrashedUniversities();
@@ -158,7 +158,7 @@ const Universities = () => {
   };
 
   const currentList = activeTab === 'all' ? universities : trashedUniversities;
-  
+
   const filteredList = currentList.filter(uni =>
     uni.name.toLowerCase().includes(search.toLowerCase()) ||
     (uni.location && uni.location.toLowerCase().includes(search.toLowerCase())) ||
@@ -173,14 +173,10 @@ const Universities = () => {
     setCurrentPage(1);
   }, [search, activeTab]);
 
-  const getUniversityImage = (name) => {
-    return 'https://images.unsplash.com/photo-1562774053-701939374585?w=150&h=150&fit=crop';
-  };
-
   const getPageNumbers = () => {
     const pages = [];
     const maxVisible = 5;
-    
+
     if (totalPages <= maxVisible) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
@@ -213,7 +209,7 @@ const Universities = () => {
     });
   };
 
-  // Mobile Card Component - WITHOUT LOGO (original layout)
+  // Mobile Card Component
   const UniversityCard = ({ uni, isTrashedView }) => (
     <div className={`university-card ${uni.isTrashed ? 'trashed-card' : ''}`}>
       <div className="card-header">
@@ -223,7 +219,7 @@ const Universities = () => {
         </div>
         {uni.isTrashed && <span className="trashed-badge">Trashed</span>}
       </div>
-      
+
       <div className="card-details">
         <div className="detail-item">
           <MapPin size={14} />
@@ -250,7 +246,7 @@ const Universities = () => {
           <span>Updated: {formatDate(uni.updatedAt || uni.createdAt)}</span>
         </div>
       </div>
-      
+
       <div className="card-actions">
         <button onClick={() => handleView(uni.id)} className="action-btn view-btn" title="View">
           <Eye size={16} />
@@ -290,18 +286,23 @@ const Universities = () => {
               <button className="modal-close-compact" onClick={() => setShowViewModal(false)}>×</button>
             </div>
             <div className="modal-body-compact">
-              <div className="university-image-wrapper">
-                <div className="university-detail-image">
-                  <img 
-                    src={selectedUniversity.logoUrl || selectedUniversity.imageUrl || getUniversityImage(selectedUniversity.name)} 
-                    alt={selectedUniversity.name}
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://images.unsplash.com/photo-1562774053-701939374585?w=150&h=150&fit=crop';
-                    }}
-                  />
+              {selectedUniversity.logoUrl || selectedUniversity.imageUrl ? (
+                <div className="university-image-wrapper">
+                  <div className="university-detail-image">
+                    <img
+                      src={selectedUniversity.logoUrl || selectedUniversity.imageUrl}
+                      alt={selectedUniversity.name}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '<div class="no-image-placeholder">No Image Available</div>';
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="no-image-placeholder">No Image Available</div>
+              )}
               <div className="detail-row-compact">
                 <div className="detail-label-compact">University Name</div>
                 <div className="detail-value-compact">{selectedUniversity.name}</div>
@@ -431,7 +432,7 @@ const Universities = () => {
       {/* Control Bar */}
       <div className="universities-control-bar">
         <div className="universities-tabs">
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
@@ -439,7 +440,7 @@ const Universities = () => {
             All Universities
             <span className="tab-count">{universities.length}</span>
           </button>
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'trash' ? 'active' : ''}`}
             onClick={() => setActiveTab('trash')}
           >
@@ -474,7 +475,7 @@ const Universities = () => {
               ))
             ) : (
               <div className="no-results">
-                {activeTab === 'all' 
+                {activeTab === 'all'
                   ? `No universities found matching "${search}"`
                   : `Trash is empty. No universities found matching "${search}"`}
               </div>
@@ -547,7 +548,7 @@ const Universities = () => {
                 ) : (
                   <tr>
                     <td colSpan="8" className="no-results">
-                      {activeTab === 'all' 
+                      {activeTab === 'all'
                         ? `No universities found matching "${search}"`
                         : `Trash is empty`}
                     </td>
@@ -595,7 +596,7 @@ const Universities = () => {
               </button>
             </div>
           )}
-          
+
           {/* Results Info */}
           {filteredList.length > 0 && (
             <div className="results-info">

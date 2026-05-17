@@ -83,7 +83,7 @@ const ViewUniversity = () => {
           <div className="form-group full-width">
             <label>Images</label>
             <div className="image-previews">
-              {(university.images || []).length > 0 ? (
+              {university.images && university.images.length > 0 ? (
                 university.images.map((img, idx) => (
                   <div key={idx} className="image-preview-card">
                     <img src={img} alt={`University ${idx + 1}`} />
