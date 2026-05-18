@@ -160,7 +160,7 @@ const getLocationText = (university) => {
 export default function UniversityDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { requireAuth, isAuthenticated, openAuthModal } = useAuth();
+  const { requireAuth, isAuthenticated, openOtpModal } = useAuth();
   const [university, setUniversity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -283,7 +283,7 @@ export default function UniversityDetail() {
 
   const handleWriteReviewClick = () => {
     if (!isAuthenticated) {
-      openAuthModal();
+      openOtpModal();
       return;
     }
     

@@ -53,7 +53,7 @@ const getCollegeImage = (college) => {
 const defaultLocationOptions = ['All Regions'];
 
 export default function Home() {
-  const { requireAuth, isAuthenticated, openAuthModal, token } = useAuth();
+  const { requireAuth, isAuthenticated, openOtpModal, token } = useAuth();
   const navigate = useNavigate();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedCollegeId, setSelectedCollegeId] = useState(null);
@@ -267,7 +267,7 @@ export default function Home() {
 
   const handleWriteReviewClick = () => {
     if (!isAuthenticated) {
-      openAuthModal();
+      openOtpModal();
       return;
     }
 

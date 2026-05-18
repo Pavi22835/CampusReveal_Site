@@ -2,12 +2,10 @@ import React from 'react';
 import { Star, MapPin, ChevronRight, GraduationCap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import './collegeCard.css';
 
 const CollegeCard = ({ college, index }) => {
   const navigate = useNavigate();
-  const { requireAuth } = useAuth();
 
   // ✅ NO HARDCODED BADGE LOGIC - Only show badge if explicitly provided by admin
   const getBadge = () => {
@@ -38,7 +36,7 @@ const CollegeCard = ({ college, index }) => {
       transition={{ delay: (index || 0) * 0.05, duration: 0.3 }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
       className="college-card-premium"
-      onClick={() => requireAuth(() => navigate(`/university/${college.id}`))}
+      onClick={() => navigate(`/university/${college.id}`)}
     >
       {/* Image Section */}
       <div className="card-image-wrapper">

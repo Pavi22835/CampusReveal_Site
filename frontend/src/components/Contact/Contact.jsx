@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Phone, Mail, Clock, Send, MessageSquare, User, CheckCircle, AlertCircle } from 'lucide-react';
-import { api } from '../services/api';
+import { api } from '../../services/api';
 import './Contact.css';
 
 export default function Contact() {

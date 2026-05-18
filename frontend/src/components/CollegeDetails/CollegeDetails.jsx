@@ -4,7 +4,7 @@ import { ArrowLeft, Star, MapPin, Share2, Heart, ShieldCheck, Edit3, ThumbsUp, A
 import LocationInfo from './LocationInfo';
 import RatingBars from './RatingBars';
 import ReviewCard from './ReviewCard';
-import { api } from '../services/api';
+import { api } from '../../services/api';
 import './collegeDetails.css';
 
 const CollegeDetails = () => {

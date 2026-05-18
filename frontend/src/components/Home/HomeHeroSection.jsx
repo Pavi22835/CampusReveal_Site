@@ -171,7 +171,7 @@ export default function HomeHeroSection({
       </div>
 
       {/* Add required styles */}
-      <style jsx>{`
+      <style>{`
         .item-logo-wrapper {
           width: 48px;
           height: 48px;

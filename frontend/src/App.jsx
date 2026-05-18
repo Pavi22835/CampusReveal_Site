@@ -7,7 +7,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import AuthModal from './components/AuthModal/AuthModal';
+import OtpLoginModal from './components/OtpLoginModal/OtpLoginModal';
 import Navbar from './components/Navbar/Navbar';
 import Footer from './components/Footer/Footer';
 import './App.css';
@@ -75,8 +75,8 @@ function AppContent() {
 
       <Footer />
       
-      {/* Auth Modal */}
-      <AuthModal />
+      {/* OTP Login Modal */}
+      <OtpLoginModal />
     </div>
   );
 }
