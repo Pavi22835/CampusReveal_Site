@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
         setUser(res.user);
         return { success: true };
       }
-      return { success: false, message: 'Invalid admin credentials' };
+      return { success: false, message: 'Invalid credentials' };
     } catch (error) {
       console.error('Login error:', error);
       return { success: false, message: error.message };

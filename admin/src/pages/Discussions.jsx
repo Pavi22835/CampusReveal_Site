@@ -1,3 +1,5 @@
+// Updated Discussions.jsx - Cleaned version with no hardcoded data
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -55,24 +57,21 @@ const Discussions = () => {
     setError('');
     try {
       const result = await api.getDiscussions();
-      console.log('Fetched discussions:', result);
       
-      // Handle different response structures
       let discussionsData = [];
-      if (result.success && result.data) {
+      if (result?.success && result?.data) {
         discussionsData = Array.isArray(result.data) ? result.data : [];
       } else if (Array.isArray(result)) {
         discussionsData = result;
-      } else if (result.data && Array.isArray(result.data)) {
+      } else if (result?.data && Array.isArray(result.data)) {
         discussionsData = result.data;
       }
       
-      // Filter out trashed discussions if they have isTrashed flag
       const activeDiscussions = discussionsData.filter(d => !d.isTrashed);
       setDiscussions(activeDiscussions);
       
-      if (discussionsData.length === 0 && !result.success) {
-        setError(result.message || 'Failed to load discussions');
+      if (!activeDiscussions.length && result?.message) {
+        setError(result.message);
       }
     } catch (err) {
       console.error('Fetch discussions error:', err);
@@ -85,14 +84,12 @@ const Discussions = () => {
 
   const fetchTrashedDiscussions = async () => {
     if (!api.getTrashedDiscussions) {
-      console.warn('getTrashedDiscussions method not available');
       setTrashedDiscussions([]);
       return;
     }
     
     try {
       const result = await api.getTrashedDiscussions(token);
-      console.log('Fetched trashed discussions:', result);
       
       let trashedData = [];
       if (result?.success && result?.data) {
@@ -117,7 +114,7 @@ const Discussions = () => {
 
   const handleSoftDelete = async (id, title) => {
     if (!api.softDeleteDiscussion) {
-      alert('Soft delete feature is not available');
+      setError('Soft delete feature is not available');
       return;
     }
     
@@ -129,20 +126,19 @@ const Discussions = () => {
           if (activeTab === 'trash') {
             await fetchTrashedDiscussions();
           }
-          alert('Discussion moved to trash successfully');
         } else {
-          alert(result?.message || 'Failed to move discussion to trash');
+          setError(result?.message || 'Failed to move discussion to trash');
         }
       } catch (err) {
         console.error('Soft delete error:', err);
-        alert('Error moving discussion to trash');
+        setError('Error moving discussion to trash');
       }
     }
   };
 
   const handleRestore = async (id, title) => {
     if (!api.restoreDiscussion) {
-      alert('Restore feature is not available');
+      setError('Restore feature is not available');
       return;
     }
     
@@ -152,20 +148,19 @@ const Discussions = () => {
         if (result?.success) {
           await fetchDiscussions();
           await fetchTrashedDiscussions();
-          alert('Discussion restored successfully');
         } else {
-          alert(result?.message || 'Failed to restore discussion');
+          setError(result?.message || 'Failed to restore discussion');
         }
       } catch (err) {
         console.error('Restore error:', err);
-        alert('Error restoring discussion');
+        setError('Error restoring discussion');
       }
     }
   };
 
   const handlePermanentDelete = async (id, title) => {
     if (!api.permanentDeleteDiscussion) {
-      alert('Permanent delete feature is not available');
+      setError('Permanent delete feature is not available');
       return;
     }
     
@@ -174,13 +169,12 @@ const Discussions = () => {
         const result = await api.permanentDeleteDiscussion(id, token);
         if (result?.success) {
           await fetchTrashedDiscussions();
-          alert('Discussion permanently deleted');
         } else {
-          alert(result?.message || 'Failed to permanently delete discussion');
+          setError(result?.message || 'Failed to permanently delete discussion');
         }
       } catch (err) {
         console.error('Permanent delete error:', err);
-        alert('Error deleting discussion');
+        setError('Error deleting discussion');
       }
     }
   };
@@ -205,15 +199,14 @@ const Discussions = () => {
   const currentListCount = activeTab === 'all' ? discussions.length : trashedDiscussions.length;
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return null;
     try {
       return new Date(dateString).toLocaleDateString('en-GB');
     } catch {
-      return 'Invalid Date';
+      return null;
     }
   };
 
-  // Mobile Card Component
   const DiscussionCard = ({ discussion }) => (
     <div className={`discussion-card ${discussion.isTrashed ? 'trashed-card' : ''}`}>
       <div className="card-header">
@@ -232,15 +225,19 @@ const Discussions = () => {
           <MessageSquare size={14} />
           <span>{discussion.replies || discussion._count?.comments || 0} replies</span>
         </div>
-        <div className="detail-item">
-          <Clock size={14} />
-          <span>{formatDate(discussion.createdAt)}</span>
-        </div>
+        {formatDate(discussion.createdAt) && (
+          <div className="detail-item">
+            <Clock size={14} />
+            <span>{formatDate(discussion.createdAt)}</span>
+          </div>
+        )}
       </div>
       
-      <div className="card-content">
-        <p>{discussion.content?.substring(0, 100)}{discussion.content?.length > 100 ? '...' : ''}</p>
-      </div>
+      {discussion.content && (
+        <div className="card-content">
+          <p>{discussion.content.substring(0, 100)}{discussion.content.length > 100 ? '...' : ''}</p>
+        </div>
+      )}
       
       <div className="card-actions">
         <button onClick={() => handleView(discussion)} className="action-btn view-btn" title="View">
@@ -295,7 +292,6 @@ const Discussions = () => {
 
   return (
     <div className="discussions-page">
-      {/* View Modal */}
       {showViewModal && selectedDiscussion && (
         <div className="modal-overlay" onClick={() => setShowViewModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -304,23 +300,29 @@ const Discussions = () => {
               <button className="modal-close" onClick={() => setShowViewModal(false)}>×</button>
             </div>
             <div className="modal-body">
-              <div className="detail-row">
-                <div className="detail-label">Title</div>
-                <div className="detail-value">{selectedDiscussion.title || 'Untitled'}</div>
-              </div>
-              <div className="detail-row">
-                <div className="detail-label">Author</div>
-                <div className="detail-value">
-                  <User size={14} style={{ marginRight: '8px' }} />
-                  {selectedDiscussion.author?.name || 'Unknown'}
+              {selectedDiscussion.title && (
+                <div className="detail-row">
+                  <div className="detail-label">Title</div>
+                  <div className="detail-value">{selectedDiscussion.title}</div>
                 </div>
-              </div>
-              <div className="detail-row">
-                <div className="detail-label">Content</div>
-                <div className="detail-value content">
-                  {selectedDiscussion.content || 'No content'}
+              )}
+              {selectedDiscussion.author?.name && (
+                <div className="detail-row">
+                  <div className="detail-label">Author</div>
+                  <div className="detail-value">
+                    <User size={14} style={{ marginRight: '8px' }} />
+                    {selectedDiscussion.author.name}
+                  </div>
                 </div>
-              </div>
+              )}
+              {selectedDiscussion.content && (
+                <div className="detail-row">
+                  <div className="detail-label">Content</div>
+                  <div className="detail-value content">
+                    {selectedDiscussion.content}
+                  </div>
+                </div>
+              )}
               <div className="detail-row two-col">
                 <div className="detail-col">
                   <div className="detail-label">Replies</div>
@@ -329,13 +331,15 @@ const Discussions = () => {
                     {selectedDiscussion.replies || selectedDiscussion._count?.comments || 0}
                   </div>
                 </div>
-                <div className="detail-col">
-                  <div className="detail-label">Created At</div>
-                  <div className="detail-value">
-                    <Clock size={14} style={{ marginRight: '8px' }} />
-                    {formatDate(selectedDiscussion.createdAt)}
+                {formatDate(selectedDiscussion.createdAt) && (
+                  <div className="detail-col">
+                    <div className="detail-label">Created At</div>
+                    <div className="detail-value">
+                      <Clock size={14} style={{ marginRight: '8px' }} />
+                      {formatDate(selectedDiscussion.createdAt)}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
               {selectedDiscussion.tags?.length > 0 && (
                 <div className="detail-row">
@@ -360,13 +364,14 @@ const Discussions = () => {
           <h1>Discussions</h1>
           <p>Manage and moderate community discussions</p>
         </div>
-        <div className="stats-pill">
-          <MessageCircle size={18} />
-          <span>{currentListCount} {activeTab === 'all' ? 'discussions' : 'in trash'}</span>
-        </div>
+        {currentListCount > 0 && (
+          <div className="stats-pill">
+            <MessageCircle size={18} />
+            <span>{currentListCount} {activeTab === 'all' ? 'discussions' : 'in trash'}</span>
+          </div>
+        )}
       </div>
 
-      {/* Control Bar */}
       <div className="discussions-control-bar">
         <div className="discussions-tabs">
           <button 
@@ -380,7 +385,7 @@ const Discussions = () => {
           >
             <MessageCircle size={16} />
             All Discussions
-            <span className="tab-count">{discussions.length}</span>
+            {discussions.length > 0 && <span className="tab-count">{discussions.length}</span>}
           </button>
           <button 
             className={`tab-btn ${activeTab === 'trash' ? 'active' : ''}`}
@@ -393,7 +398,7 @@ const Discussions = () => {
           >
             <Archive size={16} />
             Trash
-            <span className="tab-count trash-count">{trashedDiscussions.length}</span>
+            {trashedDiscussions.length > 0 && <span className="tab-count trash-count">{trashedDiscussions.length}</span>}
           </button>
         </div>
 
@@ -403,7 +408,7 @@ const Discussions = () => {
               <Search size={18} className="search-icon" />
               <input
                 type="text"
-                placeholder={`Search by title, content, or author...`}
+                placeholder="Search discussions..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -434,19 +439,17 @@ const Discussions = () => {
       ) : filteredList.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">💬</div>
-          <h3>No discussions found</h3>
-          <p>{searchTerm ? 'Try adjusting your search' : activeTab === 'all' ? 'Discussions will appear here' : 'Trash is empty'}</p>
+          <h3>No Data Available</h3>
+          <p>{searchTerm ? 'No discussions match your search criteria' : 'No discussions found'}</p>
         </div>
       ) : (
         <>
-          {/* Mobile Card View */}
           <div className="discussions-cards-view">
             {paginatedList.map((discussion) => (
               <DiscussionCard key={discussion.id} discussion={discussion} />
             ))}
           </div>
 
-          {/* Desktop Table View */}
           <div className="discussions-table-wrapper">
             <table className="discussions-table">
               <thead>
@@ -476,7 +479,7 @@ const Discussions = () => {
                       {discussion.views || 0}
                     </td>
                     <td className="date-cell">
-                      {formatDate(discussion.createdAt)}
+                      {formatDate(discussion.createdAt) || 'N/A'}
                     </td>
                     <td className="actions-cell">
                       <button 
@@ -522,7 +525,6 @@ const Discussions = () => {
             </table>
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="pagination">
               <button 
@@ -557,7 +559,6 @@ const Discussions = () => {
             </div>
           )}
           
-          {/* Results Info */}
           {filteredList.length > 0 && (
             <div className="results-info">
               Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredList.length)} of {filteredList.length} discussions

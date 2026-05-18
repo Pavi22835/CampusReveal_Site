@@ -2,8 +2,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const request = async (endpoint, options = {}) => {
   try {
-    console.log(`API Request: ${options.method || 'GET'} ${endpoint}`);
-    
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -15,48 +13,59 @@ const request = async (endpoint, options = {}) => {
     });
     
     const data = await res.json();
-    console.log('API Response status:', res.status);
-    console.log('API Response data:', data);
     
     if (!res.ok) {
-      throw new Error(data.message || 'Something went wrong');
+      throw new Error(data.message || `Request failed with status ${res.status}`);
     }
-    return data;
+    
+    // Ensure consistent response format
+    return {
+      success: true,
+      data: data.data || data,
+      message: data.message || 'Success'
+    };
   } catch (error) {
     console.error('API Error:', error);
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error.message,
+      data: null
+    };
   }
 };
 
 const authHeader = (token) => {
-  console.log('Using token:', token ? `${token.substring(0, 20)}...` : 'No token');
+  if (!token) {
+    return {};
+  }
   return {
     Authorization: `Bearer ${token}`,
   };
 };
 
 export const api = {
-  // Auth
+  // ============================================
+  // AUTH
+  // ============================================
+  
   login: (email, password) => 
     request('/auth/login', { 
       method: 'POST', 
-      body: JSON.stringify({ username: email, password }) 
+      body: JSON.stringify({ email, password }) 
     }),
   
   getMe: (token) => 
     request('/auth/me', { headers: authHeader(token) }),
   
   // ============================================
-  // UNIVERSITIES - Main CRUD
+  // UNIVERSITIES
   // ============================================
   
-  // Get ALL active universities (not trashed) - for public display
   getUniversities: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return request(`/universities${queryString ? `?${queryString}` : ''}`);
   },
   
-  // Get universities for ADMIN (includes pagination, search, etc.)
   getAdminUniversities: (token, params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return request(`/admin/universities${queryString ? `?${queryString}` : ''}`, { 
@@ -66,35 +75,30 @@ export const api = {
   
   getUniversity: (id) => request(`/universities/${id}`),
   
-  createUniversity: async (data, token) => {
-    console.log('=== createUniversity called ===');
-    console.log('Data type:', typeof data);
-    console.log('Data keys:', Object.keys(data || {}));
-    console.log('University name being sent:', data?.name);
-    console.log('Full data:', JSON.stringify(data, null, 2));
+  createUniversity: (data, token) => {
+    // Only send fields that have values
+    const submitData = Object.keys(data).reduce((acc, key) => {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        acc[key] = data[key];
+      }
+      return acc;
+    }, {});
     
-    // ✅ Ensure mapLink is included
-    const submitData = {
-      ...data,
-      mapLink: data.mapLink || null,
-    };
-    
-    const result = await request('/universities', { 
+    return request('/universities', { 
       method: 'POST', 
       headers: authHeader(token), 
       body: JSON.stringify(submitData) 
     });
-    
-    console.log('createUniversity result:', result);
-    return result;
   },
   
-  updateUniversity: async (id, data, token) => {
-    // ✅ Ensure mapLink is included
-    const submitData = {
-      ...data,
-      mapLink: data.mapLink !== undefined ? data.mapLink : null,
-    };
+  updateUniversity: (id, data, token) => {
+    // Only send fields that have values
+    const submitData = Object.keys(data).reduce((acc, key) => {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        acc[key] = data[key];
+      }
+      return acc;
+    }, {});
     
     return request(`/universities/${id}`, { 
       method: 'PUT', 
@@ -103,41 +107,44 @@ export const api = {
     });
   },
   
-  // ============================================
-  // UNIVERSITIES - SOFT DELETE / TRASH APIs
-  // ============================================
-  
-  // Get all trashed (soft-deleted) universities
   getTrashedUniversities: (token) => 
     request('/universities/trashed', { headers: authHeader(token) }),
   
-  // Soft delete university (move to trash)
   softDeleteUniversity: (id, token) => 
     request(`/universities/${id}/soft-delete`, { method: 'PATCH', headers: authHeader(token) }),
   
-  // Restore university from trash
   restoreUniversity: (id, token) => 
     request(`/universities/${id}/restore`, { method: 'PATCH', headers: authHeader(token) }),
   
-  // Permanently delete university (hard delete)
   permanentDeleteUniversity: (id, token) => 
     request(`/universities/${id}/permanent`, { method: 'DELETE', headers: authHeader(token) }),
-  
-  // Legacy delete (will be removed - use softDelete instead)
-  deleteUniversity: (id, token) => 
-    request(`/universities/${id}`, { method: 'DELETE', headers: authHeader(token) }),
   
   // ============================================
   // REVIEWS
   // ============================================
   
   getReviews: (token) => request('/reviews', { headers: authHeader(token) }),
-  getReviewById: (id, token) => request(`/reviews/${id}`, { headers: authHeader(token) }),
-  getAllReviews: () => request('/reviews/all'),
-  createReview: (data, token) => 
-    request('/reviews', { method: 'POST', headers: authHeader(token), body: JSON.stringify(data) }),
   
-  // Reviews Trash / Soft Delete APIs
+  getReviewById: (id, token) => request(`/reviews/${id}`, { headers: authHeader(token) }),
+  
+  getAllReviews: () => request('/reviews/all'),
+  
+  createReview: (data, token) => {
+    // Only send fields that have values
+    const submitData = Object.keys(data).reduce((acc, key) => {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        acc[key] = data[key];
+      }
+      return acc;
+    }, {});
+    
+    return request('/reviews', { 
+      method: 'POST', 
+      headers: authHeader(token), 
+      body: JSON.stringify(submitData) 
+    });
+  },
+  
   getAdminAllReviews: (token) => 
     request('/reviews', { headers: authHeader(token) }),
   
@@ -153,8 +160,21 @@ export const api = {
   permanentDeleteReview: (id, token) => 
     request(`/reviews/${id}/permanent`, { method: 'DELETE', headers: authHeader(token) }),
   
-  updateReview: (id, data, token) => 
-    request(`/reviews/${id}`, { method: 'PUT', headers: authHeader(token), body: JSON.stringify(data) }),
+  updateReview: (id, data, token) => {
+    // Only send fields that have values
+    const submitData = Object.keys(data).reduce((acc, key) => {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        acc[key] = data[key];
+      }
+      return acc;
+    }, {});
+    
+    return request(`/reviews/${id}`, { 
+      method: 'PUT', 
+      headers: authHeader(token), 
+      body: JSON.stringify(submitData) 
+    });
+  },
   
   deleteReview: (id, token) => 
     request(`/reviews/${id}`, { method: 'DELETE', headers: authHeader(token) }),
@@ -165,15 +185,27 @@ export const api = {
   
   getAdminUsers: (token) => request('/admin/users', { headers: authHeader(token) }),
   
-  // Users Trash / Soft Delete APIs
   getTrashedUsers: (token) => 
     request('/admin/users/trashed', { headers: authHeader(token) }),
   
   getUserById: (id, token) => 
     request(`/admin/users/${id}`, { headers: authHeader(token) }),
   
-  updateUser: (id, data, token) => 
-    request(`/admin/users/${id}`, { method: 'PUT', headers: authHeader(token), body: JSON.stringify(data) }),
+  updateUser: (id, data, token) => {
+    // Only send fields that have values
+    const submitData = Object.keys(data).reduce((acc, key) => {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        acc[key] = data[key];
+      }
+      return acc;
+    }, {});
+    
+    return request(`/admin/users/${id}`, { 
+      method: 'PUT', 
+      headers: authHeader(token), 
+      body: JSON.stringify(submitData) 
+    });
+  },
   
   softDeleteUser: (id, token) => 
     request(`/admin/users/${id}/soft-delete`, { method: 'PATCH', headers: authHeader(token) }),
@@ -198,13 +230,32 @@ export const api = {
   // ============================================
   
   getDiscussions: () => request('/community/discussions'),
+  
   getDiscussionById: (id) => request(`/community/discussions/${id}`),
-  createDiscussion: (data, token) => 
-    request('/community/discussions', { method: 'POST', headers: authHeader(token), body: JSON.stringify(data) }),
+  
+  createDiscussion: (data, token) => {
+    // Only send fields that have values
+    const submitData = Object.keys(data).reduce((acc, key) => {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        acc[key] = data[key];
+      }
+      return acc;
+    }, {});
+    
+    return request('/community/discussions', { 
+      method: 'POST', 
+      headers: authHeader(token), 
+      body: JSON.stringify(submitData) 
+    });
+  },
+  
   addComment: (id, content, token) => 
-    request(`/community/discussions/${id}/comments`, { method: 'POST', headers: authHeader(token), body: JSON.stringify({ content }) }),
+    request(`/community/discussions/${id}/comments`, { 
+      method: 'POST', 
+      headers: authHeader(token), 
+      body: JSON.stringify({ content }) 
+    }),
 
-  // Discussions Trash / Soft Delete APIs
   getTrashedDiscussions: (token) => 
     request('/community/discussions/trashed', { headers: authHeader(token) }),
   
@@ -217,8 +268,21 @@ export const api = {
   permanentDeleteDiscussion: (id, token) => 
     request(`/community/discussions/${id}/permanent`, { method: 'DELETE', headers: authHeader(token) }),
   
-  updateDiscussion: (id, data, token) => 
-    request(`/community/discussions/${id}`, { method: 'PUT', headers: authHeader(token), body: JSON.stringify(data) }),
+  updateDiscussion: (id, data, token) => {
+    // Only send fields that have values
+    const submitData = Object.keys(data).reduce((acc, key) => {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        acc[key] = data[key];
+      }
+      return acc;
+    }, {});
+    
+    return request(`/community/discussions/${id}`, { 
+      method: 'PUT', 
+      headers: authHeader(token), 
+      body: JSON.stringify(submitData) 
+    });
+  },
   
   deleteDiscussion: (id, token) => 
     request(`/community/discussions/${id}`, { method: 'DELETE', headers: authHeader(token) }),
@@ -285,7 +349,6 @@ export const {
   getUniversity,
   createUniversity,
   updateUniversity,
-  deleteUniversity,
   getTrashedUniversities,
   softDeleteUniversity,
   restoreUniversity,
@@ -331,3 +394,5 @@ export const {
   restoreEvent,
   permanentDeleteEvent
 } = api;
+
+export default api;

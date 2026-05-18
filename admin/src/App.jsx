@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Universities from './pages/Universities';
 import AddUniversity from './pages/AddUniversity';
 import EditUniversity from './pages/EditUniversity';
+import ViewUniversity from './pages/ViewUniversity';
 import Reviews from './pages/Reviews';
 import Users from './pages/Users';
 import Discussions from './pages/Discussions';
@@ -15,16 +16,18 @@ import Login from './pages/Login';
 
 import './App.css';
 
+const LoadingSpinner = () => (
+  <div className="app-loading-container">
+    <div className="loading-spinner"></div>
+    <p>Loading application...</p>
+  </div>
+);
+
 const AppContent = () => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <div className="loading-spinner"></div>
-        <p>Loading...</p>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (!isAuthenticated) {
@@ -37,8 +40,9 @@ const AppContent = () => {
         <Route index element={<Dashboard />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="universities" element={<Universities />} />
-        <Route path="add-university" element={<AddUniversity />} />
+        <Route path="universities/add" element={<AddUniversity />} />
         <Route path="universities/edit/:id" element={<EditUniversity />} />
+        <Route path="universities/view/:id" element={<ViewUniversity />} />
         <Route path="reviews" element={<Reviews />} />
         <Route path="users" element={<Users />} />
         <Route path="discussions" element={<Discussions />} />

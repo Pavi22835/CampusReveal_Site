@@ -5,7 +5,6 @@ import './AuthModal.css';
 const AuthModal = () => {
   const { isAuthenticated, showAuthModal, setShowAuthModal, loginWithOTP } = useAuth();
 
-  // Don't show modal if user is already authenticated or modal is not supposed to show
   if (!showAuthModal || isAuthenticated) return null;
 
   return (

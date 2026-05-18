@@ -1,3 +1,4 @@
+// frontend/src/pages/Users.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +18,7 @@ import {
   Calendar,
   Award
 } from 'lucide-react';
+import EmptyState from '../components/EmptyState';
 import './Users.css';
 
 const Users = () => {
@@ -38,8 +40,13 @@ const Users = () => {
 
   useEffect(() => {
     fetchUsers();
-    fetchTrashedUsers();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'trash') {
+      fetchTrashedUsers();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     filterUsers();
@@ -51,15 +58,17 @@ const Users = () => {
 
     try {
       const result = await api.getAdminUsers(token);
-      if (result.success) {
-        const activeUsers = (result.data || []).filter(user => !user.isTrashed);
+      if (result.success && result.data) {
+        const activeUsers = result.data.filter(user => !user.isTrashed);
         setUsers(activeUsers);
       } else {
-        setError(result.message || 'Failed to load users');
+        setUsers([]);
+        setError(result.message || 'No Data Available');
       }
     } catch (err) {
       console.error('Fetch users error:', err);
       setError('Unable to load users');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -67,15 +76,16 @@ const Users = () => {
 
   const fetchTrashedUsers = async () => {
     try {
-      const result = await api.getTrashedUsers?.(token);
-      if (result?.success) {
-        setTrashedUsers(result.data || []);
+      if (!api.getTrashedUsers) {
+        setTrashedUsers([]);
+        return;
+      }
+      
+      const result = await api.getTrashedUsers(token);
+      if (result?.success && result?.data) {
+        setTrashedUsers(result.data);
       } else {
-        const allResult = await api.getAdminUsers(token);
-        if (allResult.success) {
-          const trashed = (allResult.data || []).filter(user => user.isTrashed);
-          setTrashedUsers(trashed);
-        }
+        setTrashedUsers([]);
       }
     } catch (error) {
       console.error('Error fetching trashed users:', error);
@@ -115,62 +125,66 @@ const Users = () => {
   };
 
   const handleSoftDelete = async (userId) => {
+    if (!api.softDeleteUser) {
+      setError('Soft delete feature is not available');
+      return;
+    }
+    
     if (window.confirm('Move this user to trash? You can restore them later.')) {
       try {
-        const result = await api.softDeleteUser?.(userId, token);
+        const result = await api.softDeleteUser(userId, token);
         if (result?.success) {
-          fetchUsers();
-          fetchTrashedUsers();
-          alert('User moved to trash successfully');
+          await fetchUsers();
+          await fetchTrashedUsers();
         } else {
-          const movedUser = users.find(user => user.id === userId);
-          if (movedUser) {
-            setUsers(prev => prev.filter(user => user.id !== userId));
-            setTrashedUsers(prev => [{ ...movedUser, isTrashed: true }, ...prev]);
-          }
+          setError(result?.message || 'Failed to move user to trash');
         }
       } catch (err) {
         console.error('Soft delete error:', err);
-        alert('Error moving user to trash');
+        setError('Error moving user to trash');
       }
     }
   };
 
   const handleRestore = async (userId) => {
+    if (!api.restoreUser) {
+      setError('Restore feature is not available');
+      return;
+    }
+    
     if (window.confirm('Restore this user from trash?')) {
       try {
-        const result = await api.restoreUser?.(userId, token);
+        const result = await api.restoreUser(userId, token);
         if (result?.success) {
-          fetchUsers();
-          fetchTrashedUsers();
-          alert('User restored successfully');
+          await fetchUsers();
+          await fetchTrashedUsers();
         } else {
-          const restoredUser = trashedUsers.find(user => user.id === userId);
-          if (restoredUser) {
-            setTrashedUsers(prev => prev.filter(user => user.id !== userId));
-            setUsers(prev => [{ ...restoredUser, isTrashed: false }, ...prev]);
-          }
+          setError(result?.message || 'Failed to restore user');
         }
       } catch (err) {
         console.error('Restore error:', err);
-        alert('Error restoring user');
+        setError('Error restoring user');
       }
     }
   };
 
   const handlePermanentDelete = async (userId) => {
+    if (!api.permanentDeleteUser) {
+      setError('Permanent delete feature is not available');
+      return;
+    }
+    
     if (window.confirm('Permanently delete this user? This action cannot be undone.')) {
       try {
         const result = await api.permanentDeleteUser(userId, token);
         if (result.success) {
-          fetchTrashedUsers();
-          alert('User permanently deleted');
+          await fetchTrashedUsers();
         } else {
-          alert('Failed to permanently delete user');
+          setError(result.message || 'Failed to permanently delete user');
         }
       } catch (err) {
         console.error('Permanent delete error:', err);
-        alert('Error deleting user');
+        setError('Error deleting user');
       }
     }
   };
@@ -185,21 +199,30 @@ const Users = () => {
 
   const handleUpdateUser = async () => {
     if (!selectedUser) return;
+    
+    if (!editUserData.name?.trim()) {
+      setError('Name is required');
+      return;
+    }
+    
+    if (!editUserData.email?.trim()) {
+      setError('Email is required');
+      return;
+    }
 
     try {
       const result = await api.updateUser(selectedUser.id, editUserData, token);
       if (result.success) {
         setShowEditModal(false);
         setSelectedUser(null);
-        fetchUsers();
-        fetchTrashedUsers();
-        alert('User updated successfully');
+        await fetchUsers();
+        await fetchTrashedUsers();
       } else {
-        alert(result.message || 'Failed to update user');
+        setError(result.message || 'Failed to update user');
       }
     } catch (err) {
       console.error('Update user error:', err);
-      alert('Error updating user');
+      setError('Error updating user');
     }
   };
 
@@ -217,74 +240,13 @@ const Users = () => {
   const currentListCount = activeTab === 'all' ? users.length : trashedUsers.length;
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-GB');
+    if (!dateString) return null;
+    try {
+      return new Date(dateString).toLocaleDateString('en-GB');
+    } catch {
+      return null;
+    }
   };
-
-  // Mobile User Card Component
-  const UserCard = ({ user }) => (
-    <div className={`user-card ${user.isTrashed ? 'trashed-card' : ''}`}>
-      <div className="card-header">
-        <div className="card-title">
-          <div className="user-avatar">
-            {user.name?.charAt(0)?.toUpperCase() || 'U'}
-          </div>
-          <div>
-            <h3>{user.name || 'N/A'}</h3>
-            <span className={`role-badge ${user.role?.toLowerCase() === 'admin' ? 'admin' : 'user'}`}>
-              {user.role || 'STUDENT'}
-            </span>
-          </div>
-        </div>
-        {user.isTrashed && <span className="trashed-badge">Trashed</span>}
-      </div>
-      
-      <div className="card-details">
-        <div className="detail-item">
-          <Mail size={14} />
-          <span>{user.email || 'N/A'}</span>
-        </div>
-        <div className="detail-item">
-          <Award size={14} />
-          <span>{user.major || user.program || 'N/A'}</span>
-        </div>
-        <div className="detail-item">
-          <Calendar size={14} />
-          <span>Grad: {user.graduationYear || user.classYear || 'N/A'}</span>
-        </div>
-        <div className="detail-item credits">
-          <span className="credits-value">{user.credits ?? 0}</span>
-          <span>Credits</span>
-        </div>
-      </div>
-      
-      <div className="card-actions">
-        <button onClick={() => handleView(user)} className="action-btn view-btn" title="View">
-          <Eye size={16} />
-        </button>
-        {!user.isTrashed && (
-          <>
-            <button onClick={() => handleEdit(user)} className="action-btn edit-btn" title="Edit">
-              <Edit size={16} />
-            </button>
-            <button onClick={() => handleSoftDelete(user.id)} className="action-btn trash-btn" title="Move to Trash">
-              <Archive size={16} />
-            </button>
-          </>
-        )}
-        {user.isTrashed && (
-          <>
-            <button onClick={() => handleRestore(user.id)} className="action-btn restore-btn" title="Restore">
-              <RotateCcw size={16} />
-            </button>
-            <button onClick={() => handlePermanentDelete(user.id)} className="action-btn delete-permanent-btn" title="Permanently Delete">
-              <Trash2 size={16} />
-            </button>
-          </>
-        )}
-      </div>
-    </div>
-  );
 
   const getPageNumbers = () => {
     const pages = [];
@@ -312,6 +274,15 @@ const Users = () => {
     return pages;
   };
 
+  if (loading) {
+    return (
+      <div className="loading-state">
+        <div className="loading-spinner"></div>
+        <p>Loading users...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="users-page">
       {/* View User Modal */}
@@ -323,13 +294,41 @@ const Users = () => {
               <button className="modal-close" onClick={() => setShowViewModal(false)}>×</button>
             </div>
             <div className="modal-body">
-              <div className="detail-row"><strong>Name:</strong> {selectedUser.name || 'N/A'}</div>
-              <div className="detail-row"><strong>Email:</strong> {selectedUser.email || 'N/A'}</div>
-              <div className="detail-row"><strong>Role:</strong> {selectedUser.role || 'N/A'}</div>
-              <div className="detail-row"><strong>Major:</strong> {selectedUser.major || selectedUser.program || 'N/A'}</div>
-              <div className="detail-row"><strong>Graduation Year:</strong> {selectedUser.graduationYear || selectedUser.classYear || 'N/A'}</div>
-              <div className="detail-row"><strong>Credits:</strong> {selectedUser.credits ?? 0}</div>
-              <div className="detail-row"><strong>Created:</strong> {formatDate(selectedUser.createdAt)}</div>
+              {selectedUser.name && (
+                <div className="detail-row">
+                  <strong>Name:</strong> {selectedUser.name}
+                </div>
+              )}
+              {selectedUser.email && (
+                <div className="detail-row">
+                  <strong>Email:</strong> {selectedUser.email}
+                </div>
+              )}
+              {selectedUser.role && (
+                <div className="detail-row">
+                  <strong>Role:</strong> {selectedUser.role}
+                </div>
+              )}
+              {(selectedUser.major || selectedUser.program) && (
+                <div className="detail-row">
+                  <strong>Major/Program:</strong> {selectedUser.major || selectedUser.program}
+                </div>
+              )}
+              {(selectedUser.graduationYear || selectedUser.classYear) && (
+                <div className="detail-row">
+                  <strong>Graduation Year:</strong> {selectedUser.graduationYear || selectedUser.classYear}
+                </div>
+              )}
+              {selectedUser.credits !== undefined && selectedUser.credits !== null && (
+                <div className="detail-row">
+                  <strong>Credits:</strong> {selectedUser.credits}
+                </div>
+              )}
+              {selectedUser.createdAt && (
+                <div className="detail-row">
+                  <strong>Created:</strong> {formatDate(selectedUser.createdAt)}
+                </div>
+              )}
             </div>
             <div className="modal-footer">
               <button className="modal-close-btn" onClick={() => setShowViewModal(false)}>Close</button>
@@ -348,12 +347,12 @@ const Users = () => {
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Name</label>
-                <input type="text" name="name" value={editUserData.name} onChange={handleEditInputChange} />
+                <label>Name <span className="required">*</span></label>
+                <input type="text" name="name" value={editUserData.name} onChange={handleEditInputChange} required />
               </div>
               <div className="form-group">
-                <label>Email</label>
-                <input type="email" name="email" value={editUserData.email} onChange={handleEditInputChange} />
+                <label>Email <span className="required">*</span></label>
+                <input type="email" name="email" value={editUserData.email} onChange={handleEditInputChange} required />
               </div>
               <div className="form-group">
                 <label>Role</label>
@@ -376,24 +375,40 @@ const Users = () => {
           <h1>Users</h1>
           <p>Manage platform users and their roles</p>
         </div>
-        <div className="user-count-pill">
-          <UsersIcon size={18} />
-          <span>{currentListCount} {activeTab === 'all' ? 'users' : 'in trash'}</span>
-        </div>
+        {currentListCount > 0 && (
+          <div className="user-count-pill">
+            <UsersIcon size={18} />
+            <span>{currentListCount} {activeTab === 'all' ? 'users' : 'in trash'}</span>
+          </div>
+        )}
       </div>
 
-      {/* Control Bar */}
       <div className="users-control-bar">
         <div className="users-tabs">
-          <button className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>
+          <button 
+            className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`} 
+            onClick={() => {
+              setActiveTab('all');
+              setCurrentPage(1);
+              setSearchTerm('');
+            }}
+          >
             <UsersIcon size={16} />
             All Users
-            <span className="tab-count">{users.length}</span>
+            {users.length > 0 && <span className="tab-count">{users.length}</span>}
           </button>
-          <button className={`tab-btn ${activeTab === 'trash' ? 'active' : ''}`} onClick={() => setActiveTab('trash')}>
+          <button 
+            className={`tab-btn ${activeTab === 'trash' ? 'active' : ''}`} 
+            onClick={() => {
+              setActiveTab('trash');
+              setCurrentPage(1);
+              setSearchTerm('');
+              fetchTrashedUsers();
+            }}
+          >
             <Archive size={16} />
             Trash
-            <span className="tab-count trash-count">{trashedUsers.length}</span>
+            {trashedUsers.length > 0 && <span className="tab-count trash-count">{trashedUsers.length}</span>}
           </button>
         </div>
 
@@ -403,7 +418,7 @@ const Users = () => {
               <Search size={18} className="search-icon" />
               <input
                 type="text"
-                placeholder="Search by name or email..."
+                placeholder="Search users..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
@@ -418,32 +433,19 @@ const Users = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="loading-state">
-          <div className="loading-spinner"></div>
-          <p>Loading users...</p>
-        </div>
-      ) : error ? (
-        <div className="error-state">
-          <p>{error}</p>
-          <button onClick={fetchUsers}>Try Again</button>
-        </div>
+      {error ? (
+        <EmptyState 
+          title="Error" 
+          message={error}
+        />
       ) : filteredUsers.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">👥</div>
-          <h3>No users found</h3>
-          <p>{searchTerm ? 'Try adjusting your search' : activeTab === 'all' ? 'Users will appear here' : 'Trash is empty'}</p>
-        </div>
+        <EmptyState 
+          title="No Users Available"
+          message={searchTerm ? 'No users match your search criteria' : activeTab === 'all' ? 'No users have registered yet' : 'Trash is empty'}
+          icon="👥"
+        />
       ) : (
         <>
-          {/* Mobile Card View */}
-          <div className="users-cards-view">
-            {currentUsers.map((user) => (
-              <UserCard key={user.id} user={user} />
-            ))}
-          </div>
-
-          {/* Desktop Table View */}
           <div className="users-table-wrapper">
             <table className="users-table">
               <thead>
@@ -461,25 +463,38 @@ const Users = () => {
               <tbody>
                 {currentUsers.map((user) => (
                   <tr key={user.id} className={user.isTrashed ? 'trashed-row' : ''}>
-                    <td className="user-name-cell">{user.name || 'N/A'}{user.isTrashed && <span className="trashed-badge">Trashed</span>}</td>
-                    <td className="user-email-cell">{user.email || 'N/A'}</td>
+                    <td className="user-name-cell">
+                      {user.name || 'Unknown'}
+                      {user.isTrashed && <span className="trashed-badge">Trashed</span>}
+                    </td>
+                    <td className="user-email-cell">{user.email || 'No email'}</td>
                     <td className="user-role-cell">{user.role || 'STUDENT'}</td>
-                    <td className="user-major-cell">{user.major || user.program || 'N/A'}</td>
-                    <td className="grad-year-cell">{user.graduationYear || user.classYear || 'N/A'}</td>
-                    <td className="credits-cell">{user.credits ?? 0}</td>
-                    <td className="date-cell">{formatDate(user.createdAt)}</td>
+                    <td className="user-major-cell">{user.major || user.program || null}</td>
+                    <td className="grad-year-cell">{user.graduationYear || user.classYear || null}</td>
+                    <td className="credits-cell">{user.credits ?? null}</td>
+                    <td className="date-cell">{formatDate(user.createdAt) || null}</td>
                     <td className="actions-cell">
-                      <button onClick={() => handleView(user)} className="view-btn"><Eye size={16} /></button>
+                      <button onClick={() => handleView(user)} className="view-btn" title="View">
+                        <Eye size={16} />
+                      </button>
                       {!user.isTrashed && (
                         <>
-                          <button onClick={() => handleEdit(user)} className="edit-btn"><Edit size={16} /></button>
-                          <button onClick={() => handleSoftDelete(user.id)} className="trash-btn"><Archive size={16} /></button>
+                          <button onClick={() => handleEdit(user)} className="edit-btn" title="Edit">
+                            <Edit size={16} />
+                          </button>
+                          <button onClick={() => handleSoftDelete(user.id)} className="trash-btn" title="Move to Trash">
+                            <Archive size={16} />
+                          </button>
                         </>
                       )}
                       {user.isTrashed && (
                         <>
-                          <button onClick={() => handleRestore(user.id)} className="restore-btn"><RotateCcw size={16} /></button>
-                          <button onClick={() => handlePermanentDelete(user.id)} className="delete-permanent-btn"><Trash2 size={16} /></button>
+                          <button onClick={() => handleRestore(user.id)} className="restore-btn" title="Restore">
+                            <RotateCcw size={16} />
+                          </button>
+                          <button onClick={() => handlePermanentDelete(user.id)} className="delete-permanent-btn" title="Permanently Delete">
+                            <Trash2 size={16} />
+                          </button>
                         </>
                       )}
                     </td>
@@ -489,10 +504,13 @@ const Users = () => {
             </table>
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="pagination">
-              <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="pagination-btn">
+              <button 
+                onClick={() => paginate(currentPage - 1)} 
+                disabled={currentPage === 1} 
+                className="pagination-btn"
+              >
                 <ChevronLeft size={16} /> Previous
               </button>
               <div className="pagination-numbers">
@@ -500,17 +518,26 @@ const Users = () => {
                   page === '...' ? (
                     <span key={`dots-${idx}`} className="page-dots">...</span>
                   ) : (
-                    <button key={page} onClick={() => paginate(page)} className={`pagination-number ${currentPage === page ? 'active' : ''}`}>{page}</button>
+                    <button 
+                      key={page} 
+                      onClick={() => paginate(page)} 
+                      className={`pagination-number ${currentPage === page ? 'active' : ''}`}
+                    >
+                      {page}
+                    </button>
                   )
                 ))}
               </div>
-              <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="pagination-btn">
+              <button 
+                onClick={() => paginate(currentPage + 1)} 
+                disabled={currentPage === totalPages} 
+                className="pagination-btn"
+              >
                 Next <ChevronRight size={16} />
               </button>
             </div>
           )}
           
-          {/* Results Info */}
           {filteredUsers.length > 0 && (
             <div className="results-info">
               Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredUsers.length)} of {filteredUsers.length} users

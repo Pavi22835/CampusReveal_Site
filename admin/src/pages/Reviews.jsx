@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { Star, Eye, Trash2, Search, X, ChevronLeft, ChevronRight, Edit, Archive, RotateCcw, User, Building2, Calendar as CalendarIcon } from 'lucide-react';
+import EmptyState from '../components/EmptyState';
 import './Reviews.css';
 
 const Reviews = () => {
@@ -20,7 +21,7 @@ const Reviews = () => {
   const [selectedReview, setSelectedReview] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editReviewData, setEditReviewData] = useState({ title: '', content: '', rating: 0 });
+  const [editReviewData, setEditReviewData] = useState({ title: '', content: '', rating: null });
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -34,8 +35,13 @@ const Reviews = () => {
 
   useEffect(() => {
     fetchReviews();
-    fetchTrashedReviews();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'trash') {
+      fetchTrashedReviews();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     filterReviews();
@@ -46,15 +52,19 @@ const Reviews = () => {
     setError('');
     try {
       const result = await api.getReviews(token);
-      if (result.success) {
-        const activeReviews = (result.data || []).filter(review => !review.isTrashed);
+      if (result.success && result.data) {
+        const activeReviews = result.data.filter(review => !review.isTrashed);
         setReviews(activeReviews);
       } else {
-        setError(result.message || 'Failed to load reviews');
+        setReviews([]);
+        if (!result.success) {
+          setError(result.message || 'No Data Available');
+        }
       }
     } catch (err) {
       console.error('Fetch reviews error:', err);
       setError('Unable to load reviews');
+      setReviews([]);
     } finally {
       setLoading(false);
     }
@@ -62,15 +72,16 @@ const Reviews = () => {
 
   const fetchTrashedReviews = async () => {
     try {
-      const result = await api.getTrashedReviews?.(token);
-      if (result?.success) {
-        setTrashedReviews(result.data || []);
+      if (!api.getTrashedReviews) {
+        setTrashedReviews([]);
+        return;
+      }
+      
+      const result = await api.getTrashedReviews(token);
+      if (result?.success && result?.data) {
+        setTrashedReviews(result.data);
       } else {
-        const allResult = await api.getReviews(token);
-        if (allResult.success) {
-          const trashed = (allResult.data || []).filter(review => review.isTrashed);
-          setTrashedReviews(trashed);
-        }
+        setTrashedReviews([]);
       }
     } catch (error) {
       console.error('Error fetching trashed reviews:', error);
@@ -104,68 +115,72 @@ const Reviews = () => {
     setEditReviewData({
       title: review.title || '',
       content: review.content || '',
-      rating: review.rating || 0
+      rating: review.rating || null
     });
     setShowEditModal(true);
   };
 
   const handleSoftDelete = async (reviewId) => {
+    if (!api.softDeleteReview) {
+      setError('Soft delete feature is not available');
+      return;
+    }
+    
     if (window.confirm('Move this review to trash? You can restore it later.')) {
       try {
-        const result = await api.softDeleteReview?.(reviewId, token);
+        const result = await api.softDeleteReview(reviewId, token);
         if (result?.success) {
-          fetchReviews();
-          fetchTrashedReviews();
+          await fetchReviews();
+          await fetchTrashedReviews();
         } else {
-          const movedReview = reviews.find(review => review.id === reviewId);
-          if (movedReview) {
-            setReviews(prev => prev.filter(review => review.id !== reviewId));
-            setTrashedReviews(prev => [{ ...movedReview, isTrashed: true }, ...prev]);
-          }
+          setError(result?.message || 'Failed to move review to trash');
         }
-        alert('Review moved to trash successfully');
       } catch (err) {
         console.error('Soft delete error:', err);
-        alert('Error moving review to trash');
+        setError('Error moving review to trash');
       }
     }
   };
 
   const handleRestore = async (reviewId) => {
+    if (!api.restoreReview) {
+      setError('Restore feature is not available');
+      return;
+    }
+    
     if (window.confirm('Restore this review from trash?')) {
       try {
-        const result = await api.restoreReview?.(reviewId, token);
+        const result = await api.restoreReview(reviewId, token);
         if (result?.success) {
-          fetchReviews();
-          fetchTrashedReviews();
+          await fetchReviews();
+          await fetchTrashedReviews();
         } else {
-          const restoredReview = trashedReviews.find(review => review.id === reviewId);
-          if (restoredReview) {
-            setTrashedReviews(prev => prev.filter(review => review.id !== reviewId));
-            setReviews(prev => [{ ...restoredReview, isTrashed: false }, ...prev]);
-          }
+          setError(result?.message || 'Failed to restore review');
         }
-        alert('Review restored successfully');
       } catch (err) {
         console.error('Restore error:', err);
-        alert('Error restoring review');
+        setError('Error restoring review');
       }
     }
   };
 
   const handlePermanentDelete = async (reviewId) => {
+    if (!api.permanentDeleteReview) {
+      setError('Permanent delete feature is not available');
+      return;
+    }
+    
     if (window.confirm('Permanently delete this review? This action cannot be undone.')) {
       try {
         const result = await api.permanentDeleteReview(reviewId, token);
         if (result.success) {
-          fetchTrashedReviews();
-          alert('Review permanently deleted');
+          await fetchTrashedReviews();
         } else {
-          alert('Failed to permanently delete review');
+          setError(result?.message || 'Failed to permanently delete review');
         }
       } catch (err) {
         console.error('Permanent delete error:', err);
-        alert('Error deleting review');
+        setError('Error deleting review');
       }
     }
   };
@@ -178,26 +193,36 @@ const Reviews = () => {
     const { name, value } = e.target;
     setEditReviewData(prev => ({
       ...prev,
-      [name]: name === 'rating' ? Number(value) : value
+      [name]: name === 'rating' ? (value ? Number(value) : null) : value
     }));
   };
 
   const handleUpdateReview = async () => {
     if (!selectedReview) return;
+    
+    if (!editReviewData.title?.trim()) {
+      setError('Title is required');
+      return;
+    }
+    
+    if (!editReviewData.rating || editReviewData.rating < 1 || editReviewData.rating > 5) {
+      setError('Rating must be between 1 and 5');
+      return;
+    }
+    
     try {
       const result = await api.updateReview(selectedReview.id, editReviewData, token);
       if (result.success) {
         setShowEditModal(false);
         setSelectedReview(null);
-        fetchReviews();
-        fetchTrashedReviews();
-        alert('Review updated successfully');
+        await fetchReviews();
+        await fetchTrashedReviews();
       } else {
-        alert(result.message || 'Failed to update review');
+        setError(result.message || 'Failed to update review');
       }
     } catch (err) {
       console.error('Update review error:', err);
-      alert('Error updating review');
+      setError('Error updating review');
     }
   };
 
@@ -237,7 +262,11 @@ const Reviews = () => {
   };
 
   const renderStars = (rating) => {
-    const numRating = typeof rating === 'number' ? rating : parseFloat(rating) || 0;
+    if (!rating || rating === 0) {
+      return <span className="no-rating">No rating</span>;
+    }
+    
+    const numRating = typeof rating === 'number' ? rating : parseFloat(rating);
     const fullStars = Math.floor(numRating);
     const hasHalfStar = (numRating - fullStars) >= 0.5;
     const stars = [];
@@ -256,8 +285,12 @@ const Reviews = () => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-GB');
+    if (!dateString) return null;
+    try {
+      return new Date(dateString).toLocaleDateString('en-GB');
+    } catch {
+      return null;
+    }
   };
 
   // Mobile Review Card Component
@@ -265,7 +298,7 @@ const Reviews = () => {
     <div className={`review-card ${review.isTrashed ? 'trashed-card' : ''}`}>
       <div className="card-header">
         <div className="card-title">
-          <div className="rating-stars">{renderStars(review.rating || 0)}</div>
+          <div className="rating-stars">{renderStars(review.rating)}</div>
           <h3>{review.title || 'Untitled Review'}</h3>
         </div>
         {review.isTrashed && <span className="trashed-badge">Trashed</span>}
@@ -278,17 +311,27 @@ const Reviews = () => {
         </div>
         <div className="detail-item">
           <User size={14} />
-          <span>{review.user?.name || 'Anonymous'}</span>
+          <span>{review.user?.name || 'Unknown'}</span>
         </div>
-        <div className="detail-item">
-          <CalendarIcon size={14} />
-          <span>{formatDate(review.createdAt)}</span>
-        </div>
-        <div className="detail-item helpful">
-          <span className="helpful-count">{review.helpfulCount || review.helpful || 0}</span>
-          <span>people found this helpful</span>
-        </div>
+        {formatDate(review.createdAt) && (
+          <div className="detail-item">
+            <CalendarIcon size={14} />
+            <span>{formatDate(review.createdAt)}</span>
+          </div>
+        )}
+        {(review.helpfulCount || review.helpful) > 0 && (
+          <div className="detail-item helpful">
+            <span className="helpful-count">{review.helpfulCount || review.helpful || 0}</span>
+            <span>people found this helpful</span>
+          </div>
+        )}
       </div>
+      
+      {review.content && (
+        <div className="card-content">
+          <p>{review.content.substring(0, 100)}{review.content.length > 100 ? '...' : ''}</p>
+        </div>
+      )}
       
       <div className="card-actions">
         <button onClick={() => handleView(review)} className="action-btn view-btn" title="View">
@@ -318,6 +361,15 @@ const Reviews = () => {
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="reviews-loading">
+        <div className="loading-spinner"></div>
+        <p>Loading reviews...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="reviews-page">
       {/* View Review Modal */}
@@ -329,24 +381,36 @@ const Reviews = () => {
               <button className="modal-close" onClick={() => setShowReviewModal(false)}>×</button>
             </div>
             <div className="modal-body">
-              <div className="detail-row">
-                <div className="detail-label">Reviewer</div>
-                <div className="detail-value">{selectedReview.user?.name || 'Unknown'}</div>
-              </div>
-              <div className="detail-row">
-                <div className="detail-label">University</div>
-                <div className="detail-value">{selectedReview.university?.name || 'Unknown'}</div>
-              </div>
+              {selectedReview.user?.name && (
+                <div className="detail-row">
+                  <div className="detail-label">Reviewer</div>
+                  <div className="detail-value">{selectedReview.user.name}</div>
+                </div>
+              )}
+              {selectedReview.university?.name && (
+                <div className="detail-row">
+                  <div className="detail-label">University</div>
+                  <div className="detail-value">{selectedReview.university.name}</div>
+                </div>
+              )}
               <div className="detail-row">
                 <div className="detail-label">Rating</div>
-                <div className="detail-value">{selectedReview.rating || 'N/A'}</div>
+                <div className="detail-value">{selectedReview.rating || 'No rating'}</div>
               </div>
-              <div className="detail-row">
-                <div className="detail-label">Comment</div>
-                <div className="detail-value review-comment">
-                  {selectedReview.content || selectedReview.comment || 'No comment available.'}
+              {selectedReview.title && (
+                <div className="detail-row">
+                  <div className="detail-label">Title</div>
+                  <div className="detail-value">{selectedReview.title}</div>
                 </div>
-              </div>
+              )}
+              {(selectedReview.content || selectedReview.comment) && (
+                <div className="detail-row">
+                  <div className="detail-label">Comment</div>
+                  <div className="detail-value review-comment">
+                    {selectedReview.content || selectedReview.comment}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="modal-footer">
               <button className="modal-close-btn" onClick={() => setShowReviewModal(false)}>Close</button>
@@ -365,12 +429,13 @@ const Reviews = () => {
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Title</label>
-                <input type="text" name="title" value={editReviewData.title} onChange={handleEditInputChange} />
+                <label>Title <span className="required">*</span></label>
+                <input type="text" name="title" value={editReviewData.title} onChange={handleEditInputChange} required />
               </div>
               <div className="form-group">
-                <label>Rating</label>
-                <input type="number" name="rating" min="1" max="5" step="0.1" value={editReviewData.rating} onChange={handleEditInputChange} />
+                <label>Rating <span className="required">*</span></label>
+                <input type="number" name="rating" min="1" max="5" step="0.1" value={editReviewData.rating || ''} onChange={handleEditInputChange} required />
+                <small>Rating from 1 to 5</small>
               </div>
               <div className="form-group">
                 <label>Comment</label>
@@ -390,24 +455,40 @@ const Reviews = () => {
           <h1>Reviews</h1>
           <p>Manage and moderate student reviews</p>
         </div>
-        <div className="stats-pill">
-          <Star size={18} />
-          <span>{currentListCount}</span>
-          <span>{activeTab === 'all' ? 'reviews' : 'in trash'}</span>
-        </div>
+        {currentListCount > 0 && (
+          <div className="stats-pill">
+            <Star size={18} />
+            <span>{currentListCount} {activeTab === 'all' ? 'reviews' : 'in trash'}</span>
+          </div>
+        )}
       </div>
 
       <div className="reviews-control-bar">
         <div className="reviews-tabs">
-          <button className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>
+          <button 
+            className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`} 
+            onClick={() => {
+              setActiveTab('all');
+              setCurrentPage(1);
+              setSearchTerm('');
+            }}
+          >
             <Star size={16} />
             All Reviews
-            <span className="tab-count">{reviews.length}</span>
+            {reviews.length > 0 && <span className="tab-count">{reviews.length}</span>}
           </button>
-          <button className={`tab-btn ${activeTab === 'trash' ? 'active' : ''}`} onClick={() => setActiveTab('trash')}>
+          <button 
+            className={`tab-btn ${activeTab === 'trash' ? 'active' : ''}`} 
+            onClick={() => {
+              setActiveTab('trash');
+              setCurrentPage(1);
+              setSearchTerm('');
+              fetchTrashedReviews();
+            }}
+          >
             <Archive size={16} />
             Trash
-            <span className="tab-count trash-count">{trashedReviews.length}</span>
+            {trashedReviews.length > 0 && <span className="tab-count trash-count">{trashedReviews.length}</span>}
           </button>
         </div>
 
@@ -417,7 +498,7 @@ const Reviews = () => {
               <Search size={18} className="search-icon" />
               <input
                 type="text"
-                placeholder="Search by title, university, or reviewer..."
+                placeholder="Search reviews..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
@@ -432,22 +513,17 @@ const Reviews = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="reviews-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading reviews...</p>
-        </div>
-      ) : error ? (
-        <div className="reviews-error">
-          <p>{error}</p>
-          <button onClick={fetchReviews}>Try Again</button>
-        </div>
+      {error ? (
+        <EmptyState 
+          title="Error" 
+          message={error}
+        />
       ) : filteredReviews.length === 0 ? (
-        <div className="reviews-empty">
-          <div className="empty-icon">📋</div>
-          <h3>No reviews found</h3>
-          <p>{searchTerm ? 'Try adjusting your search' : activeTab === 'all' ? 'Reviews will appear here' : 'Trash is empty'}</p>
-        </div>
+        <EmptyState 
+          title="No Reviews Available"
+          message={searchTerm ? 'No reviews match your search criteria' : activeTab === 'all' ? 'No reviews have been submitted yet' : 'Trash is empty'}
+          icon="📋"
+        />
       ) : (
         <>
           {/* Mobile Card View */}
@@ -474,29 +550,42 @@ const Reviews = () => {
               <tbody>
                 {currentReviews.map((review) => (
                   <tr key={review.id} className={review.isTrashed ? 'trashed-row' : ''}>
-                    <td className="review-title">{review.title || 'Untitled Review'}{review.isTrashed && <span className="trashed-badge">Trashed</span>}</td>
+                    <td className="review-title">
+                      {review.title || 'Untitled Review'}
+                      {review.isTrashed && <span className="trashed-badge">Trashed</span>}
+                    </td>
                     <td className="university-name">{review.university?.name || 'Unknown'}</td>
-                    <td className="reviewer-name">{review.user?.name || 'Anonymous'}</td>
+                    <td className="reviewer-name">{review.user?.name || 'Unknown'}</td>
                     <td className="rating-cell">
                       <div className="rating-badge">
                         <Star size={14} className="star-icon" />
-                        <span>{review.rating?.toFixed(1) || '0.0'}</span>
+                        <span>{review.rating ? review.rating.toFixed(1) : 'No rating'}</span>
                       </div>
                     </td>
                     <td className="helpful-cell">{review.helpfulCount || review.helpful || 0}</td>
-                    <td className="date-cell">{formatDate(review.createdAt)}</td>
+                    <td className="date-cell">{formatDate(review.createdAt) || 'N/A'}</td>
                     <td className="actions-cell">
-                      <button className="view-btn" onClick={() => handleView(review)}><Eye size={16} /></button>
+                      <button className="view-btn" onClick={() => handleView(review)} title="View">
+                        <Eye size={16} />
+                      </button>
                       {!review.isTrashed && (
                         <>
-                          <button className="edit-btn" onClick={() => handleEdit(review)}><Edit size={16} /></button>
-                          <button className="trash-btn" onClick={() => handleSoftDelete(review.id)}><Archive size={16} /></button>
+                          <button className="edit-btn" onClick={() => handleEdit(review)} title="Edit">
+                            <Edit size={16} />
+                          </button>
+                          <button className="trash-btn" onClick={() => handleSoftDelete(review.id)} title="Move to Trash">
+                            <Archive size={16} />
+                          </button>
                         </>
                       )}
                       {review.isTrashed && (
                         <>
-                          <button className="restore-btn" onClick={() => handleRestore(review.id)}><RotateCcw size={16} /></button>
-                          <button className="delete-permanent-btn" onClick={() => handlePermanentDelete(review.id)}><Trash2 size={16} /></button>
+                          <button className="restore-btn" onClick={() => handleRestore(review.id)} title="Restore">
+                            <RotateCcw size={16} />
+                          </button>
+                          <button className="delete-permanent-btn" onClick={() => handlePermanentDelete(review.id)} title="Permanently Delete">
+                            <Trash2 size={16} />
+                          </button>
                         </>
                       )}
                     </td>
@@ -509,7 +598,11 @@ const Reviews = () => {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="pagination">
-              <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="pagination-btn">
+              <button 
+                onClick={() => paginate(currentPage - 1)} 
+                disabled={currentPage === 1} 
+                className="pagination-btn"
+              >
                 <ChevronLeft size={16} /> Previous
               </button>
               <div className="pagination-numbers">
@@ -517,11 +610,21 @@ const Reviews = () => {
                   page === '...' ? (
                     <span key={`dots-${idx}`} className="page-dots">...</span>
                   ) : (
-                    <button key={page} onClick={() => paginate(page)} className={`page-number ${currentPage === page ? 'active' : ''}`}>{page}</button>
+                    <button 
+                      key={page} 
+                      onClick={() => paginate(page)} 
+                      className={`page-number ${currentPage === page ? 'active' : ''}`}
+                    >
+                      {page}
+                    </button>
                   )
                 ))}
               </div>
-              <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="pagination-btn">
+              <button 
+                onClick={() => paginate(currentPage + 1)} 
+                disabled={currentPage === totalPages} 
+                className="pagination-btn"
+              >
                 Next <ChevronRight size={16} />
               </button>
             </div>

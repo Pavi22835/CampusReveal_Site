@@ -20,6 +20,7 @@ import {
   BookOpen,
   DollarSign
 } from 'lucide-react';
+import EmptyState from '../components/EmptyState';
 import './Universities.css';
 
 const Universities = () => {
@@ -28,6 +29,7 @@ const Universities = () => {
   const [universities, setUniversities] = useState([]);
   const [trashedUniversities, setTrashedUniversities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUniversity, setSelectedUniversity] = useState(null);
@@ -47,18 +49,30 @@ const Universities = () => {
 
   useEffect(() => {
     fetchUniversities();
-    fetchTrashedUniversities();
   }, [token]);
 
+  useEffect(() => {
+    if (activeTab === 'trash') {
+      fetchTrashedUniversities();
+    }
+  }, [activeTab]);
+
   const fetchUniversities = async () => {
+    setLoading(true);
+    setError('');
     try {
       const result = await api.getUniversities(token);
-      if (result.success) {
+      if (result.success && result.data) {
         const activeUniversities = result.data.filter(uni => !uni.isTrashed);
         setUniversities(activeUniversities);
+      } else {
+        setUniversities([]);
+        setError(result.message || 'No Data Available');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching universities:', error);
+      setError('Failed to load universities');
+      setUniversities([]);
     } finally {
       setLoading(false);
     }
@@ -66,76 +80,84 @@ const Universities = () => {
 
   const fetchTrashedUniversities = async () => {
     try {
-      const result = await api.getTrashedUniversities?.(token);
-      if (result?.success) {
+      if (!api.getTrashedUniversities) {
+        setTrashedUniversities([]);
+        return;
+      }
+      
+      const result = await api.getTrashedUniversities(token);
+      if (result?.success && result?.data) {
         setTrashedUniversities(result.data);
       } else {
-        const allResult = await api.getUniversities(token);
-        if (allResult.success) {
-          const trashed = allResult.data.filter(uni => uni.isTrashed);
-          setTrashedUniversities(trashed);
-        }
+        setTrashedUniversities([]);
       }
     } catch (error) {
-      console.error('Error fetching trashed:', error);
+      console.error('Error fetching trashed universities:', error);
       setTrashedUniversities([]);
     }
   };
 
   const handleSoftDelete = async (id, name) => {
+    if (!api.softDeleteUniversity) {
+      setError('Soft delete feature is not available');
+      return;
+    }
+    
     if (window.confirm(`Move "${name}" to trash? You can restore it later.`)) {
       try {
-        const result = await api.softDeleteUniversity?.(id, token);
+        const result = await api.softDeleteUniversity(id, token);
         if (result?.success) {
-          fetchUniversities();
-          fetchTrashedUniversities();
+          await fetchUniversities();
+          await fetchTrashedUniversities();
         } else {
-          setUniversities(prev => prev.filter(uni => uni.id !== id));
-          const movedUni = universities.find(uni => uni.id === id);
-          if (movedUni) {
-            setTrashedUniversities(prev => [{ ...movedUni, isTrashed: true }, ...prev]);
-          }
+          setError(result?.message || 'Failed to move university to trash');
         }
       } catch (error) {
         console.error('Error moving to trash:', error);
-        alert('Error moving university to trash');
+        setError('Error moving university to trash');
       }
     }
   };
 
   const handleRestore = async (id, name) => {
+    if (!api.restoreUniversity) {
+      setError('Restore feature is not available');
+      return;
+    }
+    
     if (window.confirm(`Restore "${name}" from trash?`)) {
       try {
-        const result = await api.restoreUniversity?.(id, token);
+        const result = await api.restoreUniversity(id, token);
         if (result?.success) {
-          fetchUniversities();
-          fetchTrashedUniversities();
+          await fetchUniversities();
+          await fetchTrashedUniversities();
         } else {
-          const restoredUni = trashedUniversities.find(uni => uni.id === id);
-          setTrashedUniversities(prev => prev.filter(uni => uni.id !== id));
-          if (restoredUni) {
-            setUniversities(prev => [{ ...restoredUni, isTrashed: false }, ...prev]);
-          }
+          setError(result?.message || 'Failed to restore university');
         }
       } catch (error) {
         console.error('Error restoring:', error);
-        alert('Error restoring university');
+        setError('Error restoring university');
       }
     }
   };
 
   const handlePermanentDelete = async (id, name) => {
+    if (!api.permanentDeleteUniversity) {
+      setError('Permanent delete feature is not available');
+      return;
+    }
+    
     if (window.confirm(`Permanently delete "${name}"? This action cannot be undone.`)) {
       try {
         const result = await api.permanentDeleteUniversity(id, token);
         if (result.success) {
-          fetchTrashedUniversities();
+          await fetchTrashedUniversities();
         } else {
-          alert(result.message || 'Unable to delete university permanently');
+          setError(result.message || 'Failed to permanently delete university');
         }
       } catch (error) {
         console.error('Error deleting:', error);
-        alert('Error deleting university');
+        setError('Error deleting university');
       }
     }
   };
@@ -143,13 +165,15 @@ const Universities = () => {
   const handleView = async (id) => {
     try {
       const result = await api.getUniversity(id);
-      if (result.success) {
+      if (result.success && result.data) {
         setSelectedUniversity(result.data);
         setShowViewModal(true);
+      } else {
+        setError('No Data Available');
       }
     } catch (error) {
       console.error('Error fetching university details:', error);
-      alert('Error loading university details');
+      setError('Error loading university details');
     }
   };
 
@@ -160,7 +184,7 @@ const Universities = () => {
   const currentList = activeTab === 'all' ? universities : trashedUniversities;
 
   const filteredList = currentList.filter(uni =>
-    uni.name.toLowerCase().includes(search.toLowerCase()) ||
+    uni.name?.toLowerCase().includes(search.toLowerCase()) ||
     (uni.location && uni.location.toLowerCase().includes(search.toLowerCase())) ||
     (uni.city && uni.city.toLowerCase().includes(search.toLowerCase()))
   );
@@ -199,14 +223,17 @@ const Universities = () => {
     return pages;
   };
 
-  // Format date helper
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!dateString) return null;
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return null;
+    }
   };
 
   // Mobile Card Component
@@ -221,30 +248,42 @@ const Universities = () => {
       </div>
 
       <div className="card-details">
-        <div className="detail-item">
-          <MapPin size={14} />
-          <span>{uni.location || uni.city || 'Tamil Nadu'}</span>
-        </div>
-        <div className="detail-item">
-          <Star size={14} className="star-icon" />
-          <span>{uni.rating || 'New'} / 5</span>
-        </div>
-        <div className="detail-item">
-          <Users size={14} />
-          <span>{uni.studentCount?.toLocaleString() || 'N/A'} Students</span>
-        </div>
-        <div className="detail-item">
-          <BookOpen size={14} />
-          <span>{uni._count?.reviews || 0} Reviews</span>
-        </div>
-        <div className="detail-item">
-          <DollarSign size={14} />
-          <span>{uni.tuitionFee ? `₹${uni.tuitionFee.toLocaleString()}` : 'Fee N/A'}</span>
-        </div>
-        <div className="detail-item">
-          <Calendar size={14} />
-          <span>Updated: {formatDate(uni.updatedAt || uni.createdAt)}</span>
-        </div>
+        {(uni.location || uni.city) && (
+          <div className="detail-item">
+            <MapPin size={14} />
+            <span>{[uni.city, uni.state].filter(Boolean).join(', ') || uni.location}</span>
+          </div>
+        )}
+        {uni.rating && (
+          <div className="detail-item">
+            <Star size={14} className="star-icon" />
+            <span>{uni.rating} / 5</span>
+          </div>
+        )}
+        {uni.studentCount && (
+          <div className="detail-item">
+            <Users size={14} />
+            <span>{uni.studentCount.toLocaleString()} Students</span>
+          </div>
+        )}
+        {(uni._count?.reviews !== undefined) && (
+          <div className="detail-item">
+            <BookOpen size={14} />
+            <span>{uni._count.reviews} Reviews</span>
+          </div>
+        )}
+        {uni.tuitionFee && (
+          <div className="detail-item">
+            <DollarSign size={14} />
+            <span>₹{uni.tuitionFee.toLocaleString()}</span>
+          </div>
+        )}
+        {(uni.updatedAt || uni.createdAt) && (
+          <div className="detail-item">
+            <Calendar size={14} />
+            <span>Updated: {formatDate(uni.updatedAt || uni.createdAt)}</span>
+          </div>
+        )}
       </div>
 
       <div className="card-actions">
@@ -275,6 +314,15 @@ const Universities = () => {
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="loading-state">
+        <div className="loading-spinner"></div>
+        <p>Loading universities...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="universities-page">
       {/* View Modal */}
@@ -286,11 +334,11 @@ const Universities = () => {
               <button className="modal-close-compact" onClick={() => setShowViewModal(false)}>×</button>
             </div>
             <div className="modal-body-compact">
-              {selectedUniversity.logoUrl || selectedUniversity.imageUrl ? (
+              {selectedUniversity.logoUrl ? (
                 <div className="university-image-wrapper">
                   <div className="university-detail-image">
                     <img
-                      src={selectedUniversity.logoUrl || selectedUniversity.imageUrl}
+                      src={selectedUniversity.logoUrl}
                       alt={selectedUniversity.name}
                       onError={(e) => {
                         e.target.onerror = null;
@@ -303,21 +351,31 @@ const Universities = () => {
               ) : (
                 <div className="no-image-placeholder">No Image Available</div>
               )}
+              
               <div className="detail-row-compact">
                 <div className="detail-label-compact">University Name</div>
                 <div className="detail-value-compact">{selectedUniversity.name}</div>
               </div>
-              <div className="detail-row-compact">
-                <div className="detail-label-compact">Short Name</div>
-                <div className="detail-value-compact">{selectedUniversity.shortName || 'Not specified'}</div>
-              </div>
-              <div className="detail-row-compact">
-                <div className="detail-label-compact">Location</div>
-                <div className="detail-value-compact">
-                  <MapPin size={14} />
-                  {selectedUniversity.location || selectedUniversity.city || 'Not specified'}
+              
+              {selectedUniversity.shortName && (
+                <div className="detail-row-compact">
+                  <div className="detail-label-compact">Short Name</div>
+                  <div className="detail-value-compact">{selectedUniversity.shortName}</div>
                 </div>
-              </div>
+              )}
+              
+              {(selectedUniversity.location || selectedUniversity.city) && (
+                <div className="detail-row-compact">
+                  <div className="detail-label-compact">Location</div>
+                  <div className="detail-value-compact">
+                    <MapPin size={14} />
+                    {[selectedUniversity.city, selectedUniversity.state, selectedUniversity.location]
+                      .filter(Boolean)
+                      .join(', ')}
+                  </div>
+                </div>
+              )}
+              
               {selectedUniversity.googleMapsLink && (
                 <div className="detail-row-compact">
                   <div className="detail-label-compact">Map Link</div>
@@ -326,76 +384,111 @@ const Universities = () => {
                   </div>
                 </div>
               )}
+              
               <div className="detail-row-compact two-col">
-                <div className="detail-col">
-                  <div className="detail-label-compact">City</div>
-                  <div className="detail-value-compact">{selectedUniversity.city || 'Not specified'}</div>
-                </div>
-                <div className="detail-col">
-                  <div className="detail-label-compact">State</div>
-                  <div className="detail-value-compact">{selectedUniversity.state || 'Tamil Nadu'}</div>
-                </div>
-              </div>
-              <div className="detail-row-compact two-col">
-                <div className="detail-col">
-                  <div className="detail-label-compact">Established</div>
-                  <div className="detail-value-compact">{selectedUniversity.established || 'Not specified'}</div>
-                </div>
-                <div className="detail-col">
-                  <div className="detail-label-compact">Type</div>
-                  <div className="detail-value-compact">{selectedUniversity.type || 'Not specified'}</div>
-                </div>
-              </div>
-              <div className="detail-row-compact two-col">
-                <div className="detail-col">
-                  <div className="detail-label-compact">Rating</div>
-                  <div className="detail-value-compact rating">
-                    <Star size={14} fill="#fbbf24" color="#fbbf24" />
-                    {selectedUniversity.rating || 'New'}
+                {selectedUniversity.city && (
+                  <div className="detail-col">
+                    <div className="detail-label-compact">City</div>
+                    <div className="detail-value-compact">{selectedUniversity.city}</div>
                   </div>
-                </div>
-                <div className="detail-col">
-                  <div className="detail-label-compact">Student Count</div>
+                )}
+                {selectedUniversity.state && (
+                  <div className="detail-col">
+                    <div className="detail-label-compact">State</div>
+                    <div className="detail-value-compact">{selectedUniversity.state}</div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="detail-row-compact two-col">
+                {selectedUniversity.established && (
+                  <div className="detail-col">
+                    <div className="detail-label-compact">Established</div>
+                    <div className="detail-value-compact">{selectedUniversity.established}</div>
+                  </div>
+                )}
+                {selectedUniversity.type && (
+                  <div className="detail-col">
+                    <div className="detail-label-compact">Type</div>
+                    <div className="detail-value-compact">{selectedUniversity.type}</div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="detail-row-compact two-col">
+                {selectedUniversity.rating && (
+                  <div className="detail-col">
+                    <div className="detail-label-compact">Rating</div>
+                    <div className="detail-value-compact rating">
+                      <Star size={14} fill="#fbbf24" color="#fbbf24" />
+                      {selectedUniversity.rating}
+                    </div>
+                  </div>
+                )}
+                {selectedUniversity.studentCount && (
+                  <div className="detail-col">
+                    <div className="detail-label-compact">Student Count</div>
+                    <div className="detail-value-compact">
+                      <Users size={14} />
+                      {selectedUniversity.studentCount.toLocaleString()}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="detail-row-compact two-col">
+                {selectedUniversity._count?.reviews !== undefined && (
+                  <div className="detail-col">
+                    <div className="detail-label-compact">Total Reviews</div>
+                    <div className="detail-value-compact">{selectedUniversity._count.reviews} reviews</div>
+                  </div>
+                )}
+                {selectedUniversity.averagePackage && (
+                  <div className="detail-col">
+                    <div className="detail-label-compact">Average Package</div>
+                    <div className="detail-value-compact">{selectedUniversity.averagePackage}</div>
+                  </div>
+                )}
+              </div>
+              
+              {selectedUniversity.academicStreams && selectedUniversity.academicStreams.length > 0 && (
+                <div className="detail-row-compact">
+                  <div className="detail-label-compact">Academic Streams</div>
                   <div className="detail-value-compact">
-                    <Users size={14} />
-                    {selectedUniversity.studentCount?.toLocaleString() || 'N/A'}
+                    {selectedUniversity.academicStreams.join(', ')}
                   </div>
                 </div>
-              </div>
-              <div className="detail-row-compact two-col">
-                <div className="detail-col">
-                  <div className="detail-label-compact">Total Reviews</div>
-                  <div className="detail-value-compact">{selectedUniversity._count?.reviews || 0} reviews</div>
+              )}
+              
+              {selectedUniversity.academicLevels && selectedUniversity.academicLevels.length > 0 && (
+                <div className="detail-row-compact">
+                  <div className="detail-label-compact">Academic Levels</div>
+                  <div className="detail-value-compact">
+                    {selectedUniversity.academicLevels.join(', ')}
+                  </div>
                 </div>
-                <div className="detail-col">
-                  <div className="detail-label-compact">Average Package</div>
-                  <div className="detail-value-compact">{selectedUniversity.medianSalary || 'N/A'}</div>
+              )}
+              
+              {selectedUniversity.createdAt && (
+                <div className="detail-row-compact">
+                  <div className="detail-label-compact">Created At</div>
+                  <div className="detail-value-compact">
+                    <Calendar size={14} />
+                    {formatDate(selectedUniversity.createdAt)}
+                  </div>
                 </div>
-              </div>
-              <div className="detail-row-compact two-col">
-                <div className="detail-col">
-                  <div className="detail-label-compact">Academic Stream</div>
-                  <div className="detail-value-compact">{selectedUniversity.academicStream || 'Not specified'}</div>
+              )}
+              
+              {selectedUniversity.updatedAt && (
+                <div className="detail-row-compact">
+                  <div className="detail-label-compact">Last Updated</div>
+                  <div className="detail-value-compact">
+                    <Calendar size={14} />
+                    {formatDate(selectedUniversity.updatedAt)}
+                  </div>
                 </div>
-                <div className="detail-col">
-                  <div className="detail-label-compact">Academic Level</div>
-                  <div className="detail-value-compact">{selectedUniversity.academicLevel || 'Not specified'}</div>
-                </div>
-              </div>
-              <div className="detail-row-compact">
-                <div className="detail-label-compact">Created At</div>
-                <div className="detail-value-compact">
-                  <Calendar size={14} />
-                  {formatDate(selectedUniversity.createdAt)}
-                </div>
-              </div>
-              <div className="detail-row-compact">
-                <div className="detail-label-compact">Last Updated</div>
-                <div className="detail-value-compact">
-                  <Calendar size={14} />
-                  {formatDate(selectedUniversity.updatedAt)}
-                </div>
-              </div>
+              )}
+              
               {selectedUniversity.description && (
                 <div className="detail-row-compact">
                   <div className="detail-label-compact">Description</div>
@@ -429,24 +522,40 @@ const Universities = () => {
         </Link>
       </div>
 
+      {/* Error Display */}
+      {error && !loading && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
+
       {/* Control Bar */}
       <div className="universities-control-bar">
         <div className="universities-tabs">
           <button
             className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveTab('all')}
+            onClick={() => {
+              setActiveTab('all');
+              setCurrentPage(1);
+              setSearch('');
+            }}
           >
             <GraduationCap size={16} />
             All Universities
-            <span className="tab-count">{universities.length}</span>
+            {universities.length > 0 && <span className="tab-count">{universities.length}</span>}
           </button>
           <button
             className={`tab-btn ${activeTab === 'trash' ? 'active' : ''}`}
-            onClick={() => setActiveTab('trash')}
+            onClick={() => {
+              setActiveTab('trash');
+              setCurrentPage(1);
+              setSearch('');
+              fetchTrashedUniversities();
+            }}
           >
             <Archive size={16} />
             Trash
-            <span className="tab-count trash-count">{trashedUniversities.length}</span>
+            {trashedUniversities.length > 0 && <span className="tab-count trash-count">{trashedUniversities.length}</span>}
           </button>
         </div>
 
@@ -455,7 +564,7 @@ const Universities = () => {
             <Search size={18} />
             <input
               type="text"
-              placeholder="Search by name, location, or city..."
+              placeholder="Search universities..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -463,26 +572,27 @@ const Universities = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="loading-state">Loading universities...</div>
-      ) : (
+      {/* Empty State */}
+      {!loading && !error && filteredList.length === 0 && (
+        <EmptyState 
+          title="No Universities Available"
+          message={search ? 'No universities match your search criteria' : activeTab === 'all' ? 'No universities have been added yet' : 'Trash is empty'}
+          actionButton={activeTab === 'all' && !search ? 'Add Your First University' : undefined}
+          onAction={activeTab === 'all' && !search ? () => navigate('/admin/add-university') : undefined}
+        />
+      )}
+
+      {/* Content - Only show if there are results */}
+      {!loading && !error && filteredList.length > 0 && (
         <>
-          {/* Mobile Card View - Hidden on desktop */}
+          {/* Mobile Card View */}
           <div className="universities-cards-view">
-            {paginatedList.length > 0 ? (
-              paginatedList.map((uni) => (
-                <UniversityCard key={uni.id} uni={uni} />
-              ))
-            ) : (
-              <div className="no-results">
-                {activeTab === 'all'
-                  ? `No universities found matching "${search}"`
-                  : `Trash is empty. No universities found matching "${search}"`}
-              </div>
-            )}
+            {paginatedList.map((uni) => (
+              <UniversityCard key={uni.id} uni={uni} />
+            ))}
           </div>
 
-          {/* Desktop Table View - Hidden on mobile */}
+          {/* Desktop Table View */}
           <div className="universities-table-container">
             <table className="universities-table">
               <thead>
@@ -499,67 +609,61 @@ const Universities = () => {
                 </tr>
               </thead>
               <tbody>
-                {paginatedList.length > 0 ? (
-                  paginatedList.map((uni) => (
-                    <tr key={uni.id} className={uni.isTrashed ? 'trashed-row' : ''}>
-                      <td className="uni-id">{uni.id?.slice(-8)}</td>
-                      <td className="uni-name">
-                        <GraduationCap size={16} />
-                        {uni.name}
-                        {uni.isTrashed && <span className="trashed-badge">Trashed</span>}
-                      </td>
-                      <td>{uni.location || uni.city || 'Tamil Nadu'}</td>
-                      <td className="rating-cell">
+                {paginatedList.map((uni) => (
+                  <tr key={uni.id} className={uni.isTrashed ? 'trashed-row' : ''}>
+                    <td className="uni-id">{uni.id?.slice(-8)}</td>
+                    <td className="uni-name">
+                      <GraduationCap size={16} />
+                      {uni.name}
+                      {uni.isTrashed && <span className="trashed-badge">Trashed</span>}
+                    </td>
+                    <td>{[uni.city, uni.state].filter(Boolean).join(', ') || uni.location || 'N/A'}</td>
+                    <td className="rating-cell">
+                      {uni.rating ? (
                         <span className="rating-badge">
-                          ★ {uni.rating || 'New'}
+                          ★ {uni.rating}
                         </span>
-                      </td>
-                      <td>{uni.studentCount?.toLocaleString() || 'N/A'}</td>
-                      <td>{uni._count?.reviews || 0}</td>
-                      <td>{uni.tuitionFee ? `₹${uni.tuitionFee.toLocaleString()}` : 'N/A'}</td>
-                      <td className="updated-date">{formatDate(uni.updatedAt || uni.createdAt)}</td>
-                      <td className="actions">
-                        <button onClick={() => handleView(uni.id)} className="view-btn" title="View">
-                          <Eye size={16} />
-                        </button>
-                        {!uni.isTrashed && (
-                          <>
-                            <button onClick={() => handleEdit(uni.id)} className="edit-btn" title="Edit">
-                              <Edit size={16} />
-                            </button>
-                            <button onClick={() => handleSoftDelete(uni.id, uni.name)} className="trash-btn" title="Move to Trash">
-                              <Trash2 size={16} />
-                            </button>
-                          </>
-                        )}
-                        {uni.isTrashed && (
-                          <>
-                            <button onClick={() => handleRestore(uni.id, uni.name)} className="restore-btn" title="Restore">
-                              <RotateCcw size={16} />
-                            </button>
-                            <button onClick={() => handlePermanentDelete(uni.id, uni.name)} className="delete-permanent-btn" title="Delete">
-                              <Trash2 size={16} />
-                            </button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="8" className="no-results">
-                      {activeTab === 'all'
-                        ? `No universities found matching "${search}"`
-                        : `Trash is empty`}
+                      ) : (
+                        'N/A'
+                      )}
+                    </td>
+                    <td>{uni.studentCount?.toLocaleString() || 'N/A'}</td>
+                    <td>{uni._count?.reviews || 0}</td>
+                    <td>{uni.tuitionFee ? `₹${uni.tuitionFee.toLocaleString()}` : 'N/A'}</td>
+                    <td className="updated-date">{formatDate(uni.updatedAt || uni.createdAt) || 'N/A'}</td>
+                    <td className="actions">
+                      <button onClick={() => handleView(uni.id)} className="view-btn" title="View">
+                        <Eye size={16} />
+                      </button>
+                      {!uni.isTrashed && (
+                        <>
+                          <button onClick={() => handleEdit(uni.id)} className="edit-btn" title="Edit">
+                            <Edit size={16} />
+                          </button>
+                          <button onClick={() => handleSoftDelete(uni.id, uni.name)} className="trash-btn" title="Move to Trash">
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
+                      {uni.isTrashed && (
+                        <>
+                          <button onClick={() => handleRestore(uni.id, uni.name)} className="restore-btn" title="Restore">
+                            <RotateCcw size={16} />
+                          </button>
+                          <button onClick={() => handlePermanentDelete(uni.id, uni.name)} className="delete-permanent-btn" title="Permanently Delete">
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>
 
           {/* Pagination */}
-          {filteredList.length > 0 && totalPages > 1 && (
+          {totalPages > 1 && (
             <div className="pagination">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -598,12 +702,10 @@ const Universities = () => {
           )}
 
           {/* Results Info */}
-          {filteredList.length > 0 && (
-            <div className="results-info">
-              Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredList.length)} of {filteredList.length} universities
-              {totalPages > 1 && ` • Page ${currentPage} of ${totalPages}`}
-            </div>
-          )}
+          <div className="results-info">
+            Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredList.length)} of {filteredList.length} universities
+            {totalPages > 1 && ` • Page ${currentPage} of ${totalPages}`}
+          </div>
         </>
       )}
     </div>

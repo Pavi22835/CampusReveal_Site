@@ -21,6 +21,9 @@ const Login = () => {
     try {
       const result = await login(email, password);
       if (result.success) {
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        }
         navigate('/dashboard');
       } else {
         setError(result.message || 'Invalid credentials');
@@ -32,6 +35,11 @@ const Login = () => {
     }
   };
 
+  // Toggle password visibility
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <div className="admin-login">
       <div className="login-card">
@@ -40,7 +48,7 @@ const Login = () => {
             <span className="logo-icon">🎓</span>
             <h1>CampusReveal</h1>
           </div>
-          <p className="subtitle">Sign in to start your session</p>
+          <p className="subtitle">Sign in to continue</p>
         </div>
 
         {error && (
@@ -51,13 +59,14 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Admin</label>
+            <label>Email Address</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@example.com"
+              placeholder="Enter your email"
               required
+              autoComplete="email"
             />
           </div>
 
@@ -70,11 +79,13 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
+                autoComplete="current-password"
               />
               <button 
                 type="button"
                 className="password-eye"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={togglePasswordVisibility}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">

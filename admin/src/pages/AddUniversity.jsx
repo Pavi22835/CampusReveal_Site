@@ -117,16 +117,16 @@ const AddUniversity = () => {
     campusFacilities: [],
     
     // 5. Location Information
-    country: 'India',
-    state: 'Tamil Nadu',
+    country: '',
+    state: '',
     city: '',
     pincode: '',
     location: '',
     googleMapsLink: '',
-    mapLink: '', // ✅ NEW FIELD - Google Maps Embed URL
+    mapLink: '',
     
     // 6. Placement & Statistics
-    rating: 4.0,
+    rating: null,
     studentCount: '',
     facultyCount: '',
     placementRate: '',
@@ -380,7 +380,7 @@ const AddUniversity = () => {
         academicLevels: formData.academicLevels || [],
         departments: formData.departments || [],
         images: previewImages || [],
-        mapLink: formData.mapLink || null, // ✅ Send mapLink to backend
+        mapLink: formData.mapLink || null,
       };
       
       const result = await api.createUniversity(submitData, token);
@@ -641,11 +641,11 @@ const AddUniversity = () => {
             <div className="form-grid">
               <div className="form-group">
                 <label>Country</label>
-                <input type="text" name="country" value={formData.country} onChange={handleChange} />
+                <input type="text" name="country" value={formData.country} onChange={handleChange} placeholder="e.g., India" />
               </div>
               <div className="form-group">
                 <label>State</label>
-                <input type="text" name="state" value={formData.state} onChange={handleChange} />
+                <input type="text" name="state" value={formData.state} onChange={handleChange} placeholder="e.g., Tamil Nadu" />
               </div>
               <div className="form-group">
                 <label>City</label>
@@ -665,7 +665,6 @@ const AddUniversity = () => {
                 <small>Regular Google Maps link for redirection</small>
               </div>
               
-              {/* ✅ NEW: Google Maps Embed Link */}
               <div className="form-group full-width">
                 <label>Google Maps Embed Link</label>
                 <input 
@@ -677,7 +676,6 @@ const AddUniversity = () => {
                 />
                 <small>
                   Paste the embed URL from Google Maps for iframe display.
-                  How to get: Go to Google Maps → Share → Embed a map → Copy the src URL.
                   Leave empty to show "No Maps Available" on frontend.
                 </small>
               </div>
@@ -692,7 +690,7 @@ const AddUniversity = () => {
             <div className="form-grid">
               <div className="form-group">
                 <label>Overall Rating (0-5)</label>
-                <input type="number" step="0.1" min="0" max="5" name="rating" value={formData.rating} onChange={handleChange} />
+                <input type="number" step="0.1" min="0" max="5" name="rating" value={formData.rating === null ? '' : formData.rating} onChange={handleChange} placeholder="e.g., 4.5" />
               </div>
               <div className="form-group">
                 <label>Total Students</label>
@@ -716,7 +714,7 @@ const AddUniversity = () => {
               </div>
               <div className="form-group full-width">
                 <label>Top Recruiters</label>
-                <input type="text" name="topRecruiters" value={formData.topRecruiters} onChange={handleChange} placeholder="e.g., Google, Microsoft, Amazon, TCS, Infosys" />
+                <input type="text" name="topRecruiters" value={formData.topRecruiters} onChange={handleChange} placeholder="e.g., Google, Microsoft, Amazon" />
               </div>
             </div>
           </>
@@ -792,7 +790,7 @@ const AddUniversity = () => {
             </div>
             <div className="form-group full-width">
               <label>Keywords / Tags</label>
-              <input type="text" name="keywords" value={formData.keywords} onChange={handleChange} placeholder="e.g., engineering college, best university, top placement, higher education" />
+              <input type="text" name="keywords" value={formData.keywords} onChange={handleChange} placeholder="e.g., engineering, university, college" />
               <small>Comma separated keywords for SEO</small>
             </div>
           </>
@@ -868,13 +866,17 @@ const AddUniversity = () => {
               </div>
               <div className="preview-info">
                 <h4>{formData.name || 'University Name'}</h4>
-                <p className="preview-location">{formData.city || 'City'}, {formData.state || 'State'}</p>
+                {(formData.city || formData.state) && (
+                  <p className="preview-location">
+                    {[formData.city, formData.state].filter(Boolean).join(', ')}
+                  </p>
+                )}
                 <div className="preview-rating">
-                  <span>⭐ {formData.rating || '4.0'}</span>
-                  <span className="preview-type">{formData.type || 'University Type'}</span>
+                  {formData.rating && <span>⭐ {formData.rating}</span>}
+                  {formData.type && <span className="preview-type">{formData.type}</span>}
                 </div>
                 <p className="preview-short-desc">
-                  {formData.description ? formData.description.slice(0, 100) + (formData.description.length > 100 ? '...' : '') : 'Add a description to see preview...'}
+                  {formData.description ? formData.description.slice(0, 100) + (formData.description.length > 100 ? '...' : '') : 'No description added yet'}
                 </p>
                 {formData.academicStreams && formData.academicStreams.length > 0 && (
                   <div className="preview-tags">
