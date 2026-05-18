@@ -22,7 +22,7 @@ const getDiscussions = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
     
-    // ✅ ADDED: Check if current user liked each discussion
+    // Check if current user liked each discussion
     const discussionsWithLikeStatus = await Promise.all(discussions.map(async (discussion) => {
       let isLikedByUser = false;
       if (userId) {
@@ -109,7 +109,7 @@ const getDiscussionById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Discussion not found' });
     }
     
-    // ✅ ADDED: Check if current user liked the discussion
+    // Check if current user liked the discussion
     let isLikedByUser = false;
     if (userId) {
       const like = await prisma.discussionLike.findFirst({
@@ -121,7 +121,7 @@ const getDiscussionById = async (req, res) => {
       isLikedByUser = !!like;
     }
     
-    // ✅ ADDED: Check if current user liked each comment
+    // Check if current user liked each comment
     const commentsWithLikeStatus = await Promise.all(discussion.comments.map(async (comment) => {
       let commentLiked = false;
       if (userId) {
@@ -307,11 +307,8 @@ const permanentDeleteDiscussion = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Discussion not found' });
     }
     
-    // Delete all comments and likes related to this discussion
     await prisma.comment.deleteMany({ where: { discussionId: id } });
     await prisma.discussionLike.deleteMany({ where: { discussionId: id } });
-    
-    // Then delete the discussion
     await prisma.discussion.delete({ where: { id } });
     
     res.json({
@@ -324,7 +321,7 @@ const permanentDeleteDiscussion = async (req, res) => {
   }
 };
 
-// @desc    Delete discussion (Original hard delete)
+// @desc    Delete discussion (hard delete)
 // @route   DELETE /api/community/discussions/:id
 // @access  Admin
 const deleteDiscussion = async (req, res) => {
@@ -373,7 +370,6 @@ const addComment = async (req, res) => {
       }
     });
     
-    // Update discussion reply count
     await prisma.discussion.update({
       where: { id },
       data: { replies: { increment: 1 } }
@@ -442,7 +438,6 @@ const softDeleteComment = async (req, res) => {
       }
     });
     
-    // Update discussion reply count
     await prisma.discussion.update({
       where: { id: comment.discussionId },
       data: { replies: { decrement: 1 } }
@@ -484,7 +479,6 @@ const restoreComment = async (req, res) => {
       }
     });
     
-    // Update discussion reply count
     await prisma.discussion.update({
       where: { id: comment.discussionId },
       data: { replies: { increment: 1 } }
@@ -514,13 +508,8 @@ const permanentDeleteComment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Comment not found' });
     }
     
-    // Delete comment likes first
     await prisma.commentLike.deleteMany({ where: { commentId: id } });
-    
-    // Delete replies first
     await prisma.comment.deleteMany({ where: { parentId: id } });
-    
-    // Then delete the comment
     await prisma.comment.delete({ where: { id } });
     
     res.json({
@@ -704,7 +693,6 @@ const likeDiscussion = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Discussion not found' });
     }
 
-    // Find existing like
     const existingLike = await prisma.discussionLike.findFirst({
       where: {
         discussionId: id,
@@ -713,7 +701,6 @@ const likeDiscussion = async (req, res) => {
     });
 
     if (existingLike) {
-      // Unlike
       await prisma.discussionLike.delete({
         where: { id: existingLike.id }
       });
@@ -729,7 +716,6 @@ const likeDiscussion = async (req, res) => {
         likesCount: updatedDiscussion.likes
       });
     } else {
-      // Like
       await prisma.discussionLike.create({
         data: {
           discussionId: id,
@@ -772,7 +758,6 @@ const likeComment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Comment not found' });
     }
 
-    // Find existing like
     const existingLike = await prisma.commentLike.findFirst({
       where: {
         commentId: id,
@@ -781,7 +766,6 @@ const likeComment = async (req, res) => {
     });
 
     if (existingLike) {
-      // Unlike
       await prisma.commentLike.delete({
         where: { id: existingLike.id }
       });
@@ -797,7 +781,6 @@ const likeComment = async (req, res) => {
         likesCount: updatedComment.likes
       });
     } else {
-      // Like
       await prisma.commentLike.create({
         data: {
           commentId: id,

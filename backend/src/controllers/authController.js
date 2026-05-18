@@ -9,18 +9,23 @@ const generateToken = (id, role) => {
   });
 };
 
-// Generate OTP (hardcoded to 1234 for development)
+// Generate random 6-digit OTP
 const generateOTP = () => {
-  return '1234';
+  // Generate random 6-digit number (100000 to 999999)
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Mock send OTP function (replace with actual SMS service)
+// Send OTP via SMS service (replace with actual SMS provider)
 const sendOTPToPhone = async (phone, otp) => {
   console.log(`\n========== SENDING OTP ==========`);
   console.log(`📱 Phone: ${phone}`);
   console.log(`🔐 OTP: ${otp}`);
   console.log(`⏰ Valid for 10 minutes`);
   console.log(`================================\n`);
+  
+  // TODO: Integrate with actual SMS service like Twilio, MSG91, etc.
+  // Example: await twilioClient.messages.create({ body: `Your OTP is ${otp}`, to: phone, from: process.env.TWILIO_PHONE });
+  
   return true;
 };
 
@@ -63,13 +68,12 @@ const sendLoginOTP = async (req, res) => {
       }
     });
 
-    // Send OTP
+    // Send OTP via SMS
     await sendOTPToPhone(phone, otp);
 
     res.status(200).json({ 
       success: true, 
-      message: 'OTP sent successfully',
-      debugOtp: otp  // Always show for development
+      message: 'OTP sent successfully'
     });
   } catch (error) {
     console.error('Send OTP error:', error);
@@ -205,13 +209,12 @@ const resendOTP = async (req, res) => {
       }
     });
 
-    // Send OTP
+    // Send OTP via SMS
     await sendOTPToPhone(phone, otp);
 
     res.status(200).json({ 
       success: true, 
-      message: 'OTP resent successfully',
-      debugOtp: otp
+      message: 'OTP resent successfully'
     });
   } catch (error) {
     console.error('Resend OTP error:', error);

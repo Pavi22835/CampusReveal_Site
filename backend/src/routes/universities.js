@@ -49,16 +49,13 @@ const getUniversities = async (req, res) => {
       state
     } = req.query;
     
-    let where = {
-      isTrashed: false
-    };
+    let where = { isTrashed: false };
     
     if (search) {
       const searchWhere = buildSearchWhere(search);
       if (searchWhere) where = { ...where, ...searchWhere };
     }
     
-    // Apply advanced filters - FIXED: use plural field names from schema
     if (academicStream) where.academicStreams = { has: academicStream };
     if (academicLevel) where.academicLevels = { has: academicLevel };
     if (department) where.departments = { has: department };
@@ -139,9 +136,7 @@ const getTrashedUniversities = async (req, res) => {
   try {
     const { search, limit = 50, page = 1 } = req.query;
     
-    let where = {
-      isTrashed: true
-    };
+    let where = { isTrashed: true };
     
     if (search) {
       const searchWhere = buildSearchWhere(search);
@@ -280,7 +275,7 @@ const restoreUniversity = async (req, res) => {
     
     res.json({
       success: true,
-      message: 'University restored from trash successfully',
+      message: 'University restored successfully',
       data: restoredUniversity
     });
   } catch (error) {
@@ -310,13 +305,9 @@ const permanentDeleteUniversity = async (req, res) => {
       });
     }
     
-    // Delete related records first
     await prisma.review.deleteMany({ where: { universityId: id } });
     await prisma.universityCourse.deleteMany({ where: { universityId: id } });
-    
-    await prisma.university.delete({
-      where: { id }
-    });
+    await prisma.university.delete({ where: { id } });
     
     res.json({
       success: true,
@@ -338,7 +329,6 @@ const getUniversityById = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Validate ID format
     if (!id || id.length < 5) {
       return res.status(400).json({ 
         success: false, 
@@ -617,7 +607,6 @@ const createUniversity = async (req, res) => {
     console.log('\n=== CREATE UNIVERSITY ===');
     
     const body = req.body;
-    
     const name = body?.name;
     
     if (!name || name.trim() === '') {
@@ -646,13 +635,14 @@ const createUniversity = async (req, res) => {
       category: body.category || null,
       naacGrade: body.naacGrade || null,
       logoUrl: body.logoUrl || null,
-      imageUrl: body.imageUrl || body.logoUrl || null,
+      imageUrl: body.imageUrl || null,
       images: Array.isArray(body.images) ? body.images : [],
-      location: body.location || `${body.city || ''}, ${body.state || 'Tamil Nadu'}`,
+      location: body.location || null,
       city: body.city || null,
-      state: body.state || 'Tamil Nadu',
+      state: body.state || null,
       pincode: body.pincode || null,
       googleMapsLink: body.googleMapsLink || null,
+      mapLink: body.mapLink || null,
       affiliation: body.affiliation || null,
       mission: body.mission || null,
       vision: body.vision || null,
@@ -661,8 +651,8 @@ const createUniversity = async (req, res) => {
       departments: Array.isArray(body.departments) ? body.departments : [],
       offeredCourses: Array.isArray(body.offeredCourses) ? body.offeredCourses : [],
       campusFacilities: Array.isArray(body.campusFacilities) ? body.campusFacilities : [],
-      rating: parseFloat(body.rating) || 0,
-      studentCount: parseInt(body.studentCount) || 0,
+      rating: body.rating ? parseFloat(body.rating) : 0,
+      studentCount: body.studentCount ? parseInt(body.studentCount) : null,
       facultyCount: body.facultyCount ? parseInt(body.facultyCount) : null,
       placementRate: body.placementRate || null,
       highestPackage: body.highestPackage || null,
@@ -731,13 +721,14 @@ const updateUniversity = async (req, res) => {
       category: body.category || null,
       naacGrade: body.naacGrade || null,
       logoUrl: body.logoUrl || null,
-      imageUrl: body.imageUrl || body.logoUrl || null,
+      imageUrl: body.imageUrl || null,
       images: Array.isArray(body.images) ? body.images : existing.images,
-      location: body.location || `${body.city || existing.city || ''}, ${body.state || existing.state || 'Tamil Nadu'}`,
+      location: body.location || null,
       city: body.city || null,
-      state: body.state || 'Tamil Nadu',
+      state: body.state || null,
       pincode: body.pincode || null,
       googleMapsLink: body.googleMapsLink || null,
+      mapLink: body.mapLink || null,
       affiliation: body.affiliation || null,
       mission: body.mission || null,
       vision: body.vision || null,
@@ -825,8 +816,6 @@ const deleteUniversity = async (req, res) => {
 
 // ==================== ROUTES ====================
 
-// ✅ FIXED: Added protect, adminOnly to admin routes
-
 // Public routes (order matters - specific routes first)
 router.get('/filters/options', getFilterOptions);
 router.get('/search/advanced', searchUniversitiesAdvanced);
@@ -834,7 +823,7 @@ router.get('/search', searchUniversities);
 router.get('/trending', getTrendingUniversities);
 router.get('/', getUniversities);
 
-// ✅ Admin only - Trash routes
+// Admin only - Trash routes
 router.get('/trashed', protect, adminOnly, getTrashedUniversities);
 router.patch('/:id/soft-delete', protect, adminOnly, softDeleteUniversity);
 router.patch('/:id/restore', protect, adminOnly, restoreUniversity);
@@ -843,7 +832,7 @@ router.delete('/:id/permanent', protect, adminOnly, permanentDeleteUniversity);
 // Get single university by ID (must be after specific routes)
 router.get('/:id', getUniversityById);
 
-// ✅ Admin only - CRUD routes
+// Admin only - CRUD routes
 router.post('/', protect, adminOnly, createUniversity);
 router.put('/:id', protect, adminOnly, updateUniversity);
 router.delete('/:id', protect, adminOnly, deleteUniversity);

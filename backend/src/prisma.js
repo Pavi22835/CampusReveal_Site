@@ -11,8 +11,8 @@ let databaseUrl = process.env.DATABASE_URL;
 try {
   const parsedUrl = new URL(databaseUrl);
   
-  // Set connection limit based on environment
-  const connectionLimit = process.env.NODE_ENV === 'production' ? '10' : '2';
+  // Set connection limit from environment or default
+  const connectionLimit = process.env.DB_CONNECTION_LIMIT || (process.env.NODE_ENV === 'production' ? '10' : '2');
   
   if (!parsedUrl.searchParams.has('connection_limit')) {
     parsedUrl.searchParams.set('connection_limit', connectionLimit);
@@ -20,12 +20,12 @@ try {
   
   // Connection timeout settings
   if (!parsedUrl.searchParams.has('connect_timeout')) {
-    parsedUrl.searchParams.set('connect_timeout', '10');
+    parsedUrl.searchParams.set('connect_timeout', process.env.DB_CONNECT_TIMEOUT || '10');
   }
   
   // Idle timeout
   if (!parsedUrl.searchParams.has('idle_in_transaction_session_timeout')) {
-    parsedUrl.searchParams.set('idle_in_transaction_session_timeout', '60000');
+    parsedUrl.searchParams.set('idle_in_transaction_session_timeout', process.env.DB_IDLE_TIMEOUT || '60000');
   }
   
   databaseUrl = parsedUrl.toString();
@@ -39,7 +39,7 @@ try {
 // ==================== PRISMA CLIENT OPTIONS ====================
 const prismaOptions = {
   log: process.env.NODE_ENV === 'development' 
-    ? ['error', 'warn', 'info']  // Removed 'query' to avoid too much noise
+    ? ['error', 'warn', 'info']
     : ['error', 'warn'],
   errorFormat: process.env.NODE_ENV === 'production' ? 'minimal' : 'pretty',
   datasources: {
@@ -53,15 +53,11 @@ const prismaOptions = {
 let prisma;
 
 if (process.env.NODE_ENV === 'production') {
-  // Create new instance for production
   prisma = new PrismaClient(prismaOptions);
 } else {
-  // Development: Use global singleton to prevent too many connections
   if (!global.prisma) {
     global.prisma = new PrismaClient(prismaOptions);
     
-    // ✅ REMOVED: beforeExit event (not supported in Prisma 5+)
-    // Just log when connected
     global.prisma.$connect()
       .then(() => {
         console.log('✅ Prisma connected to database');
@@ -94,7 +90,6 @@ const disconnectPrisma = async () => {
   }
 };
 
-// Handle process termination
 process.on('SIGINT', async () => {
   await disconnectPrisma();
   process.exit(0);

@@ -46,11 +46,11 @@ router.post('/universities/bulk', protect, adminOnly, async (req, res) => {
             data: {
               name: uni.name,
               location: uni.location,
-              city: uni.city || "",
-              state: uni.state || "Tamil Nadu",
-              rating: uni.rating || 0,
-              studentCount: uni.studentCount || 0,
-              description: uni.description || ""
+              city: uni.city,
+              state: uni.state,
+              rating: uni.rating,
+              studentCount: uni.studentCount,
+              description: uni.description
             }
           });
           results.push(created);
@@ -66,7 +66,7 @@ router.post('/universities/bulk', protect, adminOnly, async (req, res) => {
       success: true,
       data: results,
       errors: errors.length > 0 ? errors : undefined,
-      message: `Added ${results.length} new universities! ${errors.length} failed.`
+      message: `Added ${results.length} new universities`
     });
   } catch (error) {
     console.error('Bulk add error:', error);
@@ -86,7 +86,7 @@ router.get('/stats', protect, adminOnly, async (req, res) => {
       prisma.review.count({ where: { isTrashed: false } }),
       prisma.discussion.count(),
       prisma.user.count({ where: { isTrashed: false } }),
-      prisma.review.count({ where: { isTrashed: false, verified: false } }) // Assuming pending = not verified
+      prisma.review.count({ where: { isTrashed: false, verified: false } })
     ]);
     
     const aggregateRating = await prisma.university.aggregate({ 
@@ -240,14 +240,12 @@ router.put('/users/:id', protect, adminOnly, async (req, res) => {
     const { id } = req.params;
     const { name, email, role, major, graduationYear, credits } = req.body;
 
-    // Check if user exists
     const userExists = await prisma.user.findUnique({ where: { id } });
 
     if (!userExists) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Validate graduation year
     if (graduationYear !== undefined) {
       const year = parseInt(graduationYear);
       const currentYear = new Date().getFullYear();
@@ -256,7 +254,6 @@ router.put('/users/:id', protect, adminOnly, async (req, res) => {
       }
     }
 
-    // Validate email format if provided
     if (email !== undefined) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
@@ -312,7 +309,6 @@ router.patch('/users/:id/soft-delete', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ success: false, message: 'User is already in trash' });
     }
 
-    // Don't allow trashing admin users
     if (user.role === 'ADMIN') {
       return res.status(403).json({ success: false, message: 'Cannot move admin users to trash' });
     }
@@ -385,12 +381,10 @@ router.delete('/users/:id/permanent', protect, adminOnly, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Don't allow deleting admin users
     if (user.role === 'ADMIN') {
       return res.status(403).json({ success: false, message: 'Cannot delete admin users' });
     }
 
-    // Delete all related records first
     await prisma.review.deleteMany({ where: { userId: id } });
     await prisma.discussion.deleteMany({ where: { authorId: id } });
     await prisma.comment.deleteMany({ where: { authorId: id } });
@@ -399,7 +393,6 @@ router.delete('/users/:id/permanent', protect, adminOnly, async (req, res) => {
     await prisma.commentLike.deleteMany({ where: { userId: id } });
     await prisma.otp.deleteMany({ where: { phone: user.phone || '' } });
 
-    // Then delete the user
     await prisma.user.delete({ where: { id } });
 
     res.json({
@@ -425,7 +418,6 @@ router.delete('/users/:id', protect, adminOnly, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Don't allow deleting admin users
     if (user.role === 'ADMIN') {
       return res.status(403).json({ success: false, message: 'Cannot delete admin users' });
     }

@@ -11,7 +11,6 @@ const getReviewsByUniversity = async (req, res) => {
     
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
-    // Build where clause
     let where = { 
       universityId: universityId,
       isTrashed: false
@@ -48,12 +47,9 @@ const getReviewsByUniversity = async (req, res) => {
       prisma.review.count({ where })
     ]);
     
-    // ✅ ADDED: Check if current user liked each review
     const reviewsWithLikeStatus = await Promise.all(reviews.map(async (review) => {
       let isLikedByUser = false;
       if (userId) {
-        // Check if user liked this review (using helpful tracking)
-        // Note: You may need a ReviewLike table for proper tracking
         const userReviewInteraction = await prisma.reviewLike?.findFirst({
           where: {
             reviewId: review.id,
@@ -132,27 +128,19 @@ const createReview = async (req, res) => {
       });
     }
 
-    // Create the review
+    // Create the review - NO HARDCODED DEFAULTS
     const review = await prisma.review.create({
       data: {
-        title: title || "Student Review",
-        content: content || "",
-        rating: rating || 4.0,
-        ratings: ratings || {
-          academicRigor: 0,
-          campusFacilities: 0,
-          careerSupport: 0,
-          socialLife: 0,
-          facultySupport: 0,
-          infrastructure: 0,
-          placements: 0
-        },
+        title: title,
+        content: content,
+        rating: rating,
+        ratings: ratings || {},
         pros: pros || [],
         cons: cons || [],
-        tips: tips || "",
-        classYear: classYear || "",
-        major: major || "",
-        projectLink: projectLink || "",
+        tips: tips,
+        classYear: classYear,
+        major: major,
+        projectLink: projectLink,
         helpful: 0,
         verified: true,
         user: {
@@ -252,7 +240,6 @@ const getReviewById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Review not found' });
     }
     
-    // Check if user liked this review
     let isLikedByUser = false;
     if (userId) {
       const userLike = await prisma.reviewLike?.findFirst({
@@ -274,7 +261,7 @@ const getReviewById = async (req, res) => {
   }
 };
 
-// @desc    Like a review (Fixed - prevents multiple likes)
+// @desc    Like a review
 // @route   PUT /api/reviews/:id/like
 // @access  Private
 const likeReview = async (req, res) => {
@@ -290,12 +277,6 @@ const likeReview = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Review not found' });
     }
     
-    // Check if user already liked this review
-    // Note: You need to create ReviewLike model for this to work properly
-    // For now, using a simple toggle with helpful count
-    
-    // Check if user has already liked (using session or temp tracking)
-    // Alternative: Use ReviewLike table
     try {
       const existingLike = await prisma.reviewLike?.findFirst({
         where: {
@@ -305,7 +286,6 @@ const likeReview = async (req, res) => {
       });
       
       if (existingLike) {
-        // Unlike
         await prisma.reviewLike.delete({ where: { id: existingLike.id } });
         const updatedReview = await prisma.review.update({
           where: { id },
@@ -313,7 +293,6 @@ const likeReview = async (req, res) => {
         });
         return res.json({ success: true, liked: false, helpful: updatedReview.helpful });
       } else {
-        // Like
         await prisma.reviewLike.create({
           data: {
             reviewId: id,
@@ -327,8 +306,6 @@ const likeReview = async (req, res) => {
         return res.json({ success: true, liked: true, helpful: updatedReview.helpful });
       }
     } catch (error) {
-      // Fallback: Simple like without tracking (prevents multiple likes in same session)
-      // This is less secure but works without ReviewLike table
       const updatedReview = await prisma.review.update({
         where: { id },
         data: { helpful: { increment: 1 } }
@@ -549,7 +526,6 @@ const softDeleteReview = async (req, res) => {
       }
     });
     
-    // Update university rating
     await updateUniversityRating(review.universityId);
     
     res.json({
@@ -596,7 +572,6 @@ const restoreReview = async (req, res) => {
       }
     });
     
-    // Update university rating
     await updateUniversityRating(review.universityId);
     
     res.json({
@@ -625,12 +600,8 @@ const permanentDeleteReview = async (req, res) => {
     
     const universityId = review.universityId;
     
-    // Delete review likes first if table exists
     await prisma.reviewLike?.deleteMany({ where: { reviewId: id } });
-    
     await prisma.review.delete({ where: { id } });
-    
-    // Update university rating
     await updateUniversityRating(universityId);
     
     res.json({
@@ -657,7 +628,6 @@ const updateReview = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Review not found' });
     }
     
-    // Allow author or admin to update
     if (review.userId !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(403).json({ success: false, message: 'Not authorized to update this review' });
     }
@@ -684,7 +654,6 @@ const updateReview = async (req, res) => {
       }
     });
     
-    // Update university rating if rating changed
     if (rating !== undefined && rating !== review.rating) {
       await updateUniversityRating(review.universityId);
     }
@@ -716,8 +685,6 @@ const deleteReview = async (req, res) => {
     const universityId = review.universityId;
     
     await prisma.review.delete({ where: { id } });
-    
-    // Update university rating
     await updateUniversityRating(universityId);
     
     res.json({

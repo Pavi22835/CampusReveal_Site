@@ -53,14 +53,12 @@ app.get('/api/health', async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.json({ 
-      status: 'OK', 
-      message: 'Server is running!',
-      database: 'Connected',
+      status: 'OK',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     res.status(500).json({ 
-      status: 'ERROR', 
+      status: 'ERROR',
       message: 'Database connection failed' 
     });
   }
@@ -70,7 +68,6 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/universities', require('./routes/universities'));
 app.use('/api/reviews', require('./routes/reviews'));
-// app.use('/api/projects', require('./routes/projects')); // Commented out - not used
 app.use('/api/community', require('./routes/community'));
 app.use('/api/admin', require('./routes/admin'));
 
@@ -80,7 +77,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use((req, res) => {
   res.status(404).json({ 
     success: false,
-    message: `Route not found: ${req.method} ${req.originalUrl}` 
+    message: 'Route not found'
   });
 });
 

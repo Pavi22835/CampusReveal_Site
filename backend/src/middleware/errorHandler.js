@@ -23,7 +23,7 @@ const errorHandler = (err, req, res, next) => {
   if (err.code === 'P2002') {
     statusCode = 400;
     const field = err.meta?.target?.[0] || 'field';
-    message = `Duplicate ${field}. This ${field} already exists.`;
+    message = `${field} already exists.`;
     errorCode = 'DUPLICATE_FIELD';
   }
   
@@ -37,14 +37,14 @@ const errorHandler = (err, req, res, next) => {
   // Foreign key constraint failed (P2003)
   if (err.code === 'P2003') {
     statusCode = 400;
-    message = 'Cannot delete or update because it is referenced by other records.';
+    message = 'Cannot delete - linked records exist.';
     errorCode = 'FOREIGN_KEY_CONSTRAINT';
   }
   
   // Required field missing (P2011)
   if (err.code === 'P2011') {
     statusCode = 400;
-    message = 'Required field is missing.';
+    message = 'Required field missing.';
     errorCode = 'MISSING_FIELD';
   }
 
@@ -52,19 +52,19 @@ const errorHandler = (err, req, res, next) => {
   
   if (err.name === 'JsonWebTokenError') {
     statusCode = 401;
-    message = 'Invalid token. Please login again.';
+    message = 'Invalid token.';
     errorCode = 'INVALID_TOKEN';
   }
   
   if (err.name === 'TokenExpiredError') {
     statusCode = 401;
-    message = 'Token expired. Please login again.';
+    message = 'Token expired.';
     errorCode = 'TOKEN_EXPIRED';
   }
   
   if (err.name === 'NotBeforeError') {
     statusCode = 401;
-    message = 'Token not active yet.';
+    message = 'Token not active.';
     errorCode = 'TOKEN_NOT_ACTIVE';
   }
 
@@ -83,19 +83,12 @@ const errorHandler = (err, req, res, next) => {
     message = err.errors?.map(e => `${e.path.join('.')}: ${e.message}`).join(', ') || 'Validation failed';
     errorCode = 'ZOD_VALIDATION_ERROR';
   }
-  
-  // Mongoose validation (if using MongoDB)
-  if (err.name === 'ValidationError' && err.errors) {
-    statusCode = 400;
-    message = Object.values(err.errors).map(e => e.message).join(', ');
-    errorCode = 'MONGOOSE_VALIDATION';
-  }
 
   // ==================== RATE LIMIT ERRORS ====================
   
   if (err.name === 'RateLimitError' || err.message?.includes('too many requests')) {
     statusCode = 429;
-    message = 'Too many requests. Please try again later.';
+    message = 'Too many requests.';
     errorCode = 'RATE_LIMIT_EXCEEDED';
   }
 
@@ -103,13 +96,13 @@ const errorHandler = (err, req, res, next) => {
   
   if (err.code === 'LIMIT_FILE_SIZE') {
     statusCode = 400;
-    message = 'File too large. Maximum file size is 5MB.';
+    message = 'File too large.';
     errorCode = 'FILE_TOO_LARGE';
   }
   
   if (err.code === 'LIMIT_FILE_COUNT') {
     statusCode = 400;
-    message = 'Too many files uploaded.';
+    message = 'Too many files.';
     errorCode = 'TOO_MANY_FILES';
   }
   
@@ -121,19 +114,16 @@ const errorHandler = (err, req, res, next) => {
 
   // ==================== CUSTOM APPLICATION ERRORS ====================
   
-  // Unauthorized access
   if (message === 'Not authorized' || message.includes('unauthorized')) {
     statusCode = 401;
     errorCode = 'UNAUTHORIZED';
   }
   
-  // Forbidden access
   if (message === 'Access denied' || message.includes('forbidden')) {
     statusCode = 403;
     errorCode = 'FORBIDDEN';
   }
   
-  // Not found
   if (message === 'Not found' || message.includes('not found')) {
     statusCode = 404;
     errorCode = 'NOT_FOUND';
@@ -143,7 +133,7 @@ const errorHandler = (err, req, res, next) => {
   
   if (err.message?.includes('connect ECONNREFUSED')) {
     statusCode = 503;
-    message = 'Database connection failed. Please try again later.';
+    message = 'Database connection failed.';
     errorCode = 'DB_CONNECTION_FAILED';
   }
 
@@ -157,7 +147,6 @@ const errorHandler = (err, req, res, next) => {
       error: err.message,
       code: errorCode
     }),
-    // Only include error code in production (without stack)
     ...(process.env.NODE_ENV === 'production' && errorCode && { code: errorCode })
   });
 };

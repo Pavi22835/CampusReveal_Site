@@ -28,7 +28,7 @@ router.get('/university/:universityId', getReviewsByUniversity);
 // Get all reviews (admin)
 router.get('/', protect, adminOnly, getAllReviews);
 
-// Get trashed reviews - MOVED HERE (BEFORE /:id)
+// Get trashed reviews
 router.get('/trashed', protect, adminOnly, getTrashedReviews);
 
 // ==================== PROTECTED ROUTES ====================
@@ -36,7 +36,7 @@ router.get('/trashed', protect, adminOnly, getTrashedReviews);
 router.get('/user/me', protect, getMyReviews);
 
 // ==================== DYNAMIC ROUTES (WITH PARAMETERS) - MUST BE LAST ====================
-// Get single review by ID - MOVED TO BOTTOM
+// Get single review by ID
 router.get('/:id', getReviewById);
 
 // Create a new review

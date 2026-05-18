@@ -75,6 +75,10 @@ model University {
   pincode         String?
   location        String?
   googleMapsLink  String?   @map("google_maps_link")
+  
+  // ✅ ADDED: Google Maps Embed URL for iframe display
+  mapLink         String?   @map("map_link")
+  
   rating          Float     @default(0)
   studentCount    Int?      @map("student_count")
   facultyCount    Int?      @map("faculty_count")
@@ -238,7 +242,7 @@ model Comment {
   likes        Int        @default(0)
   authorId     String     @map("author_id")
   discussionId String     @map("discussion_id")
-  parentId     String?    @map("parent_id")  // ✅ ADDED: For replies
+  parentId     String?    @map("parent_id")
   createdAt    DateTime   @default(now()) @map("created_at")
   author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
@@ -252,7 +256,7 @@ model Comment {
 
   @@index([authorId])
   @@index([discussionId])
-  @@index([parentId])  // ✅ ADDED: Index for parentId
+  @@index([parentId])
   @@index([isTrashed])
   @@map("comments")
 }

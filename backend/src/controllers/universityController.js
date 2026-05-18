@@ -107,7 +107,7 @@ const getUniversities = async (req, res) => {
           transportAvailable: true,
           scholarshipAvailable: true,
           campusFacilities: true,
-          mapLink: true, // ✅ ADDED: Google Maps Embed URL
+          mapLink: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -258,7 +258,7 @@ const getTrashedUniversities = async (req, res) => {
           rating: true,
           isTrashed: true,
           trashedAt: true,
-          mapLink: true, // ✅ ADDED: Google Maps Embed URL
+          mapLink: true,
           _count: {
             select: { reviews: true }
           }
@@ -370,7 +370,6 @@ const permanentDeleteUniversity = async (req, res) => {
     
     await prisma.review.deleteMany({ where: { universityId: id } });
     await prisma.universityCourse.deleteMany({ where: { universityId: id } });
-    
     await prisma.university.delete({ where: { id } });
     
     res.json({
@@ -418,7 +417,7 @@ const createUniversity = async (req, res) => {
       pincode,
       location,
       googleMapsLink,
-      mapLink, // ✅ ADDED: Google Maps Embed URL
+      mapLink,
       rating,
       studentCount,
       facultyCount,
@@ -444,7 +443,6 @@ const createUniversity = async (req, res) => {
       return res.status(400).json({ success: false, message: 'University name is required' });
     }
 
-    // Check for duplicate name
     const existingUniversity = await prisma.university.findFirst({
       where: { name: name.trim() }
     });
@@ -483,7 +481,7 @@ const createUniversity = async (req, res) => {
         pincode: pincode || null,
         location: location || null,
         googleMapsLink: googleMapsLink || null,
-        mapLink: mapLink || null, // ✅ ADDED: Save mapLink
+        mapLink: mapLink || null,
         rating: rating ? parseFloat(rating) : 0,
         studentCount: studentCount ? parseInt(studentCount) : null,
         facultyCount: facultyCount ? parseInt(facultyCount) : null,
@@ -553,7 +551,7 @@ const updateUniversity = async (req, res) => {
       pincode,
       location,
       googleMapsLink,
-      mapLink, // ✅ ADDED: Google Maps Embed URL
+      mapLink,
       rating,
       studentCount,
       facultyCount,
@@ -583,7 +581,6 @@ const updateUniversity = async (req, res) => {
       return res.status(404).json({ success: false, message: 'University not found' });
     }
 
-    // Check for duplicate name (excluding current university)
     if (name && name !== existingUniversity.name) {
       const duplicate = await prisma.university.findFirst({
         where: { name: name.trim(), id: { not: id } }
@@ -624,7 +621,7 @@ const updateUniversity = async (req, res) => {
         pincode: pincode !== undefined ? pincode : existingUniversity.pincode,
         location: location !== undefined ? location : existingUniversity.location,
         googleMapsLink: googleMapsLink !== undefined ? googleMapsLink : existingUniversity.googleMapsLink,
-        mapLink: mapLink !== undefined ? mapLink : existingUniversity.mapLink, // ✅ ADDED: Update mapLink
+        mapLink: mapLink !== undefined ? mapLink : existingUniversity.mapLink,
         rating: rating !== undefined ? parseFloat(rating) : existingUniversity.rating,
         studentCount: studentCount !== undefined ? (studentCount ? parseInt(studentCount) : null) : existingUniversity.studentCount,
         facultyCount: facultyCount !== undefined ? (facultyCount ? parseInt(facultyCount) : null) : existingUniversity.facultyCount,
@@ -753,7 +750,7 @@ const getTrendingUniversities = async (req, res) => {
         logoUrl: true,
         studentCount: true,
         category: true,
-        mapLink: true, // ✅ ADDED: Google Maps Embed URL
+        mapLink: true,
         _count: {
           select: { reviews: true }
         }
@@ -796,7 +793,7 @@ const searchUniversities = async (req, res) => {
         imageUrl: true,
         images: true,
         logoUrl: true,
-        mapLink: true, // ✅ ADDED: Google Maps Embed URL
+        mapLink: true,
         _count: {
           select: { reviews: true }
         }
@@ -813,7 +810,6 @@ const searchUniversities = async (req, res) => {
   }
 };
 
-// ✅ ADDED: Advanced search universities
 // @desc    Advanced search with multiple filters
 // @route   GET /api/universities/search/advanced
 // @access  Public
@@ -863,7 +859,7 @@ const searchUniversitiesAdvanced = async (req, res) => {
         academicStreams: true,
         academicLevels: true,
         hostelAvailable: true,
-        mapLink: true, // ✅ ADDED: Google Maps Embed URL
+        mapLink: true,
         _count: {
           select: { reviews: true }
         }

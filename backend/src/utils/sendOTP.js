@@ -2,7 +2,7 @@ const twilio = require('twilio');
 
 // Generate random OTP
 const generateOTP = () => {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 // For development - log OTP to console
@@ -23,10 +23,15 @@ const sendOTPProduction = async (phone, otp) => {
       process.env.TWILIO_AUTH_TOKEN
     );
     
-    // Format phone number (add country code if needed)
+    // Format phone number - use environment variable for country code
     let formattedPhone = phone;
-    if (!phone.startsWith('+')) {
-      formattedPhone = `+91${phone}`; // For India
+    const countryCode = process.env.SMS_COUNTRY_CODE || '';
+    
+    if (countryCode && !phone.startsWith('+')) {
+      formattedPhone = `${countryCode}${phone}`;
+    } else if (!phone.startsWith('+')) {
+      // If no country code configured, assume phone already has country code
+      formattedPhone = phone;
     }
     
     await client.messages.create({

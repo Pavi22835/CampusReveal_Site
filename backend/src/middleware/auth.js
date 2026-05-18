@@ -22,7 +22,7 @@ const protect = async (req, res, next) => {
   if (!token) {
     return res.status(401).json({ 
       success: false, 
-      message: 'Not authorized, no token provided. Please login.' 
+      message: 'Not authorized. Please login.' 
     });
   }
   
@@ -30,7 +30,7 @@ const protect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Find user and check if not trashed
+    // Find user
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
       select: {
@@ -41,32 +41,30 @@ const protect = async (req, res, next) => {
         role: true,
         credits: true,
         avatar: true,
-        isTrashed: true,     // ✅ ADDED: Check if user is deleted
+        isTrashed: true,
         isVerified: true,
         lastLogin: true
       }
     });
     
-    // ✅ ADDED: Check if user exists
     if (!user) {
       return res.status(401).json({ 
         success: false, 
-        message: 'User not found. Account may have been deleted.' 
+        message: 'User not found.' 
       });
     }
     
-    // ✅ ADDED: Check if user is trashed (soft deleted)
     if (user.isTrashed) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Your account has been deactivated. Please contact support.' 
+        message: 'Account has been deactivated.' 
       });
     }
     
     // Attach user to request object
     req.user = user;
     
-    // ✅ OPTIONAL: Update last login time (async - don't await to not block)
+    // Update last login time (async - don't await to not block)
     prisma.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() }
@@ -76,24 +74,23 @@ const protect = async (req, res, next) => {
   } catch (error) {
     console.error('Auth middleware error:', error.message);
     
-    // Handle specific JWT errors
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({ 
         success: false, 
-        message: 'Invalid token. Please login again.' 
+        message: 'Invalid token.' 
       });
     }
     
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ 
         success: false, 
-        message: 'Token expired. Please login again.' 
+        message: 'Token expired.' 
       });
     }
     
     res.status(401).json({ 
       success: false, 
-      message: 'Not authorized. Authentication failed.' 
+      message: 'Authentication failed.' 
     });
   }
 };
@@ -116,13 +113,13 @@ const adminOnly = (req, res, next) => {
   } else {
     res.status(403).json({ 
       success: false, 
-      message: 'Access denied. Admin privileges required.' 
+      message: 'Access denied.' 
     });
   }
 };
 
 /**
- * Optional: Mentor only middleware
+ * Mentor only middleware
  * @route   Used on mentor-only routes
  * @access  Private (Mentor or Admin only)
  */
@@ -139,13 +136,13 @@ const mentorOnly = (req, res, next) => {
   } else {
     res.status(403).json({ 
       success: false, 
-      message: 'Access denied. Mentor privileges required.' 
+      message: 'Access denied.' 
     });
   }
 };
 
 /**
- * Optional: Student only middleware
+ * Student only middleware
  * @route   Used on student-only routes
  * @access  Private (Student only)
  */
@@ -162,13 +159,13 @@ const studentOnly = (req, res, next) => {
   } else {
     res.status(403).json({ 
       success: false, 
-      message: 'Access denied. Student privileges required.' 
+      message: 'Access denied.' 
     });
   }
 };
 
 /**
- * Optional: Optional auth - doesn't fail if no token, just sets req.user if exists
+ * Optional auth - doesn't fail if no token, just sets req.user if exists
  * @route   Used on routes that work both with and without auth
  * @access  Public (but provides user context if authenticated)
  */
@@ -199,8 +196,7 @@ const optionalAuth = async (req, res, next) => {
       });
       if (user) req.user = user;
     } catch (error) {
-      // Silently fail - optional auth means we don't block if token is invalid
-      console.log('Optional auth failed:', error.message);
+      // Silently fail - optional auth doesn't block on invalid token
     }
   }
   
@@ -210,7 +206,7 @@ const optionalAuth = async (req, res, next) => {
 module.exports = { 
   protect, 
   adminOnly, 
-  mentorOnly,    // ✅ ADDED
-  studentOnly,   // ✅ ADDED
-  optionalAuth   // ✅ ADDED
+  mentorOnly,
+  studentOnly,
+  optionalAuth
 };

@@ -30,11 +30,10 @@ const { protect, adminOnly } = require('../middleware/auth');
 // Public routes
 router.get('/discussions', getDiscussions);
 
-// ==================== STATIC ROUTES - MUST COME BEFORE DYNAMIC ROUTES ====================
-// Admin only routes - Discussion Trash operations (STATIC - no parameters)
+// Static routes (must come before dynamic routes)
 router.get('/discussions/trashed', protect, adminOnly, getTrashedDiscussions);
 
-// ==================== DYNAMIC ROUTES (WITH :id PARAMETER) - MUST COME AFTER STATIC ROUTES ====================
+// Dynamic routes (with :id parameter)
 router.get('/discussions/:id', getDiscussionById);
 router.post('/discussions', protect, createDiscussion);
 router.post('/discussions/:id/comments', protect, addComment);
