@@ -76,7 +76,6 @@ export default function WriteReview() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Get stored data from localStorage
         const storedUniId = localStorage.getItem('reviewUniversityId');
         const storedUniName = localStorage.getItem('reviewUniversityName');
         const storedDepartment = localStorage.getItem('userDepartment');
@@ -91,7 +90,6 @@ export default function WriteReview() {
           storedCollegeName
         });
         
-        // Set university data
         if (storedUniId && storedUniName) {
           setFormData(prev => ({ 
             ...prev, 
@@ -107,7 +105,6 @@ export default function WriteReview() {
           setIsVerified(true);
         }
         
-        // Set department and year
         if (storedDepartment) {
           setFormData(prev => ({ ...prev, program: storedDepartment }));
           setIsVerified(true);
@@ -118,7 +115,6 @@ export default function WriteReview() {
           setIsVerified(true);
         }
         
-        // Also check routeId for university detail page
         if (routeId && !storedUniId) {
           try {
             const uniResult = await api.getUniversity(routeId);
@@ -189,7 +185,6 @@ export default function WriteReview() {
       const res = await api.createReview(reviewData, token);
       
       if (res.success) {
-        // Clear stored data after successful submission
         localStorage.removeItem('userDepartment');
         localStorage.removeItem('userGraduationYear');
         localStorage.removeItem('userCollegeName');
@@ -212,10 +207,10 @@ export default function WriteReview() {
   };
 
   const steps = [
-    { number: 1, title: 'The Institution', icon: Building2 },
-    { number: 2, title: 'The Experience', icon: Star },
-    { number: 3, title: 'The Insights', icon: MessageSquare },
-    { number: 4, title: 'The Legacy', icon: Trophy }
+    { number: 1, title: 'THE INSTITUTION', icon: Building2 },
+    { number: 2, title: 'THE EXPERIENCE', icon: Star },
+    { number: 3, title: 'THE INSIGHTS', icon: MessageSquare },
+    { number: 4, title: 'THE LEGACY', icon: Trophy }
   ];
 
   const getRatingEmoji = (value) => {
@@ -322,29 +317,37 @@ export default function WriteReview() {
               </motion.div>
             </header>
 
-            {/* Stepper */}
-            <div className="mb-8 max-w-md mx-auto">
+            {/* Stepper - Always shows numbers 1, 2, 3, 4 */}
+            <div className="mb-12 max-w-2xl mx-auto">
               <div className="flex justify-between relative">
-                <div className="absolute top-4 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 z-0" />
+                {/* Progress Line Background */}
+                <div className="absolute top-5 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 z-0" />
+                
+                {/* Progress Line Fill */}
                 <div 
-                  className="absolute top-4 left-0 h-0.5 bg-indigo-600 -translate-y-1/2 z-0 transition-all duration-500"
+                  className="absolute top-5 left-0 h-0.5 bg-indigo-600 -translate-y-1/2 z-0 transition-all duration-500"
                   style={{ width: `${((step - 1) / 3) * 100}%` }}
                 />
                 
                 {steps.map((s, i) => (
-                  <div key={i} className="relative z-10 flex flex-col items-center gap-1">
+                  <div key={i} className="relative z-10 flex flex-col items-center gap-2">
+                    {/* Circle with Number - Always shows number */}
                     <motion.div 
                       animate={{ 
-                        backgroundColor: step > i + 1 ? '#4f46e5' : step === i + 1 ? '#4f46e5' : '#ffffff',
+                        backgroundColor: step >= i + 1 ? '#4f46e5' : '#ffffff',
                         borderColor: step >= i + 1 ? '#4f46e5' : '#e2e8f0',
-                        color: step > i + 1 ? '#ffffff' : step === i + 1 ? '#4f46e5' : '#94a3b8',
-                        scale: step === i + 1 ? 1.05 : 1
+                        color: step >= i + 1 ? '#ffffff' : '#94a3b8',
+                        scale: step === i + 1 ? 1.1 : 1
                       }}
-                      className="w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border-2 bg-white shadow-sm"
+                      className="w-12 h-12 rounded-full flex items-center justify-center font-black text-base border-2 bg-white shadow-md"
                     >
-                      {step > i + 1 ? <CheckCircle2 size={12} className="text-white" /> : s.number}
+                      <span>{s.number}</span>
                     </motion.div>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider ${step === i + 1 ? 'text-indigo-600' : 'text-slate-400'}`}>
+                    
+                    {/* Step Title */}
+                    <span className={`text-[11px] font-black uppercase tracking-wider ${
+                      step === i + 1 ? 'text-indigo-600' : (step > i + 1 ? 'text-emerald-600' : 'text-slate-400')
+                    }`}>
                       {s.title}
                     </span>
                   </div>
@@ -380,7 +383,6 @@ export default function WriteReview() {
                     </div>
 
                     <div className="space-y-4">
-                      {/* University Selection - LOCKED */}
                       <div>
                         <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">
                           Which institution? <span className="text-rose-500">*</span>
@@ -422,7 +424,6 @@ export default function WriteReview() {
                         )}
                       </div>
 
-                      {/* Program / Department - LOCKED */}
                       <div>
                         <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">
                           Your Program / Department <span className="text-rose-500">*</span>
@@ -446,7 +447,6 @@ export default function WriteReview() {
                         )}
                       </div>
 
-                      {/* Passed Out Year - LOCKED */}
                       <div>
                         <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">
                           Passed Out Year <span className="text-rose-500">*</span>
@@ -486,7 +486,6 @@ export default function WriteReview() {
                   </div>
                 )}
 
-                {/* Step 2, 3, 4 remain the same as before */}
                 {step === 2 && (
                   <div className="space-y-4">
                     <div className="text-center">
