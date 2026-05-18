@@ -70,6 +70,14 @@ export default function Community() {
     return `${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
   };
 
+  // Format like count - just the number, no "likes" text
+  const formatLikeCount = (count) => {
+    if (count >= 1000) {
+      return (count / 1000).toFixed(1) + 'k';
+    }
+    return count;
+  };
+
   // Fetch all active discussions from API
   const fetchPosts = async () => {
     setLoading(true);
@@ -170,8 +178,6 @@ export default function Community() {
           liked: comment.isLikedByUser || false,
           replies: []
         }));
-        
-        console.log('Comment likes values:', formattedComments.map(c => ({ id: c.id, likes: c.likes })));
         
         setPosts(prev => prev.map(post => 
           post.id === postId 
@@ -299,8 +305,8 @@ export default function Community() {
           post.id === postId 
             ? { 
                 ...post,
-                likes: typeof result.likesCount === 'number' ? result.likesCount : (isLiked ? currentLikes - 1 : currentLikes + 1),
-                liked: result.liked !== undefined ? result.liked : !isLiked
+                likes: typeof result.likesCount === 'number' ? result.likesCount : (result.liked ? previousLikes + 1 : previousLikes - 1),
+                liked: result.liked !== undefined ? result.liked : !previousLiked
               }
             : post
         ));
@@ -309,8 +315,8 @@ export default function Community() {
           post.id === postId 
             ? { 
                 ...post, 
-                likes: isLiked ? currentLikes + 1 : currentLikes - 1, 
-                liked: isLiked 
+                likes: previousLiked ? previousLikes + 1 : previousLikes - 1, 
+                liked: previousLiked 
               }
             : post
         ));
@@ -369,8 +375,8 @@ export default function Community() {
               if (comment.id !== commentId) return comment;
               return {
                 ...comment,
-                likes: typeof result.likesCount === 'number' ? result.likesCount : (currentLiked ? currentLikes - 1 : currentLikes + 1),
-                liked: result.liked !== undefined ? result.liked : !currentLiked
+                likes: typeof result.likesCount === 'number' ? result.likesCount : (result.liked ? previousCommentLikes + 1 : previousCommentLikes - 1),
+                liked: result.liked !== undefined ? result.liked : !previousCommentLiked
               };
             })
           };
@@ -384,8 +390,8 @@ export default function Community() {
               if (comment.id !== commentId) return comment;
               return {
                 ...comment,
-                likes: currentLiked ? currentLikes + 1 : currentLikes - 1,
-                liked: currentLiked
+                likes: previousCommentLiked ? previousCommentLikes + 1 : previousCommentLikes - 1,
+                liked: previousCommentLiked
               };
             })
           };
@@ -547,14 +553,6 @@ export default function Community() {
     post.content?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Format like count for display
-  const formatLikeCount = (count) => {
-    if (count >= 1000) {
-      return (count / 1000).toFixed(1) + 'k';
-    }
-    return count;
-  };
-
   if (loading) {
     return (
       <div className="ig-loading">
@@ -712,10 +710,10 @@ export default function Community() {
                       </button>
                     </div>
 
-                    {/* Post Likes Count */}
+                    {/* Post Likes Count - Only show number, no "likes" text */}
                     {post.likes > 0 && (
                       <div className="ig-likes">
-                        ❤️ {formatLikeCount(post.likes)} {post.likes === 1 ? 'like' : 'likes'}
+                        ❤️ {formatLikeCount(post.likes)}
                       </div>
                     )}
 
@@ -761,10 +759,10 @@ export default function Community() {
                                     </button>
                                   </div>
                                   
-                                  {/* COMMENT LIKES COUNT - Shows total likes with heart icon */}
+                                  {/* COMMENT LIKES COUNT - Only show number, no "likes" text */}
                                   {comment.likes > 0 && (
                                     <div className="ig-comment-likes-count">
-                                      ❤️ {formatLikeCount(comment.likes)} {comment.likes === 1 ? 'like' : 'likes'}
+                                      ❤️ {formatLikeCount(comment.likes)}
                                     </div>
                                   )}
 

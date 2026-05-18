@@ -454,7 +454,7 @@
 }
 
 /* ============================================ */
-/* LIKES COUNT */
+/* LIKES COUNT - Only number, no "likes" text */
 /* ============================================ */
 
 .ig-likes {
@@ -465,7 +465,7 @@
 }
 
 /* ============================================ */
-/* COMMENTS COUNT - FIXED AND ADDED */
+/* COMMENTS COUNT */
 /* ============================================ */
 
 .ig-comments-count {
@@ -603,9 +603,15 @@
   color: #262626;
 }
 
-.ig-comment-likes {
+/* ============================================ */
+/* COMMENT LIKES COUNT - Only number, no "likes" text */
+/* ============================================ */
+
+.ig-comment-likes-count {
   font-size: 10px;
+  font-weight: 500;
   color: #8e8e8e;
+  margin-top: 2px;
 }
 
 /* ============================================ */
