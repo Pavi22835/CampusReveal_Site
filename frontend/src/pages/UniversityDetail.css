@@ -681,6 +681,11 @@
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
 }
 
+/* ✅ NEW: Full width cards for Courses and Specializations */
+.fact-card-new.full-width {
+  grid-column: span 2;
+}
+
 .fact-icon-box {
   width: 52px;
   height: 52px;
@@ -699,6 +704,7 @@
 .fact-content {
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
 .fact-label {
@@ -716,6 +722,44 @@
   color: #1e3a8a;
   margin: 0;
   word-break: break-word;
+}
+
+/* ✅ NEW: Courses and Specializations tags */
+.fact-value-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.course-tag {
+  background: #e0e7ff;
+  color: #4f46e5;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.course-tag:hover {
+  background: #c7d2fe;
+  transform: scale(1.02);
+}
+
+.specialization-tag {
+  background: #f3e8ff;
+  color: #9333ea;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.specialization-tag:hover {
+  background: #e9d5ff;
+  transform: scale(1.02);
 }
 
 /* --- FACILITIES (NEW UI) - 3 CARDS PER ROW --- */
@@ -1262,6 +1306,10 @@
     grid-template-columns: 1fr;
   }
   
+  .fact-card-new.full-width {
+    grid-column: span 1;
+  }
+  
   .facilities-grid-modern {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1367,5 +1415,9 @@
   
   .reviews-header-main {
     flex-direction: column;
+  }
+  
+  .fact-value-list {
+    justify-content: center;
   }
 }

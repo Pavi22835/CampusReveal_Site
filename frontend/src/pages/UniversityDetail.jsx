@@ -137,8 +137,17 @@ export default function UniversityDetail() {
     setError(null);
     try {
       const uniResult = await api.getUniversity(id);
+      console.log('University API Response:', uniResult);
+      
       if (uniResult.success && uniResult.data) {
         setUniversity(uniResult.data);
+        console.log('University Data:', {
+          placementRate: uniResult.data.placementRate,
+          facultyCount: uniResult.data.facultyCount,
+          studentCount: uniResult.data.studentCount,
+          offeredCourses: uniResult.data.offeredCourses,
+          specializations: uniResult.data.specializations
+        });
       } else {
         setError(uniResult.message || 'University not found');
       }
@@ -222,21 +231,18 @@ export default function UniversityDetail() {
     setActiveTab(label);
   };
 
-  // ✅ UPDATED: Handle Write Review Click - Pass university details
   const handleWriteReviewClick = () => {
     if (!isAuthenticated) {
       openAuthModal();
       return;
     }
     
-    // Clear any existing review data first to prevent stale data
     localStorage.removeItem('reviewUniversityId');
     localStorage.removeItem('reviewUniversityName');
     localStorage.removeItem('userDepartment');
     localStorage.removeItem('userGraduationYear');
     localStorage.removeItem('userCollegeName');
     
-    // Store the current university details
     if (university) {
       localStorage.setItem('reviewUniversityId', university.id);
       localStorage.setItem('reviewUniversityName', university.name);
@@ -245,7 +251,6 @@ export default function UniversityDetail() {
     setShowProfileModal(true);
   };
 
-  // Handle profile modal success
   const handleProfileSuccess = () => {
     const universityId = localStorage.getItem('reviewUniversityId');
     if (universityId) {
@@ -294,20 +299,21 @@ export default function UniversityDetail() {
     { label: "Sports", score: averageRatings.sports || 4.0, color: "#f97316" }
   ];
 
+  // Dynamic stats from API data
   const heroStats = [
     { 
       icon: TrendingUp, 
-      value: university.placementRate || '95%', 
+      value: university.placementRate ? `${university.placementRate}%` : (university.placementStats || '85%'), 
       label: 'PLACEMENTS'
     },
     { 
       icon: UserCheck, 
-      value: university.facultyCount ? `${university.facultyCount}+` : '300+', 
+      value: university.facultyCount ? `${university.facultyCount.toLocaleString()}+` : (university.facultyStrength || '300+'), 
       label: 'FACULTY'
     },
     { 
       icon: Users, 
-      value: university.studentCount ? `${Math.floor(university.studentCount / 1000)}k+` : '6k+', 
+      value: university.studentCount ? `${Math.floor(university.studentCount / 1000)}k+` : (university.totalStudents ? `${Math.floor(university.totalStudents / 1000)}k+` : '6k+'), 
       label: 'STUDENTS'
     }
   ];
@@ -478,6 +484,56 @@ export default function UniversityDetail() {
                     </div>
                   </motion.div>
                 ))}
+                
+                {/* ✅ FIXED: Courses Offered Section - Using offeredCourses */}
+                {university.offeredCourses && university.offeredCourses.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="fact-card-new full-width"
+                  >
+                    <div className="fact-icon-box blue">
+                      <BookOpen size={20} />
+                    </div>
+                    <div className="fact-content">
+                      <span className="fact-label">Courses Offered</span>
+                      <div className="fact-value-list">
+                        {Array.isArray(university.offeredCourses) ? university.offeredCourses.map((course, i) => (
+                          <span key={i} className="course-tag">{course}</span>
+                        )) : university.offeredCourses}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+                
+                {/* ✅ Specializations Section */}
+                {university.specializations && university.specializations.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="fact-card-new full-width"
+                  >
+                    <div className="fact-icon-box purple">
+                      <Award size={20} />
+                    </div>
+                    <div className="fact-content">
+                      <span className="fact-label">Specializations</span>
+                      <div className="fact-value-list">
+                        {typeof university.specializations === 'string' ? (
+                          university.specializations.split(',').map((spec, i) => (
+                            <span key={i} className="specialization-tag">{spec.trim()}</span>
+                          ))
+                        ) : Array.isArray(university.specializations) ? (
+                          university.specializations.map((spec, i) => (
+                            <span key={i} className="specialization-tag">{spec}</span>
+                          ))
+                        ) : (
+                          <span className="specialization-tag">{university.specializations}</span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
               </div>
             )}
             
