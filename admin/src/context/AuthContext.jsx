@@ -45,13 +45,22 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const res = await api.login(email, password);
-      if (res.success && res.user?.role === 'ADMIN') {
-        localStorage.setItem('admin_token', res.token);
-        setToken(res.token);
-        setUser(res.user);
+      const user = res.user || res.data?.user;
+      const token = res.token || res.data?.token;
+
+      if (res.success && user?.role === 'ADMIN') {
+        if (token) {
+          localStorage.setItem('admin_token', token);
+          setToken(token);
+        }
+        setUser(user);
         return { success: true };
       }
-      return { success: false, message: 'Invalid credentials' };
+
+      return {
+        success: false,
+        message: res.message || res.error || 'Invalid credentials'
+      };
     } catch (error) {
       console.error('Login error:', error);
       return { success: false, message: error.message };

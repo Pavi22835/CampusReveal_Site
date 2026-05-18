@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [isOtpAuthenticated, setIsOtpAuthenticated] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
@@ -32,12 +32,14 @@ export const AuthProvider = ({ children }) => {
         setUser(JSON.parse(userData));
         setIsOtpAuthenticated(true);
       }
+      loadUser();
     } else if (authStatus === 'true' && userData) {
       setUser(JSON.parse(userData));
       setIsOtpAuthenticated(true);
+      setLoading(false);
+    } else {
+      setLoading(false);
     }
-
-    setLoading(false);
   }, []);
 
   const loadUser = async () => {
@@ -45,13 +47,19 @@ export const AuthProvider = ({ children }) => {
       const res = await api.getMe(token);
       if (res.success) {
         setUser(res.user);
+        setIsOtpAuthenticated(true);
+        localStorage.setItem('user', JSON.stringify(res.user));
       } else {
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
         setToken(null);
+        setUser(null);
       }
     } catch (error) {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setToken(null);
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -82,7 +90,7 @@ export const AuthProvider = ({ children }) => {
     
     setUser(userData);
     setIsOtpAuthenticated(true);
-    setShowAuthModal(false);
+    setShowOtpModal(false);
     
     if (otpToken) {
       localStorage.setItem('token', otpToken);
@@ -145,6 +153,7 @@ export const AuthProvider = ({ children }) => {
       const res = await api.login(email, password);
       if (res.success) {
         localStorage.setItem('token', res.token);
+        localStorage.setItem('user', JSON.stringify(res.user));
         setToken(res.token);
         setUser(res.user);
         setIsOtpAuthenticated(true);
@@ -161,6 +170,7 @@ export const AuthProvider = ({ children }) => {
       const res = await api.register(userData);
       if (res.success) {
         localStorage.setItem('token', res.token);
+        localStorage.setItem('user', JSON.stringify(res.user));
         setToken(res.token);
         setUser(res.user);
         setIsOtpAuthenticated(true);
@@ -179,7 +189,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     setIsOtpAuthenticated(false);
-    setShowAuthModal(false);
+    setShowOtpModal(false);
   };
 
   const requireAuth = (callback) => {
@@ -187,16 +197,16 @@ export const AuthProvider = ({ children }) => {
       callback();
     } else {
       setPendingAction(() => callback);
-      setShowAuthModal(true);
+      setShowOtpModal(true);
     }
   };
 
-  const openAuthModal = () => {
-    setShowAuthModal(true);
+  const openOtpModal = () => {
+    setShowOtpModal(true);
   };
 
-  const closeModal = () => {
-    setShowAuthModal(false);
+  const closeOtpModal = () => {
+    setShowOtpModal(false);
   };
 
   const isAuthenticated = !!((token && user) || isOtpAuthenticated);
@@ -211,9 +221,9 @@ export const AuthProvider = ({ children }) => {
       logout,
       otpLogin,
       requireAuth,
-      showAuthModal,
-      openAuthModal,
-      closeModal,
+      showOtpModal,
+      openOtpModal,
+      closeOtpModal,
       isAuthenticated,
       toast,
       hideToast,

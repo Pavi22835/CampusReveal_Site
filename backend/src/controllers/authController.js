@@ -9,10 +9,12 @@ const generateToken = (id, role) => {
   });
 };
 
-// Generate random 6-digit OTP
+// Temporary OTP for demo flows
+const TEMP_OTP = '1234';
+
+// Generate OTP
 const generateOTP = () => {
-  // Generate random 6-digit number (100000 to 999999)
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return TEMP_OTP;
 };
 
 // Send OTP via SMS service (replace with actual SMS provider)

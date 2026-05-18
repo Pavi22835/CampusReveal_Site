@@ -17,14 +17,14 @@ import './WriteReview.css';
 export default function WriteReview() {
   const { id: routeId } = useParams();
   const navigate = useNavigate();
-  const { token, isAuthenticated, openAuthModal, user } = useAuth();
+  const { token, isAuthenticated, openOtpModal, user } = useAuth();
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeSection, setActiveSection] = useState(0);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
+  const [isUniversityLocked, setIsUniversityLocked] = useState(false);
   
   // ✅ NO HARDCODED DEFAULT RATINGS - All ratings start at null
   const [formData, setFormData] = useState({
@@ -70,77 +70,63 @@ export default function WriteReview() {
 
   useEffect(() => {
     if (!isAuthenticated && !token) {
-      openAuthModal();
+      openOtpModal();
     }
-  }, [isAuthenticated, token, openAuthModal]);
+  }, [isAuthenticated, token, openOtpModal]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const storedUniId = localStorage.getItem('reviewUniversityId');
         const storedUniName = localStorage.getItem('reviewUniversityName');
-        const storedDepartment = localStorage.getItem('userDepartment');
-        const storedYear = localStorage.getItem('userGraduationYear');
-        const storedCollegeName = localStorage.getItem('userCollegeName');
-        
-        console.log('Stored data:', {
-          storedUniId,
-          storedUniName,
-          storedDepartment,
-          storedYear,
-          storedCollegeName
-        });
-        
+
+        let universityId = '';
+        let universityName = '';
+        let universityLocked = false;
+
         if (storedUniId && storedUniName) {
-          setFormData(prev => ({ 
-            ...prev, 
-            universityId: storedUniId, 
-            universityName: storedUniName 
-          }));
-          setIsVerified(true);
-        } else if (storedCollegeName) {
-          setFormData(prev => ({ 
-            ...prev, 
-            universityName: storedCollegeName 
-          }));
-          setIsVerified(true);
+          universityId = storedUniId;
+          universityName = storedUniName;
+          universityLocked = true;
         }
-        
-        if (storedDepartment) {
-          setFormData(prev => ({ ...prev, program: storedDepartment }));
-          setIsVerified(true);
-        }
-        
-        if (storedYear) {
-          setFormData(prev => ({ ...prev, classYear: storedYear }));
-          setIsVerified(true);
-        }
-        
-        if (routeId && !storedUniId) {
+
+        if (routeId) {
           try {
             const uniResult = await api.getUniversity(routeId);
             if (uniResult.success && uniResult.data) {
-              setFormData(prev => ({ 
-                ...prev, 
-                universityId: routeId, 
-                universityName: uniResult.data.name 
-              }));
-              setIsVerified(true);
+              universityId = routeId;
+              universityName = uniResult.data.name;
+              universityLocked = true;
             }
           } catch (err) {
             console.error('Error fetching university by routeId:', err);
           }
         }
-        
-        setIsDataLoaded(true);
+
+        if (!universityId && user?.university?.id && user.university.name) {
+          universityId = user.university.id;
+          universityName = user.university.name;
+          universityLocked = true;
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          universityId,
+          universityName,
+          program: user?.major || prev.program,
+          classYear: user?.graduationYear ? String(user.graduationYear) : prev.classYear
+        }));
+
+        setIsUniversityLocked(universityLocked);
       } catch (err) {
         console.error('Error loading data:', err);
+      } finally {
         setIsDataLoaded(true);
       }
     };
-    
+
     loadData();
-  }, [routeId]);
+  }, [routeId, user]);
 
   const handleSubmit = async () => {
     // Validate required fields
@@ -392,7 +378,7 @@ export default function WriteReview() {
                       </div>
                       <h2 className="text-lg font-black text-slate-900">Tell us about your institution</h2>
                       <p className="text-xs text-slate-500 mt-1">
-                        {isVerified ? "✓ Verified Information (Cannot be edited)" : "Help us verify your academic journey"}
+                        {isUniversityLocked ? "✓ Selected institution is locked to prevent accidental changes" : "Help us verify your academic journey"}
                       </p>
                     </div>
 
@@ -402,7 +388,7 @@ export default function WriteReview() {
                           Which institution? <span className="text-rose-500">*</span>
                         </label>
                         
-                        {formData.universityName ? (
+                        {formData.universityName && isUniversityLocked ? (
                           <div className="flex items-center justify-between p-3 rounded-xl border bg-green-50 border-green-200">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center text-white font-bold text-base">
@@ -428,11 +414,11 @@ export default function WriteReview() {
                               className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               value={formData.universityName}
                               onChange={(e) => {
-                                if (!isVerified) {
+                                if (!isUniversityLocked) {
                                   setFormData(prev => ({ ...prev, universityName: e.target.value }));
                                 }
                               }}
-                              disabled={isVerified}
+                              disabled={isUniversityLocked}
                             />
                           </div>
                         )}
@@ -447,16 +433,14 @@ export default function WriteReview() {
                           <input 
                             type="text" 
                             placeholder="e.g., Computer Science Engineering" 
-                            className={`w-full pl-9 pr-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isVerified ? 'bg-green-50 border border-green-200 text-slate-700' : 'bg-slate-50 border border-slate-200'}`}
+                            className={`w-full pl-9 pr-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 border border-slate-200`}
                             value={formData.program}
                             onChange={(e) => setFormData({...formData, program: e.target.value})}
-                            disabled={isVerified}
-                            readOnly={isVerified}
                           />
                         </div>
-                        {isVerified && (
-                          <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                            <Lock size={10} /> Verified from your profile - Cannot be changed
+                        {user?.major && (
+                          <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                            <Lock size={10} /> Autofilled from your profile — update if needed
                           </p>
                         )}
                       </div>
@@ -470,8 +454,7 @@ export default function WriteReview() {
                           <select
                             value={formData.classYear}
                             onChange={(e) => setFormData({...formData, classYear: e.target.value})}
-                            disabled={isVerified}
-                            className={`w-full pl-9 pr-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none ${isVerified ? 'bg-green-50 border border-green-200 text-slate-700' : 'bg-slate-50 border border-slate-200'}`}
+                            className="w-full pl-9 pr-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none bg-slate-50 border border-slate-200"
                           >
                             <option value="">Select Year</option>
                             {availableYears.map(year => (
@@ -479,15 +462,15 @@ export default function WriteReview() {
                             ))}
                           </select>
                         </div>
-                        {isVerified && (
-                          <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                            <Lock size={10} /> Verified from your profile - Cannot be changed
+                        {user?.graduationYear && (
+                          <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                            <Lock size={10} /> Autofilled from your profile — update if needed
                           </p>
                         )}
                       </div>
                     </div>
 
-                    {!formData.universityName && !isVerified && (
+                    {!formData.universityName && !isUniversityLocked && (
                       <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                         <div className="flex items-center gap-2">
                           <AlertCircle size={16} className="text-amber-600" />

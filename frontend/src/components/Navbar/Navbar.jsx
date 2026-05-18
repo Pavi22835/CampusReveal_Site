@@ -18,7 +18,7 @@ import ProfileDetailsModal from '../ProfileDetailsModal/ProfileDetailsModal';
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAuthenticated, logout, openAuthModal } = useAuth();
+  const { user, isAuthenticated, logout, openOtpModal } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -81,7 +81,7 @@ export default function Navbar() {
   const handleWriteReview = () => {
     if (!isAuthenticated) {
       // Step 1: Not logged in - Open OTP login modal
-      openAuthModal();
+      openOtpModal();
       // Store that user wants to write review after login
       localStorage.setItem('redirectAfterLogin', '/write-review');
       return;
@@ -283,7 +283,7 @@ export default function Navbar() {
             ) : (
               // Logged Out: Show Login button
               <button
-                onClick={openAuthModal}
+                onClick={openOtpModal}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-500 transition-colors"
               >
                 Login
@@ -426,7 +426,7 @@ export default function Navbar() {
                       <button
                         onClick={() => {
                           setShowMobileMenu(false);
-                          openAuthModal();
+                          openOtpModal();
                         }}
                         className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-500 transition-colors"
                       >

@@ -21,6 +21,7 @@ const request = async (endpoint, options = {}) => {
     // Ensure consistent response format
     return {
       success: true,
+      ...data,
       data: data.data || data,
       message: data.message || 'Success'
     };
@@ -28,6 +29,7 @@ const request = async (endpoint, options = {}) => {
     console.error('API Error:', error);
     return {
       success: false,
+      message: error.message,
       error: error.message,
       data: null
     };
@@ -51,7 +53,7 @@ export const api = {
   login: (email, password) => 
     request('/auth/login', { 
       method: 'POST', 
-      body: JSON.stringify({ email, password }) 
+      body: JSON.stringify({ username: email, password }) 
     }),
   
   getMe: (token) => 
@@ -74,6 +76,8 @@ export const api = {
   },
   
   getUniversity: (id) => request(`/universities/${id}`),
+
+  getDropdownOptions: () => request('/universities/filters/options'),
   
   createUniversity: (data, token) => {
     // Only send fields that have values
@@ -347,6 +351,7 @@ export const {
   getUniversities,
   getAdminUniversities,
   getUniversity,
+  getDropdownOptions,
   createUniversity,
   updateUniversity,
   getTrashedUniversities,
