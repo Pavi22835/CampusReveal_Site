@@ -2,6 +2,15 @@ import React from 'react';
 import { Search, X, Command, School, ArrowRight, MapPin, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+// Helper function to get logo URL
+const getCollegeLogo = (college) => {
+  if (college.logoUrl && college.logoUrl !== '') return college.logoUrl;
+  if (college.imageUrl && college.imageUrl !== '') return college.imageUrl;
+  if (college.image && college.image !== '') return college.image;
+  if (college.images && college.images.length > 0) return college.images[0];
+  return null;
+};
+
 export default function HomeHeroSection({
   searchQuery,
   suggestions,
@@ -84,44 +93,59 @@ export default function HomeHeroSection({
                     </span>
                   </div>
                   <div className="max-h-[400px] overflow-y-auto">
-                    {suggestions.map((college) => (
-                      <button
-                        key={college.id}
-                        onClick={() => {
-                          onSuggestionClick(college);
-                        }}
-                        className="w-full flex items-start gap-4 px-5 py-4 hover:bg-indigo-50 transition-all border-b border-slate-100 last:border-0 group text-left"
-                      >
-                        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center shadow-sm">
-                          {college.image ? (
-                            <img src={college.image} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <School size={24} className="text-indigo-400" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors break-words mb-1">
-                            {college.name}
-                          </p>
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                            <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                              <MapPin size={12} /> {college.location || college.city || 'India'}
-                            </span>
-                            {college.rating && (
-                              <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
-                                <Star size={12} fill="currentColor" /> {college.rating}
-                              </span>
-                            )}
-                            {college.category && (
-                              <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
-                                {college.category}
-                              </span>
+                    {suggestions.map((college) => {
+                      const logoUrl = getCollegeLogo(college);
+                      return (
+                        <button
+                          key={college.id}
+                          onClick={() => {
+                            onSuggestionClick(college);
+                          }}
+                          className="w-full flex items-start gap-4 px-5 py-4 hover:bg-indigo-50 transition-all border-b border-slate-100 last:border-0 group text-left"
+                        >
+                          {/* Logo Section - Shows actual college logo */}
+                          <div className="item-logo-wrapper">
+                            {logoUrl ? (
+                              <img 
+                                src={logoUrl} 
+                                alt={college.name}
+                                className="item-logo-img"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  const parent = e.target.parentElement;
+                                  if (parent) {
+                                    parent.innerHTML = '<div class="item-logo-fallback">🏛️</div>';
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="item-logo-fallback">🏛️</div>
                             )}
                           </div>
-                        </div>
-                        <ArrowRight size={18} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all shrink-0 mt-2" />
-                      </button>
-                    ))}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors break-words mb-1">
+                              {college.name}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                              <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                                <MapPin size={12} /> {college.location || college.city || 'India'}
+                              </span>
+                              {college.rating && (
+                                <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
+                                  <Star size={12} fill="currentColor" /> {college.rating}
+                                </span>
+                              )}
+                              {college.category && (
+                                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
+                                  {college.category}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <ArrowRight size={18} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all shrink-0 mt-2" />
+                        </button>
+                      );
+                    })}
                   </div>
                   <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-100 text-center">
                     <button
@@ -140,6 +164,37 @@ export default function HomeHeroSection({
           </div>
         </motion.div>
       </div>
+
+      {/* Add required styles */}
+      <style jsx>{`
+        .item-logo-wrapper {
+          width: 48px;
+          height: 48px;
+          flex-shrink: 0;
+          border-radius: 12px;
+          overflow: hidden;
+          background: transparent;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .item-logo-img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          border-radius: 8px;
+        }
+        .item-logo-fallback {
+          width: 48px;
+          height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+          border-radius: 12px;
+        }
+      `}</style>
     </section>
   );
 }
