@@ -26,6 +26,7 @@ export default function WriteReview() {
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   
+  // ✅ NO HARDCODED DEFAULT RATINGS - All ratings start at null
   const [formData, setFormData] = useState({
     universityId: '',
     universityName: '',
@@ -33,33 +34,33 @@ export default function WriteReview() {
     classYear: '',
     projectLink: '',
     ratings: {
-      academicRigor: 4.0,
-      teachingQuality: 4.0,
-      curriculumRelevance: 4.0,
-      facultySupport: 4.0,
-      campusInfrastructure: 4.0,
-      classrooms: 4.0,
-      laboratories: 4.0,
-      library: 4.0,
-      wifiInternet: 4.0,
-      canteenFood: 4.0,
-      hostelFacilities: 4.0,
-      cleanliness: 4.0,
-      safetySecurity: 4.0,
-      transportFacilities: 4.0,
-      busAvailability: 4.0,
-      locationConnectivity: 4.0,
-      placementSupport: 4.0,
-      internshipOpportunities: 4.0,
-      careerGuidance: 4.0,
-      industryExposure: 4.0,
-      socialLife: 4.0,
-      clubsActivities: 4.0,
-      eventsFests: 4.0,
-      campusCulture: 4.0,
-      sportsFacilities: 4.0,
-      gymFacilities: 4.0,
-      extracurricular: 4.0
+      academicRigor: null,
+      teachingQuality: null,
+      curriculumRelevance: null,
+      facultySupport: null,
+      campusInfrastructure: null,
+      classrooms: null,
+      laboratories: null,
+      library: null,
+      wifiInternet: null,
+      canteenFood: null,
+      hostelFacilities: null,
+      cleanliness: null,
+      safetySecurity: null,
+      transportFacilities: null,
+      busAvailability: null,
+      locationConnectivity: null,
+      placementSupport: null,
+      internshipOpportunities: null,
+      careerGuidance: null,
+      industryExposure: null,
+      socialLife: null,
+      clubsActivities: null,
+      eventsFests: null,
+      campusCulture: null,
+      sportsFacilities: null,
+      gymFacilities: null,
+      extracurricular: null
     },
     title: '',
     pros: '',
@@ -142,6 +143,7 @@ export default function WriteReview() {
   }, [routeId]);
 
   const handleSubmit = async () => {
+    // Validate required fields
     if (!formData.universityId) {
       setError('Please select a university');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -158,12 +160,23 @@ export default function WriteReview() {
       return;
     }
     
+    // ✅ Validate that at least some ratings are filled
+    const hasRatings = Object.values(formData.ratings).some(r => r !== null);
+    if (!hasRatings) {
+      setError('Please rate at least one aspect of your college experience');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    
     setLoading(true);
     setError('');
     
     try {
-      const ratingValues = Object.values(formData.ratings);
-      const avgRating = ratingValues.reduce((a, b) => a + b, 0) / ratingValues.length;
+      // ✅ Calculate average only from filled ratings
+      const filledRatings = Object.values(formData.ratings).filter(r => r !== null);
+      const avgRating = filledRatings.length > 0 
+        ? filledRatings.reduce((a, b) => a + b, 0) / filledRatings.length 
+        : 0;
       
       const prosList = formData.pros ? formData.pros.split(',').map(p => p.trim()).filter(p => p) : [];
       const consList = formData.cons ? formData.cons.split(',').map(c => c.trim()).filter(c => c) : [];
@@ -171,7 +184,7 @@ export default function WriteReview() {
       const reviewData = {
         universityId: formData.universityId,
         title: formData.title || `Review for ${formData.universityName}`,
-        content: formData.tips || formData.pros || 'Insightful feedback shared.',
+        content: formData.tips || formData.pros || '',
         rating: parseFloat(avgRating.toFixed(1)),
         ratings: formData.ratings,
         pros: prosList,
@@ -214,6 +227,7 @@ export default function WriteReview() {
   ];
 
   const getRatingEmoji = (value) => {
+    if (value === null) return { emoji: '⭐', text: 'Not rated', color: 'text-slate-400' };
     if (value >= 4.5) return { emoji: '🌟', text: 'Outstanding', color: 'text-emerald-500' };
     if (value >= 4.0) return { emoji: '😊', text: 'Great', color: 'text-green-500' };
     if (value >= 3.0) return { emoji: '🙂', text: 'Good', color: 'text-blue-500' };
@@ -286,7 +300,12 @@ export default function WriteReview() {
     }
   ];
 
-  const overallRating = (Object.values(formData.ratings).reduce((a, b) => a + b, 0) / Object.values(formData.ratings).length).toFixed(1);
+  // ✅ Calculate overall rating only from filled ratings
+  const filledRatings = Object.values(formData.ratings).filter(r => r !== null);
+  const overallRating = filledRatings.length > 0 
+    ? (filledRatings.reduce((a, b) => a + b, 0) / filledRatings.length).toFixed(1)
+    : '0.0';
+    
   const availableYears = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i).sort((a, b) => b - a);
 
   if (!isDataLoaded) {
@@ -313,17 +332,14 @@ export default function WriteReview() {
                 <h1 className="text-3xl md:text-4xl font-display font-black text-slate-900 tracking-tight">
                   Share Your Story
                 </h1>
-                <p className="text-slate-500 text-sm mt-2">Your insights help 12,000+ students find their path every month.</p>
+                <p className="text-slate-500 text-sm mt-2">Share your authentic college experience</p>
               </motion.div>
             </header>
 
-            {/* Stepper - Always shows numbers 1, 2, 3, 4 */}
+            {/* Stepper */}
             <div className="mb-12 max-w-2xl mx-auto">
               <div className="flex justify-between relative">
-                {/* Progress Line Background */}
                 <div className="absolute top-5 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 z-0" />
-                
-                {/* Progress Line Fill */}
                 <div 
                   className="absolute top-5 left-0 h-0.5 bg-indigo-600 -translate-y-1/2 z-0 transition-all duration-500"
                   style={{ width: `${((step - 1) / 3) * 100}%` }}
@@ -331,7 +347,6 @@ export default function WriteReview() {
                 
                 {steps.map((s, i) => (
                   <div key={i} className="relative z-10 flex flex-col items-center gap-2">
-                    {/* Circle with Number - Always shows number */}
                     <motion.div 
                       animate={{ 
                         backgroundColor: step >= i + 1 ? '#4f46e5' : '#ffffff',
@@ -344,7 +359,6 @@ export default function WriteReview() {
                       <span>{s.number}</span>
                     </motion.div>
                     
-                    {/* Step Title */}
                     <span className={`text-[11px] font-black uppercase tracking-wider ${
                       step === i + 1 ? 'text-indigo-600' : (step > i + 1 ? 'text-emerald-600' : 'text-slate-400')
                     }`}>
@@ -549,7 +563,7 @@ export default function WriteReview() {
                                 <div className="flex items-center gap-1">
                                   <span className="text-sm">{ratingInfo.emoji}</span>
                                   <span className={`font-bold text-sm ${ratingInfo.color}`}>
-                                    {ratingValue.toFixed(1)}
+                                    {ratingValue !== null ? ratingValue.toFixed(1) : 'Not rated'}
                                   </span>
                                 </div>
                               </div>
@@ -558,7 +572,7 @@ export default function WriteReview() {
                                 min="1" 
                                 max="5" 
                                 step="0.1"
-                                value={ratingValue}
+                                value={ratingValue !== null ? ratingValue : 3}
                                 onChange={(e) => setFormData({
                                   ...formData, 
                                   ratings: {...formData.ratings, [cat.key]: parseFloat(e.target.value)}
@@ -572,8 +586,8 @@ export default function WriteReview() {
                                       ratingSections[activeSection].color === 'teal' ? '#14b8a6' :
                                       ratingSections[activeSection].color === 'emerald' ? '#10b981' :
                                       ratingSections[activeSection].color === 'purple' ? '#a855f7' : '#f97316'} 
-                                    ${((ratingValue - 1) / 4) * 100}%, 
-                                    #e2e8f0 ${((ratingValue - 1) / 4) * 100}%)`
+                                    ${(( (ratingValue !== null ? ratingValue : 3) - 1) / 4) * 100}%, 
+                                    #e2e8f0 ${(( (ratingValue !== null ? ratingValue : 3) - 1) / 4) * 100}%)`
                                 }}
                               />
                             </div>
@@ -672,7 +686,7 @@ export default function WriteReview() {
                     </div>
                     <h2 className="text-xl font-black text-slate-900">Ready to Publish?</h2>
                     <p className="text-slate-500 text-sm max-w-sm mx-auto">
-                      Your contribution will help thousands of students make informed decisions.
+                      Your contribution will help other students make informed decisions.
                     </p>
                     
                     <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-lg text-left max-w-md mx-auto">
@@ -691,7 +705,7 @@ export default function WriteReview() {
                       </div>
                       <div className="bg-slate-50 p-2 rounded-lg text-center">
                         <div className="text-lg font-black text-emerald-600 truncate">
-                          {formData.universityName ? formData.universityName.split(' ')[0] : 'N/A'}
+                          {formData.universityName ? formData.universityName.split(' ')[0] : 'Not selected'}
                         </div>
                         <div className="text-[10px] text-slate-500 font-medium">Institution</div>
                       </div>

@@ -14,7 +14,6 @@ const AuthModal = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [generatedOtp, setGeneratedOtp] = useState('');
 
   useEffect(() => {
     let timer;
@@ -33,7 +32,6 @@ const AuthModal = () => {
         setOtp('');
         setError('');
         setCountdown(0);
-        setGeneratedOtp('');
       }, 300);
     }
   }, [showAuthModal]);
@@ -52,14 +50,10 @@ const AuthModal = () => {
     setError('');
     
     try {
-      // Call the actual send OTP API
       const response = await api.sendOTP(phone, name);
       console.log('Send OTP response:', response);
       
       if (response.success) {
-        // Store the OTP from response (for demo, it might be in debugOtp)
-        const receivedOtp = response.debugOtp || response.otp || '1234';
-        setGeneratedOtp(receivedOtp);
         setStep('otp');
         setCountdown(60);
       } else {
@@ -83,12 +77,10 @@ const AuthModal = () => {
     setError('');
     
     try {
-      // Call the actual verify OTP API
       const response = await api.verifyOTP(phone, otp, name);
       console.log('Verify OTP response:', response);
       
       if (response.success && response.user && response.token) {
-        // ✅ FIX: Pass both user data AND the token to otpLogin
         const userData = { 
           ...response.user,
           name: response.user.name || name,
@@ -97,11 +89,9 @@ const AuthModal = () => {
           isGuest: true 
         };
         
-        // Store user data in localStorage
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('isAuthenticated', 'true');
         
-        // Call otpLogin with user data AND token
         otpLogin(userData, response.token);
       } else {
         setError(response.message || 'Invalid OTP. Please try again.');
@@ -123,11 +113,7 @@ const AuthModal = () => {
       const response = await api.sendOTP(phone, name);
       console.log('Resend OTP response:', response);
       
-      if (response.success) {
-        const receivedOtp = response.debugOtp || response.otp || '1234';
-        setGeneratedOtp(receivedOtp);
-        alert(`OTP has been sent! Demo OTP: ${receivedOtp}`);
-      } else {
+      if (!response.success) {
         setError(response.message || 'Failed to resend OTP');
       }
     } catch (err) {
@@ -210,9 +196,6 @@ const AuthModal = () => {
                   <CheckCircle size={24} />
                 </div>
                 <p>Enter the OTP sent to <strong>{phone}</strong></p>
-                {generatedOtp && (
-                  <small>Demo OTP: {generatedOtp}</small>
-                )}
               </div>
 
               <div className="form-group">

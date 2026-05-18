@@ -26,7 +26,7 @@ export default function Reviews() {
   const ratingRef = useRef(null);
 
   // ============================================
-  // HELPER FUNCTIONS - DEFINED FIRST
+  // HELPER FUNCTIONS
   // ============================================
   
   const getAverageRating = (reviewsList) => {
@@ -44,7 +44,7 @@ export default function Reviews() {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Recently';
+    if (!dateString) return null;
     const date = new Date(dateString);
     const now = new Date();
     const diffMonths = (now.getFullYear() - date.getFullYear()) * 12 + (now.getMonth() - date.getMonth());
@@ -71,7 +71,11 @@ export default function Reviews() {
   // STAR RENDERING FUNCTION
   // ============================================
   const renderStars = (rating) => {
-    const numRating = typeof rating === 'number' ? rating : parseFloat(rating) || 0;
+    if (!rating || rating === 0) {
+      return <span className="no-rating">No ratings yet</span>;
+    }
+    
+    const numRating = typeof rating === 'number' ? rating : parseFloat(rating);
     const fullStars = Math.floor(numRating);
     const hasHalfStar = (numRating - fullStars) >= 0.5;
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
@@ -138,8 +142,8 @@ export default function Reviews() {
     const grouped = reviews.reduce((acc, review) => {
       const university = review.university || {
         id: review.universityId,
-        name: review.universityName || 'Unknown University',
-        location: review.universityLocation || ''
+        name: review.universityName,
+        location: review.universityLocation
       };
       const universityId = university.id || review.universityId;
 
@@ -147,14 +151,16 @@ export default function Reviews() {
         acc[universityId] = {
           university: {
             id: universityId,
-            name: university.name || 'Unknown University',
-            location: university.location || ''
+            name: university.name || review.universityName,
+            location: university.location || review.universityLocation
           },
           reviews: []
         };
       }
 
-      acc[universityId].reviews.push(review);
+      if (review.user?.name || review.author) {
+        acc[universityId].reviews.push(review);
+      }
       return acc;
     }, {});
 
@@ -164,12 +170,12 @@ export default function Reviews() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(item => 
-        item.university.name.toLowerCase().includes(query) ||
+        item.university.name?.toLowerCase().includes(query) ||
         (item.university.location && item.university.location.toLowerCase().includes(query))
       );
     }
 
-    // Rating range filter (1-2, 2-3, 3-4, 4-5)
+    // Rating range filter
     if (selectedRating !== 'all') {
       result = result.filter(item => {
         const avgRating = getAverageRating(item.reviews);
@@ -244,13 +250,13 @@ export default function Reviews() {
     }));
   };
 
-  // Rating Options - 1-2, 2-3, 3-4, 4-5
+  // Rating Options - UI labels only
   const ratingOptions = [
-    { value: 'all', label: 'All Ratings', range: 'All' },
-    { value: '4-5', label: '4.0 - 5.0', range: '4-5', stars: 5, color: '#10b981' },
-    { value: '3-4', label: '3.0 - 4.0', range: '3-4', stars: 4, color: '#f59e0b' },
-    { value: '2-3', label: '2.0 - 3.0', range: '2-3', stars: 3, color: '#f97316' },
-    { value: '1-2', label: '1.0 - 2.0', range: '1-2', stars: 2, color: '#ef4444' }
+    { value: 'all', label: 'All Ratings' },
+    { value: '4-5', label: '4.0 - 5.0' },
+    { value: '3-4', label: '3.0 - 4.0' },
+    { value: '2-3', label: '2.0 - 3.0' },
+    { value: '1-2', label: '1.0 - 2.0' }
   ];
 
   const currentRatingLabel = ratingOptions.find(o => o.value === selectedRating)?.label || 'All Ratings';
@@ -276,7 +282,7 @@ export default function Reviews() {
         {/* Header */}
         <div className="reviews-header">
           <p className="reviews-badge">COLLEGE REVIEWS</p>
-          <h1 className="reviews-title">Browse student reviews by college</h1>
+          <h1 className="reviews-title">Student Reviews by College</h1>
         </div>
 
         {/* Action Controls Section */}
@@ -316,26 +322,7 @@ export default function Reviews() {
                       setIsRatingOpen(false);
                     }}
                   >
-                    <div className="rating-option-content">
-                      <span className="rating-option-label">{option.label}</span>
-                      <div className="rating-option-stars">
-                        {option.value !== 'all' && (
-                          <>
-                            {[...Array(5)].map((_, i) => (
-                              <span 
-                                key={i} 
-                                className="rating-star-indicator"
-                                style={{ 
-                                  color: i < Math.floor(option.stars) ? option.color : '#e2e8f0'
-                                }}
-                              >
-                                ★
-                              </span>
-                            ))}
-                          </>
-                        )}
-                      </div>
-                    </div>
+                    <span className="rating-option-label">{option.label}</span>
                   </button>
                 ))}
               </div>
@@ -347,7 +334,7 @@ export default function Reviews() {
           </button>
         </div>
 
-        {/* Rating Scale Bar */}
+        {/* Rating Scale Bar - Only show if reviews exist */}
         {!loading && !error && reviews.length > 0 && (
           <div className="rating-scale-bar">
             <div className="rating-scale-container">
@@ -402,7 +389,7 @@ export default function Reviews() {
 
         {!loading && !error && reviews.length === 0 && (
           <div className="reviews-empty">
-            <p>No reviews found yet. Please check back later.</p>
+            <p>No reviews found yet. Check back later.</p>
           </div>
         )}
 
@@ -427,12 +414,16 @@ export default function Reviews() {
                   <div className="uni-header-box prominent-header">
                     <div className="uni-main-info">
                       <h2 className="uni-title prominent-title">{university.name}</h2>
-                      <p className="uni-loc prominent-loc">{university.location || 'India'}</p>
+                      {university.location && (
+                        <p className="uni-loc prominent-loc">{university.location}</p>
+                      )}
                     </div>
                     <div className="uni-rating-details">
                       <div className="stars-row">
                         {renderStars(avgRating)}
-                        <span className="rating-text prominent-rating">{avgRating.toFixed(1)}</span>
+                        {avgRating > 0 && (
+                          <span className="rating-text prominent-rating">{avgRating.toFixed(1)}</span>
+                        )}
                       </div>
                       <Link to={`/university/${university.id}`} className="view-details-link prominent-link">
                         View details →
@@ -445,13 +436,17 @@ export default function Reviews() {
                       <div key={review.id} className="single-review-block prominent-review">
                         <div className="reviewer-meta">
                           <div className="reviewer-avatar-box prominent-avatar">
-                            {review.user?.name?.charAt(0) || review.author?.charAt(0) || 'S'}
+                            {review.user?.name?.charAt(0) || review.author?.charAt(0) || '?'}
                           </div>
                           <div className="reviewer-text">
                             <h4 className="reviewer-name prominent-name">
-                              {review.user?.name || review.author || 'Anonymous Student'}
+                              {review.user?.name || review.author || 'Anonymous'}
                             </h4>
-                            <p className="reviewer-sub">Verified Student · {formatDate(review.createdAt)}</p>
+                            <p className="reviewer-sub">
+                              {formatDate(review.createdAt) && (
+                                <>Verified Student · {formatDate(review.createdAt)}</>
+                              )}
+                            </p>
                           </div>
                         </div>
 

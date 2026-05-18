@@ -28,6 +28,15 @@ const Colleges = () => {
     sortBy: 'best'
   });
 
+  // Helper function to get logo URL - NO HARDCODED FALLBACKS
+  const getLogoUrl = (college) => {
+    if (college.logoUrl && college.logoUrl !== '') return college.logoUrl;
+    if (college.imageUrl && college.imageUrl !== '') return college.imageUrl;
+    if (college.image && college.image !== '') return college.image;
+    if (college.images && college.images.length > 0) return college.images[0];
+    return null;
+  };
+
   useEffect(() => {
     const fetchUniversities = async () => {
       setLoading(true);
@@ -40,33 +49,36 @@ const Colleges = () => {
       }
 
       try {
-        const params = { limit: 1000 };
+        const apiParams = { limit: 1000 };
         if (searchParam) {
-          params.search = searchParam;
+          apiParams.search = searchParam;
         }
-        const result = await api.getUniversities(params);
+        const result = await api.getUniversities(apiParams);
+        
         if (result.success && Array.isArray(result.data)) {
           const transformed = result.data.map((college) => ({
             ...college,
             id: college.id,
             name: college.name,
-            logoUrl: college.logoUrl || college.imageUrl || null,
-            location: college.location || college.city || 'India',
-            description: college.description || 'A premier institution dedicated to academic excellence.',
-            students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
+            logoUrl: getLogoUrl(college),
+            location: college.location || college.city,
+            description: college.description,
+            students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : null,
             reviews: college._count?.reviews ?? 0,
-            netPrice: college.tuitionFee || 'N/A',
-            acceptanceRate: college.acceptanceRate || 'N/A',
-            rating: college.rating || 0
+            netPrice: college.tuitionFee || null,
+            acceptanceRate: college.acceptanceRate || null,
+            rating: college.rating || null
           }));
           setColleges(transformed);
           console.log(`✅ Loaded ${transformed.length} colleges`);
         } else {
           setApiError(result.error || 'Unable to fetch colleges.');
+          setColleges([]);
         }
       } catch (error) {
         console.error('Error fetching colleges:', error);
         setApiError(error.message || 'Connection error.');
+        setColleges([]);
       } finally {
         setLoading(false);
       }
@@ -97,7 +109,7 @@ const Colleges = () => {
     }
 
     if (filters.sortBy === 'rating') {
-      filtered.sort((a, b) => b.rating - a.rating);
+      filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     }
 
     return filtered;
@@ -199,11 +211,11 @@ const Colleges = () => {
         <div className="hero-heading">
           <h1 className="hero-title">Find Your Perfect College</h1>
           <p className="hero-subtitle">
-            Compare colleges, courses, fees, and rankings in one place.
+            Browse through our list of institutions
           </p>
         </div>
 
-        {/* Search Bar - Bold & Prominent */}
+        {/* Search Bar */}
         <div className="search-section">
           <div className="search-container prominent">
             <div className="search-input-wrapper">
@@ -238,7 +250,7 @@ const Colleges = () => {
         <div className="sort-bar">
           <div className="results-info">
             <span className="results-count">
-              Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredColleges.length)} of {filteredColleges.length} results
+              Showing {filteredColleges.length > 0 ? indexOfFirstItem + 1 : 0}-{Math.min(indexOfLastItem, filteredColleges.length)} of {filteredColleges.length} results
             </span>
           </div>
           <div className="sort-options">
@@ -253,57 +265,75 @@ const Colleges = () => {
           </div>
         </div>
 
-        {/* Cards Grid - 3 per row */}
+        {/* Cards Grid - NO HARDCODED FALLBACKS */}
         <div className="colleges-grid">
-          {currentColleges.map((college) => (
-            <div 
-              key={college.id} 
-              className="college-card"
-              onClick={() => navigate(`/university/${college.id}`)}
-            >
-              <div className="college-card-header">
-                <div className="college-logo">
-                  {college.logoUrl ? (
-                    <img
-                      src={college.logoUrl}
-                      alt={`${college.name} logo`}
-                      className="college-logo-img"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                  ) : null}
-                  <div className="college-logo-placeholder" style={{ display: college.logoUrl ? 'none' : 'flex' }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-                      <path d="M6 12v5c3 2 6 2 9 0v-5" />
-                    </svg>
+          {currentColleges.length > 0 ? (
+            currentColleges.map((college) => (
+              <div 
+                key={college.id} 
+                className="college-card"
+                onClick={() => navigate(`/university/${college.id}`)}
+              >
+                <div className="college-card-header">
+                  <div className="college-logo">
+                    {college.logoUrl ? (
+                      <img
+                        src={college.logoUrl}
+                        alt={`${college.name} logo`}
+                        className="college-logo-img"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.style.display = 'none';
+                          if (e.target.nextSibling) {
+                            e.target.nextSibling.style.display = 'flex';
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <div className="college-logo-placeholder" style={{ display: college.logoUrl ? 'none' : 'flex' }}>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                        <path d="M6 12v5c3 2 6 2 9 0v-5" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="college-name">{college.name}</h3>
+                    <p className="college-location">{college.location || 'Location not specified'}</p>
                   </div>
                 </div>
-                <div>
-                  <h3 className="college-name">{college.name}</h3>
-                  <p className="college-location">{college.location}</p>
+                
+                <div className="college-stats">
+                  {college.students && (
+                    <div className="stat">
+                      <span className="stat-label">STUDENTS</span>
+                      <span className="stat-value">{college.students}</span>
+                    </div>
+                  )}
+                  {college.netPrice && (
+                    <div className="stat">
+                      <span className="stat-label">FEE</span>
+                      <span className="stat-value">{college.netPrice}</span>
+                    </div>
+                  )}
+                  {!college.students && !college.netPrice && (
+                    <div className="stat no-data">
+                      <span className="stat-value">No data available</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="card-footer">
+                  <button className="details-btn">View Details</button>
                 </div>
               </div>
-              
-              <div className="college-stats">
-                <div className="stat">
-                  <span className="stat-label">STUDENTS</span>
-                  <span className="stat-value">{college.students}</span>
-                </div>
-                <div className="stat">
-                  <span className="stat-label">FEE</span>
-                  <span className="stat-value">{college.netPrice}</span>
-                </div>
-              </div>
-              
-              <div className="card-footer">
-                <button className="details-btn">View Details</button>
-              </div>
+            ))
+          ) : (
+            <div className="no-results">
+              <p>No colleges found matching your criteria.</p>
+              <button onClick={clearFilters}>Clear all filters</button>
             </div>
-          ))}
+          )}
         </div>
 
         {/* Pagination */}
@@ -329,7 +359,7 @@ const Colleges = () => {
           </div>
         )}
 
-        {filteredColleges.length === 0 && (
+        {filteredColleges.length === 0 && currentColleges.length === 0 && !loading && (
           <div className="no-results">
             <p>No colleges found matching your criteria.</p>
             <button onClick={clearFilters}>Clear all filters</button>

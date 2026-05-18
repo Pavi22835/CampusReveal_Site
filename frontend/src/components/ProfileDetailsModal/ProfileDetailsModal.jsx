@@ -66,9 +66,9 @@ const ProfileDetailsModal = ({ isOpen, onClose, onSuccess }) => {
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.collegeName.trim()) newErrors.collegeName = 'College name is required';
-    if (!formData.department.trim()) newErrors.department = 'Department is required';
+    if (!formData.name?.trim()) newErrors.name = 'Name is required';
+    if (!formData.collegeName?.trim()) newErrors.collegeName = 'College name is required';
+    if (!formData.department?.trim()) newErrors.department = 'Department is required';
     if (!formData.graduationYear) newErrors.graduationYear = 'Passed out year is required';
     else if (formData.graduationYear < 1950 || formData.graduationYear > 2030) {
       newErrors.graduationYear = 'Please enter a valid year';
@@ -89,10 +89,10 @@ const ProfileDetailsModal = ({ isOpen, onClose, onSuccess }) => {
       
       const createResult = await api.createUniversity({
         name: collegeName,
-        location: 'Not specified',
-        city: 'Not specified',
-        state: 'Tamil Nadu',
-        description: 'Added by user during review'
+        location: '',
+        city: '',
+        state: '',
+        description: ''
       }, localStorage.getItem('token'));
       
       if (createResult.success && createResult.data) {
@@ -135,7 +135,6 @@ const ProfileDetailsModal = ({ isOpen, onClose, onSuccess }) => {
       const result = await updateUserProfile(profileData);
       
       if (result.success) {
-        // STORE ALL DATA IN LOCALSTORAGE
         if (universityId) {
           localStorage.setItem('reviewUniversityId', universityId);
           localStorage.setItem('reviewUniversityName', formData.collegeName);
@@ -146,8 +145,6 @@ const ProfileDetailsModal = ({ isOpen, onClose, onSuccess }) => {
         
         if (showToast) {
           showToast('Your profile has been verified!', 'success');
-        } else {
-          alert('Your profile has been verified!');
         }
         
         if (onSuccess) {
@@ -158,16 +155,12 @@ const ProfileDetailsModal = ({ isOpen, onClose, onSuccess }) => {
       } else {
         if (showToast) {
           showToast(result.message || 'Failed to verify profile', 'error');
-        } else {
-          alert(result.message || 'Failed to verify profile');
         }
       }
     } catch (error) {
       console.error('Profile submission error:', error);
       if (showToast) {
         showToast('Something went wrong. Please try again.', 'error');
-      } else {
-        alert('Something went wrong. Please try again.');
       }
     } finally {
       setLoading(false);

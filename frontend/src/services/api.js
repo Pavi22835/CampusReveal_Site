@@ -15,7 +15,7 @@ const request = async (endpoint, options = {}) => {
 
     const data = await res.json();
 
-    // Handle 401 Unauthorized - return empty data for public endpoints
+    // Handle 401 Unauthorized
     if (res.status === 401) {
       console.warn(`⚠️ 401 Unauthorized: ${endpoint}`);
       if (endpoint.includes('/reviews') || endpoint.includes('/universities')) {
@@ -25,7 +25,7 @@ const request = async (endpoint, options = {}) => {
     }
 
     if (!res.ok) {
-      throw new Error(data.message || "Something went wrong");
+      throw new Error(data.message || "Request failed");
     }
 
     return data;
@@ -177,10 +177,8 @@ export const api = {
     }
   },
 
-  // ✅ FIXED: getUniversities with proper null handling
   getUniversities: async (params = {}) => {
     try {
-      // Ensure params is an object (handle case where token is passed as first argument)
       const safeParams = (params && typeof params === 'object') ? params : {};
       
       const queryParams = {
@@ -189,7 +187,6 @@ export const api = {
         ...safeParams
       };
       
-      // Remove undefined values
       Object.keys(queryParams).forEach(key => {
         if (queryParams[key] === undefined || queryParams[key] === null || queryParams[key] === '') {
           delete queryParams[key];
@@ -314,15 +311,6 @@ export const api = {
     try {
       console.log("📡 POST → /universities (Creating new university)");
       
-      const logData = { ...data };
-      if (logData.images && logData.images.length > 0) {
-        logData.images = [`${logData.images.length} images`];
-      }
-      if (logData.logoUrl && logData.logoUrl.length > 100) {
-        logData.logoUrl = `${logData.logoUrl.substring(0, 50)}...`;
-      }
-      console.log("📦 Request data:", JSON.stringify(logData, null, 2));
-      
       const res = await fetch(`${API_URL}/universities`, {
         method: "POST",
         headers: {
@@ -350,15 +338,6 @@ export const api = {
   updateUniversity: async (id, data, token) => {
     try {
       console.log(`📡 PUT → /universities/${id} (Updating university)`);
-      
-      const logData = { ...data };
-      if (logData.images && logData.images.length > 0) {
-        logData.images = [`${logData.images.length} images`];
-      }
-      if (logData.logoUrl && logData.logoUrl.length > 100) {
-        logData.logoUrl = `${logData.logoUrl.substring(0, 50)}...`;
-      }
-      console.log("📦 Update data:", JSON.stringify(logData, null, 2));
       
       const res = await fetch(`${API_URL}/universities/${id}`, {
         method: "PUT",
@@ -456,7 +435,6 @@ export const api = {
   },
 
   // ================= UNIVERSITIES TRASH / SOFT DELETE =================
-
   getTrashedUniversities: (token) =>
     request("/universities/trashed", {
       headers: authHeader(token),
@@ -545,7 +523,6 @@ export const api = {
     }),
 
   // ================= REVIEWS TRASH / SOFT DELETE =================
-
   getAdminAllReviews: (token) =>
     request("/reviews", {
       headers: authHeader(token),
@@ -588,7 +565,6 @@ export const api = {
     }),
 
   // ================= ADMIN =================
-
   getAdminStats: (token) =>
     request("/admin/stats", {
       headers: authHeader(token),
@@ -601,7 +577,6 @@ export const api = {
     }),
 
   // ================= ADMIN USERS MANAGEMENT =================
-
   getAdminUsers: (token) =>
     request("/admin/users", {
       headers: authHeader(token),
@@ -649,7 +624,6 @@ export const api = {
     }),
 
   // ================= COMMUNITY =================
-
   getDiscussions: () =>
     request("/community/discussions"),
 
@@ -742,7 +716,6 @@ export const api = {
     }),
 
   // ================= COMPARE =================
-
   compareUniversities: (ids) =>
     request("/universities/compare", {
       method: "POST",
@@ -750,7 +723,6 @@ export const api = {
     }),
 
   // ================= HEALTH =================
-
   healthCheck: () => request("/health"),
 };
 

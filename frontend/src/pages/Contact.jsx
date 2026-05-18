@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Send, MessageSquare, User, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MapPin, Phone, Mail, Clock, Send, MessageSquare, User, CheckCircle, AlertCircle } from 'lucide-react';
+import { api } from '../services/api';
 import './Contact.css';
 
 export default function Contact() {
@@ -11,62 +12,136 @@ export default function Contact() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [contactInfo, setContactInfo] = useState(null);
+  const [loadingInfo, setLoadingInfo] = useState(true);
+
+  // Fetch contact information from API
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      try {
+        setLoadingInfo(true);
+        const response = await api.getContactInfo?.();
+        if (response?.success && response?.data) {
+          setContactInfo(response.data);
+        }
+      } catch (err) {
+        console.error('Error fetching contact info:', err);
+      } finally {
+        setLoadingInfo(false);
+      }
+    };
+    fetchContactInfo();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Form submitted:', formData);
-      setSubmitted(true);
+    if (!formData.name.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    if (!formData.message.trim()) {
+      setError('Please enter your message');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await api.submitContactForm?.(formData);
+      
+      if (response?.success) {
+        setSubmitted(true);
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        setTimeout(() => setSubmitted(false), 5000);
+      } else {
+        setError(response?.message || 'Failed to send message. Please try again.');
+      }
+    } catch (err) {
+      console.error('Submit error:', err);
+      setError('Network error. Please try again.');
+    } finally {
       setLoading(false);
-      setFormData({ name: '', email: '', subject: '', message: '' });
-      setTimeout(() => setSubmitted(false), 5000);
-    }, 1000);
+    }
   };
-
-  const contactInfo = [
-    { icon: MapPin, title: 'Address', details: ['Chennai, Tamil Nadu', 'India - 600001'] },
-    { icon: Phone, title: 'Phone', details: ['+91 12345 67890', '+91 98765 43210'] },
-    { icon: Mail, title: 'Email', details: ['support@campusreveal.com', 'info@campusreveal.com'] },
-    { icon: Clock, title: 'Business Hours', details: ['Monday - Friday: 9AM - 6PM', 'Saturday: 10AM - 2PM'] }
-  ];
 
   return (
     <div className="contact-page">
       <div className="contact-container">
+        
+        {/* Hero Section */}
         <div className="contact-hero">
           <h1>Get in Touch</h1>
           <p>Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.</p>
         </div>
 
         <div className="contact-wrapper">
-          <div className="contact-info-grid">
-            {contactInfo.map((item, index) => (
-              <div key={index} className="contact-info-card">
-                <div className="contact-icon">
-                  <item.icon size={24} />
+          
+          {/* Contact Info Cards - Only show if data exists from API */}
+          {contactInfo && !loadingInfo && (
+            <div className="contact-info-grid">
+              {contactInfo.address && (
+                <div className="contact-info-card">
+                  <div className="contact-icon">
+                    <MapPin size={24} />
+                  </div>
+                  <h3>Address</h3>
+                  <p>{contactInfo.address}</p>
                 </div>
-                <h3>{item.title}</h3>
-                {item.details.map((detail, i) => (
-                  <p key={i}>{detail}</p>
-                ))}
-              </div>
-            ))}
-          </div>
+              )}
+              
+              {contactInfo.phone && (
+                <div className="contact-info-card">
+                  <div className="contact-icon">
+                    <Phone size={24} />
+                  </div>
+                  <h3>Phone</h3>
+                  <p>{contactInfo.phone}</p>
+                </div>
+              )}
+              
+              {contactInfo.email && (
+                <div className="contact-info-card">
+                  <div className="contact-icon">
+                    <Mail size={24} />
+                  </div>
+                  <h3>Email</h3>
+                  <p>{contactInfo.email}</p>
+                </div>
+              )}
+              
+              {contactInfo.businessHours && (
+                <div className="contact-info-card">
+                  <div className="contact-icon">
+                    <Clock size={24} />
+                  </div>
+                  <h3>Business Hours</h3>
+                  <p>{contactInfo.businessHours}</p>
+                </div>
+              )}
+            </div>
+          )}
 
+          {/* Contact Form */}
           <div className="contact-form-section">
             <div className="contact-form-left">
               <h2>Send us a Message</h2>
-              <p>Fill out the form and our team will get back to you within 24 hours.</p>
+              <p>Fill out the form and our team will get back to you as soon as possible.</p>
+              
               <div className="contact-features">
                 <div className="feature">
                   <MessageSquare size={18} />
@@ -74,7 +149,7 @@ export default function Contact() {
                 </div>
                 <div className="feature">
                   <CheckCircle size={18} />
-                  <span>24/7 Support</span>
+                  <span>Support</span>
                 </div>
               </div>
             </div>
@@ -87,23 +162,57 @@ export default function Contact() {
                 </div>
               )}
               
+              {error && (
+                <div className="error-message">
+                  <AlertCircle size={20} />
+                  {error}
+                </div>
+              )}
+              
               <div className="form-group">
                 <User size={18} />
-                <input type="text" name="name" placeholder="Your Name" value={formData.name} onChange={handleChange} required />
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Your Name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
               </div>
 
               <div className="form-group">
                 <Mail size={18} />
-                <input type="email" name="email" placeholder="Your Email" value={formData.email} onChange={handleChange} required />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Your Email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
               </div>
 
               <div className="form-group">
                 <MessageSquare size={18} />
-                <input type="text" name="subject" placeholder="Subject" value={formData.subject} onChange={handleChange} required />
+                <input
+                  type="text"
+                  name="subject"
+                  placeholder="Subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                />
               </div>
 
               <div className="form-group textarea-group">
-                <textarea name="message" placeholder="Your Message" rows="5" value={formData.message} onChange={handleChange} required></textarea>
+                <textarea
+                  name="message"
+                  placeholder="Your Message"
+                  rows="5"
+                  value={formData.message}
+                  onChange={handleChange}
+                  required
+                ></textarea>
               </div>
 
               <button type="submit" className="submit-btn" disabled={loading}>

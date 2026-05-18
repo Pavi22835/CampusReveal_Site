@@ -1,9 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../services/api';
 import './Footer.css';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // ✅ Fetch real stats from API
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const result = await api.getFooterStats?.();
+        if (result?.success && result?.data) {
+          setStats(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching footer stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   return (
     <footer className="footer">
@@ -15,11 +35,21 @@ export default function Footer() {
             Campus<span className="footer__accent">Reveal</span>
           </h2>
           <p className="footer__text">Empowering students with authentic insights.</p>
-          <div className="footer__stats">
-            <span>500+ Colleges</span>
-            <span>10K+ Reviews</span>
-            <span>100% Verified</span>
-          </div>
+          
+          {/* Stats Section - Only show if data exists from API */}
+          {stats && !loading && (
+            <div className="footer__stats">
+              {stats.colleges && (
+                <span>{stats.colleges.toLocaleString()}+ Colleges</span>
+              )}
+              {stats.reviews && (
+                <span>{stats.reviews.toLocaleString()}+ Reviews</span>
+              )}
+              {stats.verified && (
+                <span>{stats.verified}% Verified</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Platform Links */}

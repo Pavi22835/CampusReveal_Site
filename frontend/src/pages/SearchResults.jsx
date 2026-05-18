@@ -20,9 +20,6 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 
-const FILTER_TYPES = ['4-year', '2-year', 'Private', 'Public', 'Community', 'Trade', 'Other'];
-const AREA_OPTIONS = ['Engineering', 'Design', 'Business', 'Arts & Science', 'STEM'];
-
 export default function SearchResults() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -39,8 +36,30 @@ export default function SearchResults() {
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [isFilterOpen, setIsFilterOpen] = useState(true);
+  const [filterOptions, setFilterOptions] = useState({
+    types: [],
+    areas: []
+  });
 
   const query = [searchText, locationText].filter(Boolean).join(' ');
+
+  // Fetch filter options from API
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const result = await api.getFilterOptions();
+        if (result.success && result.data) {
+          setFilterOptions({
+            types: result.data.types || [],
+            areas: result.data.academicStreams || []
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching filter options:', err);
+      }
+    };
+    fetchFilterOptions();
+  }, []);
 
   useEffect(() => {
     const fetchUniversities = async () => {
@@ -56,9 +75,9 @@ export default function SearchResults() {
         if (response.success) {
           setResults(response.data.map((uni) => ({
             ...uni,
-            image: uni.imageUrl || uni.images?.[0] || '',
-            type: uni.type || uni.ratings?.metadata?.type || 'Unknown',
-            category: uni.category || uni.ratings?.metadata?.category || '',
+            image: uni.imageUrl || uni.images?.[0] || null,
+            type: uni.type || null,
+            category: uni.category || null,
           })));
         } else {
           setError(response.error || 'Unable to load universities.');
@@ -108,12 +127,12 @@ export default function SearchResults() {
           >
             <div>
               <span className="bg-slate-950 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-5 inline-block shadow-lg">
-                Registry Explorer
+                Search Results
               </span>
               <h1 className="text-4xl md:text-6xl font-display font-black text-slate-950 tracking-tighter leading-tight">
-                Academic <span className="text-indigo-600">Frontiers</span>
+                Academic <span className="text-indigo-600">Discoveries</span>
               </h1>
-              <p className="text-slate-500 font-bold mt-3 uppercase text-xs tracking-widest">Scanning {visibleResults.length} validated institutions</p>
+              <p className="text-slate-500 font-bold mt-3 uppercase text-xs tracking-widest">{visibleResults.length} institutions found</p>
             </div>
             
             <div className="flex items-center gap-3">
@@ -157,62 +176,66 @@ export default function SearchResults() {
                   <div className="bg-slate-950 px-10 py-10 relative">
                     <div className="flex items-center justify-between mb-3">
                        <h3 className="font-black text-sm uppercase tracking-[0.25em] text-white flex items-center gap-4">
-                         <Filter size={22} className="text-indigo-400 stroke-[4]" /> Registry Filters
+                         <Filter size={22} className="text-indigo-400 stroke-[4]" /> Filters
                        </h3>
                     </div>
-                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Global Database Control</p>
+                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Refine your search</p>
                   </div>
                   
                   <div className="p-10 space-y-12 relative z-10">
                     <div className="space-y-6">
-                      <label className="text-[12px] font-black text-slate-950 uppercase tracking-[0.15em] px-1">Institution Search</label>
+                      <label className="text-[12px] font-black text-slate-950 uppercase tracking-[0.15em] px-1">Search</label>
                       <div className="relative">
                         <Search size={22} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 stroke-[3]" />
                         <input 
                           type="text" 
                           value={searchText}
                           onChange={(e) => setSearchText(e.target.value)}
-                          placeholder="Ex: PSG Tech"
+                          placeholder="Search institutions..."
                           className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-slate-200 rounded-[1.5rem] text-base font-black placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white transition-all uppercase tracking-tight"
                         />
                       </div>
                     </div>
 
-                    {/* Type Filter */}
-                    <div className="space-y-6">
-                      <label className="text-[12px] font-black text-slate-950 uppercase tracking-[0.15em] px-1">Institutional Sector</label>
-                      <div className="flex flex-wrap gap-3">
-                        {FILTER_TYPES.map(type => (
-                          <button
-                            key={type}
-                            onClick={() => handleTypeToggle(type)}
-                            className={`px-6 py-4 rounded-2xl text-xs font-black border-2 transition-all uppercase tracking-widest ${
-                              selectedTypes.includes(type) 
-                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-2xl shadow-indigo-200' 
-                                : 'bg-white border-slate-200 text-slate-800 hover:border-slate-950 hover:bg-slate-50'
-                            }`}
-                          >
-                            {type}
-                          </button>
-                        ))}
+                    {/* Type Filter - Dynamic from API */}
+                    {filterOptions.types.length > 0 && (
+                      <div className="space-y-6">
+                        <label className="text-[12px] font-black text-slate-950 uppercase tracking-[0.15em] px-1">Institution Type</label>
+                        <div className="flex flex-wrap gap-3">
+                          {filterOptions.types.map(type => (
+                            <button
+                              key={type}
+                              onClick={() => handleTypeToggle(type)}
+                              className={`px-6 py-4 rounded-2xl text-xs font-black border-2 transition-all uppercase tracking-widest ${
+                                selectedTypes.includes(type) 
+                                  ? 'bg-indigo-600 border-indigo-600 text-white shadow-2xl shadow-indigo-200' 
+                                  : 'bg-white border-slate-200 text-slate-800 hover:border-slate-950 hover:bg-slate-50'
+                              }`}
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Area Filter */}
-                    <div className="space-y-6">
-                      <label className="text-[12px] font-black text-slate-950 uppercase tracking-[0.15em] px-1">Academic Discipline</label>
-                      <div className="relative">
-                        <select 
-                          value={selectedArea}
-                          onChange={(e) => setSelectedArea(e.target.value)}
-                          className="w-full py-5 px-8 bg-slate-50 border-2 border-slate-200 rounded-[1.5rem] text-sm font-black text-slate-950 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 appearance-none cursor-pointer uppercase tracking-widest"
-                        >
-                          <option value="Any">All Disciplines</option>
-                          {AREA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                        <ChevronDown size={22} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-950 pointer-events-none stroke-[4]" />
+                    {/* Area Filter - Dynamic from API */}
+                    {filterOptions.areas.length > 0 && (
+                      <div className="space-y-6">
+                        <label className="text-[12px] font-black text-slate-950 uppercase tracking-[0.15em] px-1">Academic Area</label>
+                        <div className="relative">
+                          <select 
+                            value={selectedArea}
+                            onChange={(e) => setSelectedArea(e.target.value)}
+                            className="w-full py-5 px-8 bg-slate-50 border-2 border-slate-200 rounded-[1.5rem] text-sm font-black text-slate-950 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 appearance-none cursor-pointer uppercase tracking-widest"
+                          >
+                            <option value="Any">All Areas</option>
+                            {filterOptions.areas.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                          </select>
+                          <ChevronDown size={22} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-950 pointer-events-none stroke-[4]" />
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <button 
                       onClick={() => {
@@ -222,17 +245,20 @@ export default function SearchResults() {
                       }}
                       className="w-full py-6 text-xs font-black text-rose-600 uppercase tracking-[0.3em] hover:text-rose-700 transition-all border-2 border-transparent hover:border-rose-100 rounded-2xl underline underline-offset-[12px]"
                     >
-                      Reset All Parameters
+                      Reset All Filters
                     </button>
                   </div>
                 </div>
 
                 <div className="bg-slate-900 rounded-[2rem] p-8 text-white premium-shadow">
                   <BookOpen size={24} className="text-indigo-400 mb-6" />
-                  <h3 className="text-xl font-black mb-2">Need Guidance?</h3>
-                  <p className="text-white/60 text-sm font-medium mb-6 leading-relaxed">Book a session with our verified academic consultants.</p>
-                  <button className="w-full py-4 bg-white text-slate-900 rounded-2xl font-black text-sm flex items-center justify-center gap-2 group">
-                    Find a Mentor <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  <h3 className="text-xl font-black mb-2">Need Help?</h3>
+                  <p className="text-white/60 text-sm font-medium mb-6 leading-relaxed">Contact us for personalized guidance.</p>
+                  <button 
+                    onClick={() => navigate('/contact')}
+                    className="w-full py-4 bg-white text-slate-900 rounded-2xl font-black text-sm flex items-center justify-center gap-2 group"
+                  >
+                    Contact Us <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
               </motion.aside>
@@ -258,86 +284,109 @@ export default function SearchResults() {
               </div>
             ) : (
               <AnimatePresence mode="popLayout">
-                {visibleResults.map((uni) => (
-                <motion.div
-                  key={uni.id}
-                  layout
-                  variants={itemVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  onClick={() => navigate(`/university/${uni.id}`)}
-                  className={`bg-white group cursor-pointer border border-slate-100 hover:border-indigo-200 transition-all duration-500 ${
-                    viewMode === 'grid' ? 'rounded-[2.5rem] overflow-hidden hover:shadow-2xl hover:shadow-slate-200/50' : 'rounded-3xl flex flex-col md:flex-row p-6'
-                  }`}
-                >
-                  <div className={`relative overflow-hidden ${viewMode === 'grid' ? 'h-64' : 'h-48 md:w-64 rounded-2xl shrink-0'}`}>
-                    <img 
-                      src={uni.image} 
-                      alt={uni.name} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute top-4 left-4">
-                      <span className="glass-dark text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
-                        {uni.type}
-                      </span>
-                    </div>
-                  </div>
+                {visibleResults.length > 0 ? (
+                  visibleResults.map((uni) => (
+                    <motion.div
+                      key={uni.id}
+                      layout
+                      variants={itemVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      onClick={() => navigate(`/university/${uni.id}`)}
+                      className={`bg-white group cursor-pointer border border-slate-100 hover:border-indigo-200 transition-all duration-500 ${
+                        viewMode === 'grid' ? 'rounded-[2.5rem] overflow-hidden hover:shadow-2xl hover:shadow-slate-200/50' : 'rounded-3xl flex flex-col md:flex-row p-6'
+                      }`}
+                    >
+                      <div className={`relative overflow-hidden ${viewMode === 'grid' ? 'h-64' : 'h-48 md:w-64 rounded-2xl shrink-0'}`}>
+                        {uni.image ? (
+                          <img 
+                            src={uni.image} 
+                            alt={uni.name} 
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">No Image</div>';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">
+                            No Image
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {uni.type && (
+                          <div className="absolute top-4 left-4">
+                            <span className="glass-dark text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
+                              {uni.type}
+                            </span>
+                          </div>
+                        )}
+                      </div>
 
-                  <div className={`p-8 flex flex-col justify-between flex-1 ${viewMode === 'list' ? 'h-full py-0' : ''}`}>
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-1.5 text-yellow-500">
-                          <Star size={14} className="fill-yellow-500" />
-                          <span className="font-black text-sm">{uni.rating}</span>
+                      <div className={`p-8 flex flex-col justify-between flex-1 ${viewMode === 'list' ? 'h-full py-0' : ''}`}>
+                        <div>
+                          <div className="flex items-center justify-between mb-4">
+                            {uni.rating && uni.rating > 0 && (
+                              <div className="flex items-center gap-1.5 text-yellow-500">
+                                <Star size={14} className="fill-yellow-500" />
+                                <span className="font-black text-sm">{uni.rating}</span>
+                              </div>
+                            )}
+                            {uni._count?.reviews > 0 && (
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{uni._count.reviews} Reviews</span>
+                            )}
+                          </div>
+                          <h3 className="text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors mb-2 line-clamp-1">
+                            {uni.name}
+                          </h3>
+                          {uni.location && (
+                            <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest mb-6">
+                              <MapPin size={14} className="text-indigo-500" />
+                              {uni.location}
+                            </div>
+                          )}
+                          
+                          {uni.category && (
+                            <div className="flex flex-wrap gap-2 mb-8">
+                              {uni.category.split(', ').slice(0, 2).map(cat => (
+                                <span key={cat} className="px-3 py-1 bg-slate-50 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-tight ring-1 ring-slate-100">
+                                  {cat}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{uni._count.reviews} Reviews</span>
-                      </div>
-                      <h3 className="text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors mb-2 line-clamp-1">
-                        {uni.name}
-                      </h3>
-                      <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest mb-6">
-                        <MapPin size={14} className="text-indigo-500" />
-                        {uni.location}
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2 mb-8">
-                        {uni.category?.split(', ').slice(0, 2).map(cat => (
-                          <span key={cat} className="px-3 py-1 bg-slate-50 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-tight ring-1 ring-slate-100">
-                            {cat}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
 
-                    <div className="flex items-center justify-between pt-6 border-t border-slate-50">
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Est. Median</span>
-                        <span className="text-emerald-600 font-black">{uni.medianSalary}</span>
+                        <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+                          {uni.tuitionFee && (
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Est. Fee</span>
+                              <span className="text-emerald-600 font-black">{uni.tuitionFee}</span>
+                            </div>
+                          )}
+                          <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center text-white group-hover:bg-indigo-600 transition-all duration-500 group-hover:translate-x-1">
+                            <ChevronRight size={20} />
+                          </div>
+                        </div>
                       </div>
-                      <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center text-white group-hover:bg-indigo-600 transition-all duration-500 group-hover:translate-x-1">
-                        <ChevronRight size={20} />
-                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }}
+                    className="col-span-full py-20 text-center"
+                  >
+                    <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                      <Compass size={40} className="text-slate-200" />
                     </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>)}
-
-            {visibleResults.length === 0 && (
-              <motion.div 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }}
-                className="col-span-full py-20 text-center"
-              >
-                <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                  <Compass size={40} className="text-slate-200 animate-spin-slow" />
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-2">Expanding Frontiers...</h3>
-                <p className="text-slate-500 font-medium max-w-sm mx-auto">We couldn't find matches for your current parameters. Try widening your search or resetting filters.</p>
-              </motion.div>
+                    <h3 className="text-2xl font-black text-slate-900 mb-2">No Results Found</h3>
+                    <p className="text-slate-500 font-medium max-w-sm mx-auto">No institutions match your search criteria. Try adjusting your filters.</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             )}
           </motion.div>
         </div>

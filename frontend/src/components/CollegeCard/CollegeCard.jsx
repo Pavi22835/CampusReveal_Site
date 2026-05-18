@@ -9,23 +9,9 @@ const CollegeCard = ({ college, index }) => {
   const navigate = useNavigate();
   const { requireAuth } = useAuth();
 
-  // Determine badge based on category or college name
+  // ✅ NO HARDCODED BADGE LOGIC - Only show badge if explicitly provided by admin
   const getBadge = () => {
-    const name = (college.name || '').toLowerCase();
-    const category = (college.category || '').toLowerCase();
-    
-    if (category === 'iit' || name.includes('iit') || college.badge === 'IIT') {
-      return { text: 'PREMIER', bgColor: '#f59e0b', icon: GraduationCap };
-    }
-    if (category === 'deemed' || name.includes('vit') || name.includes('srm') || college.badge === 'Deemed') {
-      return { text: 'UNIVERSITY', bgColor: '#4f46e5', icon: GraduationCap };
-    }
-    if (category === 'heritage' || (college.established && parseInt(college.established) < 1960)) {
-      return { text: 'HERITAGE', bgColor: '#10b981', icon: GraduationCap };
-    }
-    if (college.rating && college.rating >= 4.5) {
-      return { text: 'TOP RATED', bgColor: '#8b5cf6', icon: GraduationCap };
-    }
+    // Only show badge if college has a badge property from API
     if (college.badge) {
       return { text: college.badge, bgColor: '#2563eb', icon: GraduationCap };
     }
@@ -35,10 +21,15 @@ const CollegeCard = ({ college, index }) => {
   const badge = getBadge();
   const BadgeIcon = badge?.icon;
 
-  // Get rating
+  // ✅ NO FALLBACK RATING - Show nothing if rating doesn't exist
   const getRating = () => {
-    return (college.rating || 4.5).toFixed(1);
+    if (college.rating && college.rating > 0) {
+      return college.rating.toFixed(1);
+    }
+    return null;
   };
+
+  const rating = getRating();
 
   return (
     <motion.div 
@@ -54,17 +45,21 @@ const CollegeCard = ({ college, index }) => {
         {college.image ? (
           <img 
             src={college.image} 
-            alt={college.name || 'College image'} 
+            alt={college.name || 'College'} 
             className="card-image"
             referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              const placeholder = e.target.nextSibling;
+              if (placeholder) placeholder.style.display = 'flex';
+            }}
           />
-        ) : (
-          <div className="card-image-placeholder">
-            <GraduationCap size={32} className="placeholder-icon" />
-          </div>
-        )}
+        ) : null}
+        <div className="card-image-placeholder" style={{ display: college.image ? 'none' : 'flex' }}>
+          <GraduationCap size={32} className="placeholder-icon" />
+        </div>
         
-        {/* Badge - PREMIER / UNIVERSITY / HERITAGE */}
+        {/* Badge - Only show if provided by admin */}
         {badge && (
           <div className="card-badge" style={{ backgroundColor: badge.bgColor }}>
             <BadgeIcon size={10} />
@@ -72,11 +67,13 @@ const CollegeCard = ({ college, index }) => {
           </div>
         )}
         
-        {/* Rating Badge */}
-        <div className="card-rating">
-          <Star size={12} className="star-icon" fill="#f59e0b" />
-          <span>{getRating()}</span>
-        </div>
+        {/* Rating Badge - Only show if rating exists */}
+        {rating && (
+          <div className="card-rating">
+            <Star size={12} className="star-icon" fill="#f59e0b" />
+            <span>{rating}</span>
+          </div>
+        )}
       </div>
 
       {/* Content Section */}
@@ -85,12 +82,15 @@ const CollegeCard = ({ college, index }) => {
           {college.name}
         </h3>
         
-        <div className="card-location">
-          <MapPin size={14} className="pin-icon" />
-          <span>{college.location || college.city || 'Chennai, Tamil Nadu'}</span>
-        </div>
+        {/* Location - Only show if exists */}
+        {(college.location || college.city) && (
+          <div className="card-location">
+            <MapPin size={14} className="pin-icon" />
+            <span>{college.location || college.city}</span>
+          </div>
+        )}
 
-        {/* Footer with action button only - No EST */}
+        {/* Footer with action button */}
         <div className="card-footer">
           <button className="card-action-btn">
             Details 

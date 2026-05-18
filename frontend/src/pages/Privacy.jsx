@@ -2,11 +2,17 @@ import React from 'react';
 import './Legal.css';
 
 export default function Privacy() {
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
   return (
     <div className="legal-page">
       <div className="legal-container">
         <h1>Privacy Policy</h1>
-        <p>Last updated: {new Date().toLocaleDateString()}</p>
+        <p>Last updated: {currentDate}</p>
         
         <section>
           <h2>Information We Collect</h2>
@@ -30,7 +36,7 @@ export default function Privacy() {
 
         <section>
           <h2>Contact Us</h2>
-          <p>If you have questions about this Privacy Policy, please contact us at <a href="mailto:support@campusreveal.com">support@campusreveal.com</a></p>
+          <p>If you have questions about this Privacy Policy, please contact us through our contact page.</p>
         </section>
       </div>
     </div>

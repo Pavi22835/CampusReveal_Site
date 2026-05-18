@@ -50,7 +50,7 @@ const getCollegeImage = (college) => {
   return null;
 };
 
-const defaultLocationOptions = ['All Regions', 'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli'];
+const defaultLocationOptions = ['All Regions'];
 
 export default function Home() {
   const { requireAuth, isAuthenticated, openAuthModal, token } = useAuth();
@@ -99,24 +99,25 @@ export default function Home() {
   const [statsAnimated, setStatsAnimated] = useState(false);
   const [statValues, setStatValues] = useState([0, 0, 0, 0]);
   const [statsData, setStatsData] = useState([
-    { label: 'Universities', target: 2500, icon: Building2, format: 'comma' },
-    { label: 'Student Reviews', target: 45000, icon: MessageSquare, format: 'thousand' },
-    { label: 'Communities', target: 12000, icon: Globe, format: 'thousand' },
-    { label: 'Happy Graduates', target: 30000, icon: ShieldCheck, format: 'thousand' }
+    { label: 'Universities', target: 0, icon: Building2, format: 'comma' },
+    { label: 'Student Reviews', target: 0, icon: MessageSquare, format: 'thousand' },
+    { label: 'Active Discussions', target: 0, icon: Globe, format: 'thousand' },
+    { label: 'Total Students', target: 0, icon: ShieldCheck, format: 'thousand' }
   ]);
 
   const formatStatValue = (value, format) => {
     if (format === 'thousand') {
       if (value <= 0) return '0';
-      return `${Math.round(value / 1000)}k+`;
+      if (value < 1000) return value.toString();
+      return `${(value / 1000).toFixed(1)}k+`;
     }
     if (format === 'comma') {
+      if (value <= 0) return '0';
       return `${value.toLocaleString()}+`;
     }
-    return `${value}+`;
+    return value > 0 ? `${value}+` : '0';
   };
 
-  // Get dynamic stream options from API or fallback to UI labels
   const streamOptions = (() => {
     if (Array.isArray(filterOptions?.academicStreams) && filterOptions.academicStreams.length) {
       return filterOptions.academicStreams.map(s => {
@@ -127,7 +128,6 @@ export default function Home() {
     return academicStreams;
   })();
 
-  // Get dynamic level options from API or fallback to UI labels
   const levelOptions = (() => {
     if (Array.isArray(filterOptions?.academicLevels) && filterOptions.academicLevels.length) {
       return filterOptions.academicLevels.map(l => {
@@ -138,12 +138,10 @@ export default function Home() {
     return academicLevels;
   })();
 
-  // Get dynamic departments from API
   const availableDepartments = Array.isArray(filterOptions?.departments) && filterOptions.departments.length
     ? filterOptions.departments
     : [];
 
-  // Get dynamic courses from API based on selected department
   const availableCourses = (() => {
     if (Array.isArray(filterOptions?.offeredCourses) && filterOptions.offeredCourses.length) {
       const normalizedDept = activeFilters.department?.toLowerCase() || '';
@@ -157,7 +155,6 @@ export default function Home() {
     return [];
   })();
 
-  // Get dynamic location options from API
   const locationOptions = (() => {
     const locations = [];
     if (Array.isArray(filterOptions?.cities) && filterOptions.cities.length) {
@@ -204,7 +201,6 @@ export default function Home() {
     setSearchQuery('');
     setSuggestions([]);
     setShowSuggestions(false);
-    // Reset to show trending colleges
     if (trendingColleges.length > 0) {
       setDisplayColleges(trendingColleges.slice(0, 6));
     }
@@ -269,7 +265,6 @@ export default function Home() {
 
   const selectedFilters = getSelectedFiltersArray();
 
-  // Handle Write a Review click from Home page
   const handleWriteReviewClick = () => {
     if (!isAuthenticated) {
       openAuthModal();
@@ -293,7 +288,6 @@ export default function Home() {
     setShowProfileModal(true);
   };
 
-  // Handle profile modal success
   const handleProfileSuccess = () => {
     const universityId = localStorage.getItem('reviewUniversityId');
     if (universityId) {
@@ -303,18 +297,15 @@ export default function Home() {
     }
   };
 
-  // Fetch trending colleges, filter options
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
         console.log('Fetching universities data...');
 
-        // Fetch all universities first
         const universitiesResult = await api.getUniversities(token);
         console.log('Universities Response:', universitiesResult);
 
-        // Try to fetch filter options
         let filterResult = { success: false, data: {} };
         try {
           filterResult = await api.getFilterOptions();
@@ -323,29 +314,54 @@ export default function Home() {
           console.warn('Filter options not available:', err);
         }
 
-        // Handle universities data
         if (universitiesResult.success && Array.isArray(universitiesResult.data)) {
-          // Filter out trashed universities
           const activeUniversities = universitiesResult.data.filter(uni => !uni.isTrashed);
+
+          // Calculate real stats from API data
+          const totalUniversities = activeUniversities.length;
+          
+          let totalReviews = 0;
+          let totalStudents = 0;
+          
+          activeUniversities.forEach(uni => {
+            totalReviews += (uni._count?.reviews || 0);
+            totalStudents += (uni.studentCount || 0);
+          });
+          
+          let totalDiscussions = 0;
+          try {
+            const discussionsResult = await api.getDiscussions();
+            if (discussionsResult.success && Array.isArray(discussionsResult.data)) {
+              totalDiscussions = discussionsResult.data.filter(d => !d.isTrashed).length;
+            }
+          } catch (err) {
+            console.error('Error fetching discussions:', err);
+          }
+          
+          setStatsData([
+            { label: 'Universities', target: totalUniversities, icon: Building2, format: 'comma' },
+            { label: 'Student Reviews', target: totalReviews, icon: MessageSquare, format: 'thousand' },
+            { label: 'Active Discussions', target: totalDiscussions, icon: Globe, format: 'thousand' },
+            { label: 'Total Students', target: totalStudents, icon: ShieldCheck, format: 'thousand' }
+          ]);
 
           const formatted = activeUniversities.map((college) => ({
             ...college,
             id: college.id,
             name: college.name,
-            location: college.location || college.city || 'India',
+            location: college.location || college.city,
             city: college.city,
-            rating: college.rating || 4.0,
+            rating: college.rating,
             studentCount: college.studentCount,
             tuitionFee: college.tuitionFee,
-            category: college.category || 'University',
+            category: college.category,
             image: getCollegeImage(college),
-            students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : 'N/A',
-            netPrice: college.tuitionFee ? `₹${college.tuitionFee.toLocaleString()}` : 'N/A'
+            students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : null,
+            netPrice: college.tuitionFee ? `₹${college.tuitionFee.toLocaleString()}` : null
           }));
 
           setTrendingColleges(formatted);
           setAllColleges(formatted);
-          // Show first 6 cards only
           setDisplayColleges(formatted.slice(0, 6));
           console.log('Set display colleges:', formatted.slice(0, 6).length, 'universities');
         } else {
@@ -355,7 +371,6 @@ export default function Home() {
           setDisplayColleges([]);
         }
 
-        // Handle filter options if available
         if (filterResult.success && filterResult.data) {
           setFilterOptions({
             academicStreams: filterResult.data.academicStreams || [],
@@ -417,12 +432,10 @@ export default function Home() {
     return () => cancelAnimationFrame(rafId);
   }, [statsAnimated, statsData]);
 
-  // Apply filters when they change - Always show max 6 cards
   useEffect(() => {
     const applyFilters = () => {
       let filtered = [...allColleges];
 
-      // Apply stream filter
       if (activeFilters.stream) {
         filtered = filtered.filter(college =>
           college.academicStream === activeFilters.stream ||
@@ -430,7 +443,6 @@ export default function Home() {
         );
       }
 
-      // Apply level filter
       if (activeFilters.level) {
         filtered = filtered.filter(college =>
           college.academicLevel === activeFilters.level ||
@@ -438,21 +450,18 @@ export default function Home() {
         );
       }
 
-      // Apply department filter
       if (activeFilters.department) {
         filtered = filtered.filter(college =>
           college.department?.toLowerCase() === activeFilters.department.toLowerCase()
         );
       }
 
-      // Apply course filter
       if (activeFilters.course) {
         filtered = filtered.filter(college =>
           college.course?.toLowerCase() === activeFilters.course.toLowerCase()
         );
       }
 
-      // Apply location filter
       if (activeFilters.location && activeFilters.location !== 'All Regions') {
         filtered = filtered.filter(college =>
           college.location === activeFilters.location ||
@@ -461,7 +470,6 @@ export default function Home() {
         );
       }
 
-      // Apply search query
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         filtered = filtered.filter(college =>
@@ -471,7 +479,6 @@ export default function Home() {
         );
       }
 
-      // Always show only first 6 cards
       setDisplayColleges(filtered.slice(0, 6));
     };
 
@@ -497,7 +504,7 @@ export default function Home() {
             ...college,
             id: college.id,
             name: college.name,
-            location: college.location || college.city || 'India',
+            location: college.location || college.city,
             city: college.city,
             rating: college.rating,
             category: college.category,
@@ -537,8 +544,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
-
-      {/* Selected Filters Display */}
       {selectedFilters.length > 0 && (
         <SelectedFiltersBar
           selectedFilters={selectedFilters}
@@ -647,7 +652,6 @@ export default function Home() {
         formatStatValue={formatStatValue}
       />
 
-      {/* Profile Details Modal */}
       <ProfileDetailsModal
         isOpen={showProfileModal}
         onClose={() => {

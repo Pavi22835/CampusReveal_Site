@@ -95,6 +95,9 @@ export default function HomeHeroSection({
                   <div className="max-h-[400px] overflow-y-auto">
                     {suggestions.map((college) => {
                       const logoUrl = getCollegeLogo(college);
+                      // Get location - only show if exists, no fallback
+                      const location = college.location || college.city;
+                      
                       return (
                         <button
                           key={college.id}
@@ -127,10 +130,12 @@ export default function HomeHeroSection({
                               {college.name}
                             </p>
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                              <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                                <MapPin size={12} /> {college.location || college.city || 'India'}
-                              </span>
-                              {college.rating && (
+                              {location && (
+                                <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                                  <MapPin size={12} /> {location}
+                                </span>
+                              )}
+                              {college.rating && college.rating > 0 && (
                                 <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
                                   <Star size={12} fill="currentColor" /> {college.rating}
                                 </span>

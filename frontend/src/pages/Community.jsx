@@ -34,7 +34,7 @@ export default function Community() {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      if (user?.role === 'ADMIN' || user?.email === 'admin@campusreveal.com') {
+      if (user?.role === 'ADMIN') {
         setIsAdmin(true);
       }
     };
@@ -50,7 +50,7 @@ export default function Community() {
 
   // Format date for display
   const formatTimestamp = (dateString) => {
-    if (!dateString) return 'Just now';
+    if (!dateString) return null;
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now - date;
@@ -70,7 +70,7 @@ export default function Community() {
     return `${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
   };
 
-  // Format like count - just the number, no "likes" text
+  // Format like count - just the number
   const formatLikeCount = (count) => {
     if (count >= 1000) {
       return (count / 1000).toFixed(1) + 'k';
@@ -95,8 +95,8 @@ export default function Community() {
             user: {
               username: discussion.author?.name
                 ? discussion.author.name.toLowerCase().replace(/\s+/g, '_')
-                : 'anonymous',
-              name: discussion.author?.name || 'Anonymous',
+                : null,
+              name: discussion.author?.name || null,
               avatar: discussion.author?.avatar || null,
               verified: discussion.author?.role === 'ADMIN',
               isAdmin: discussion.author?.role === 'ADMIN'
@@ -135,8 +135,8 @@ export default function Community() {
           user: {
             username: discussion.author?.name
               ? discussion.author.name.toLowerCase().replace(/\s+/g, '_')
-              : 'anonymous',
-            name: discussion.author?.name || 'Anonymous',
+              : null,
+            name: discussion.author?.name || null,
             avatar: discussion.author?.avatar || null,
             verified: discussion.author?.role === 'ADMIN',
             isAdmin: discussion.author?.role === 'ADMIN'
@@ -167,8 +167,8 @@ export default function Community() {
         const formattedComments = comments.map(comment => ({
           id: comment.id,
           user: {
-            username: comment.author?.name?.toLowerCase().replace(/\s/g, '_') || 'anonymous',
-            name: comment.author?.name || 'Anonymous',
+            username: comment.author?.name?.toLowerCase().replace(/\s/g, '_') || null,
+            name: comment.author?.name || null,
             verified: comment.author?.role === 'ADMIN',
             isAdmin: comment.author?.role === 'ADMIN'
           },
@@ -549,8 +549,8 @@ export default function Community() {
   const currentList = activeTab === 'all' ? posts : trashedPosts;
   
   const filteredList = currentList.filter(post =>
-    post.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.content?.toLowerCase().includes(searchQuery.toLowerCase())
+    (post.user?.name && post.user.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (post.content && post.content.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   if (loading) {
@@ -654,12 +654,14 @@ export default function Community() {
                 <div className="ig-post-header">
                   <div className="ig-post-user">
                     <div className="ig-avatar">
-                      {post.user?.username?.charAt(0).toUpperCase() || 'U'}
+                      {post.user?.username ? post.user.username.charAt(0).toUpperCase() : '?'}
                     </div>
                     <div className="ig-user-info">
                       <span className="ig-username">{post.user?.username || 'Anonymous'}</span>
                       {post.user?.verified && <BadgeCheck size={12} className="ig-verified" />}
-                      <span className="ig-time">• {formatTimestamp(post.timestamp)}</span>
+                      {post.timestamp && (
+                        <span className="ig-time">• {formatTimestamp(post.timestamp)}</span>
+                      )}
                       {post.isTrashed && <span className="trashed-badge">Trashed</span>}
                     </div>
                   </div>
@@ -698,19 +700,23 @@ export default function Community() {
                         disabled={likingPost === post.id}
                       >
                         <Heart size={22} fill={post.liked ? '#ed4956' : 'none'} />
-                        <span className="ig-action-count">
-                          {post.likes > 0 && formatLikeCount(post.likes)}
-                        </span>
+                        {post.likes > 0 && (
+                          <span className="ig-action-count">
+                            {formatLikeCount(post.likes)}
+                          </span>
+                        )}
                       </button>
                       <button onClick={() => toggleComments(post.id)} className="ig-action">
                         <MessageCircle size={22} />
-                        <span className="ig-action-count">
-                          {post.commentCount > 0 && formatLikeCount(post.commentCount)}
-                        </span>
+                        {post.commentCount > 0 && (
+                          <span className="ig-action-count">
+                            {formatLikeCount(post.commentCount)}
+                          </span>
+                        )}
                       </button>
                     </div>
 
-                    {/* Post Likes Count - Only show number, no "likes" text */}
+                    {/* Post Likes Count */}
                     {post.likes > 0 && (
                       <div className="ig-likes">
                         ❤️ {formatLikeCount(post.likes)}
@@ -732,13 +738,15 @@ export default function Community() {
                             post.commentsList.map((comment) => (
                               <div key={comment.id} className="ig-comment">
                                 <div className="ig-comment-avatar">
-                                  {comment.user?.username?.charAt(0).toUpperCase() || 'U'}
+                                  {comment.user?.username ? comment.user.username.charAt(0).toUpperCase() : '?'}
                                 </div>
                                 <div className="ig-comment-content">
                                   <div className="ig-comment-header">
                                     <span className="ig-comment-username">{comment.user?.username || 'Anonymous'}</span>
                                     {comment.user?.verified && <BadgeCheck size={10} className="ig-verified-small" />}
-                                    <span className="ig-comment-time">{formatTimestamp(comment.timestamp)}</span>
+                                    {comment.timestamp && (
+                                      <span className="ig-comment-time">{formatTimestamp(comment.timestamp)}</span>
+                                    )}
                                   </div>
                                   <p className="ig-comment-text">{comment.content}</p>
                                   
@@ -759,7 +767,7 @@ export default function Community() {
                                     </button>
                                   </div>
                                   
-                                  {/* COMMENT LIKES COUNT - Only show number, no "likes" text */}
+                                  {/* COMMENT LIKES COUNT */}
                                   {comment.likes > 0 && (
                                     <div className="ig-comment-likes-count">
                                       ❤️ {formatLikeCount(comment.likes)}
@@ -770,12 +778,14 @@ export default function Community() {
                                   {comment.replies?.map((reply) => (
                                     <div key={reply.id} className="ig-reply">
                                       <div className="ig-reply-avatar">
-                                        {reply.user?.username?.charAt(0).toUpperCase() || 'U'}
+                                        {reply.user?.username ? reply.user.username.charAt(0).toUpperCase() : '?'}
                                       </div>
                                       <div className="ig-reply-content">
                                         <div className="ig-reply-header">
                                           <span className="ig-reply-username">{reply.user?.username || 'Anonymous'}</span>
-                                          <span className="ig-reply-time">{formatTimestamp(reply.timestamp)}</span>
+                                          {reply.timestamp && (
+                                            <span className="ig-reply-time">{formatTimestamp(reply.timestamp)}</span>
+                                          )}
                                         </div>
                                         <p className="ig-reply-text">{reply.content}</p>
                                       </div>
@@ -813,7 +823,7 @@ export default function Community() {
                         {/* Add Comment */}
                         <div className="ig-add-comment">
                           <div className="ig-comment-avatar-small">
-                            {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                            {user?.name?.charAt(0)?.toUpperCase() || '?'}
                           </div>
                           <input
                             type="text"

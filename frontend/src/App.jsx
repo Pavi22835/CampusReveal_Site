@@ -28,23 +28,8 @@ import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 
-// Admin Pages Imports - Comment out missing ones for now
-// import AdminLayout from './pages/admin/AdminLayout';
-// import Dashboard from './pages/admin/Dashboard';
-// import AdminUniversities from './pages/admin/Universities';
-// import AdminReviews from './pages/admin/Reviews';
-// import AdminUsers from './pages/admin/Users';
-// import AdminDiscussions from './pages/admin/Discussions';
-// import AdminAddUniversity from './pages/admin/AddUniversity';
-// import AdminEditUniversity from './pages/admin/EditUniversity';
-// import Settings from './pages/admin/Settings';
-// import ProtectedRoute from './components/ProtectedRoute';
-
 function AppContent() {
-  const { isAuthenticated, toast, hideToast, user } = useAuth();
-
-  // Check if user is admin
-  const isAdmin = user?.role === 'ADMIN' || user?.email === 'admin@campusreveal.com';
+  const { toast, hideToast } = useAuth();
 
   return (
     <div className="app-container">
@@ -90,7 +75,7 @@ function AppContent() {
 
       <Footer />
       
-      {/* Auth Modal - shows on homepage when not authenticated */}
+      {/* Auth Modal */}
       <AuthModal />
     </div>
   );

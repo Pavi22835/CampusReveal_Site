@@ -77,7 +77,7 @@ export default function Navbar() {
     navigate('/');
   };
 
-  // ✅ FIXED: Handle Write Review click with proper flow
+  // Handle Write Review click with proper flow
   const handleWriteReview = () => {
     if (!isAuthenticated) {
       // Step 1: Not logged in - Open OTP login modal
@@ -181,7 +181,7 @@ export default function Navbar() {
 
           {/* RIGHT: Write a Review + Auth Section */}
           <div className="flex items-center gap-3">
-            {/* Write a Review Button - Emerald Green Button */}
+            {/* Write a Review Button */}
             <button
               onClick={handleWriteReview}
               className="hidden lg:flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-sm transition-all shadow-md hover:shadow-lg"
@@ -223,8 +223,8 @@ export default function Navbar() {
                             {user?.name?.charAt(0).toUpperCase() || 'U'}
                           </div>
                           <div className="flex-1">
-                            <h4 className="font-bold text-white">{user?.name || 'User'}</h4>
-                            <p className="text-xs text-slate-400">{user?.email || 'user@campusreveal.com'}</p>
+                            <h4 className="font-bold text-white">{user?.name}</h4>
+                            <p className="text-xs text-slate-400">{user?.email}</p>
                           </div>
                         </div>
                       </div>
@@ -439,7 +439,7 @@ export default function Navbar() {
                 {/* Mobile Menu Footer */}
                 <div className="p-5 border-t border-slate-800">
                   <p className="text-xs text-slate-500 text-center">
-                    © 2024 CampusReveal. All rights reserved.
+                    © {new Date().getFullYear()} CampusReveal. All rights reserved.
                   </p>
                 </div>
               </motion.div>

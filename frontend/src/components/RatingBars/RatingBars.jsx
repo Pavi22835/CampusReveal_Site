@@ -4,14 +4,12 @@ import './ratingBars.css';
 const RatingBars = ({ ratings = [] }) => {
   const maxRating = 5;
   
-  const defaultRatings = [
-    { category: 'Academics', score: 4.5 },
-    { category: 'Placements', score: 4.8 },
-    { category: 'Infrastructure', score: 4.2 },
-    { category: 'Campus Life', score: 4.7 },
-  ];
-
-  const displayRatings = ratings.length > 0 ? ratings : defaultRatings;
+  // Only use real ratings from API, no default dummy data
+  const displayRatings = ratings && ratings.length > 0 ? ratings : [];
+  
+  if (displayRatings.length === 0) {
+    return null;
+  }
   
   return (
     <div className="rating-bars">
@@ -25,7 +23,7 @@ const RatingBars = ({ ratings = [] }) => {
               style={{ width: `${(item.score / maxRating) * 100}%` }}
             />
           </div>
-          <div className="rating-score">{item.score}</div>
+          <div className="rating-score">{item.score.toFixed(1)}</div>
         </div>
       ))}
     </div>

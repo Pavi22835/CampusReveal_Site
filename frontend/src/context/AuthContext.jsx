@@ -22,7 +22,6 @@ export const AuthProvider = ({ children }) => {
   const toastTimer = useRef(null);
 
   useEffect(() => {
-    // Check for existing OTP session
     const authStatus = localStorage.getItem('isAuthenticated');
     const userData = localStorage.getItem('user');
     const storedToken = localStorage.getItem('token');
@@ -85,13 +84,11 @@ export const AuthProvider = ({ children }) => {
     setIsOtpAuthenticated(true);
     setShowAuthModal(false);
     
-    // Store the token from OTP response
     if (otpToken) {
       localStorage.setItem('token', otpToken);
       setToken(otpToken);
     }
     
-    // Store user data for persistence
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('isAuthenticated', 'true');
 
@@ -106,7 +103,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.updateUserProfile(profileData, token);
       if (res.success) {
-        // Update local user state
         const updatedUser = { ...user, ...profileData };
         setUser(updatedUser);
         localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -216,7 +212,7 @@ export const AuthProvider = ({ children }) => {
       otpLogin,
       requireAuth,
       showAuthModal,
-      openAuthModal,  // Make sure this is exported
+      openAuthModal,
       closeModal,
       isAuthenticated,
       toast,

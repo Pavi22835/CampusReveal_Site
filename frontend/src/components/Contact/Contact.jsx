@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Send, MessageSquare, User, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MapPin, Phone, Mail, Clock, Send, MessageSquare, User, CheckCircle, AlertCircle } from 'lucide-react';
+import { api } from '../services/api';
 import './Contact.css';
 
 export default function Contact() {
@@ -11,36 +12,79 @@ export default function Contact() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [contactInfo, setContactInfo] = useState(null);
+  const [loadingInfo, setLoadingInfo] = useState(true);
+
+  // ✅ Fetch contact information from API
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      try {
+        setLoadingInfo(true);
+        const response = await api.getContactInfo?.();
+        if (response?.success && response?.data) {
+          setContactInfo(response.data);
+        }
+      } catch (err) {
+        console.error('Error fetching contact info:', err);
+      } finally {
+        setLoadingInfo(false);
+      }
+    };
+    fetchContactInfo();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     
-    // Simulate API call - Replace with your actual API
-    setTimeout(() => {
-      console.log('Form submitted:', formData);
-      setSubmitted(true);
-      setLoading(false);
-      setFormData({ name: '', email: '', subject: '', message: '' });
+    // Validate form
+    if (!formData.name.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    if (!formData.message.trim()) {
+      setError('Please enter your message');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      // ✅ Call actual API to submit contact form
+      const response = await api.submitContactForm?.(formData);
       
-      // Hide success message after 5 seconds
-      setTimeout(() => setSubmitted(false), 5000);
-    }, 1000);
+      if (response?.success) {
+        setSubmitted(true);
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        
+        // Hide success message after 5 seconds
+        setTimeout(() => setSubmitted(false), 5000);
+      } else {
+        setError(response?.message || 'Failed to send message. Please try again.');
+      }
+    } catch (err) {
+      console.error('Submit error:', err);
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const contactInfo = [
-    { icon: MapPin, title: 'Address', details: ['Chennai, Tamil Nadu', 'India - 600001'] },
-    { icon: Phone, title: 'Phone', details: ['+91 12345 67890', '+91 98765 43210'] },
-    { icon: Mail, title: 'Email', details: ['support@campusreveal.com', 'info@campusreveal.com'] },
-    { icon: Clock, title: 'Business Hours', details: ['Monday - Friday: 9AM - 6PM', 'Saturday: 10AM - 2PM'] }
-  ];
+  // ✅ Static contact info removed - Now using dynamic data from API
+  // Only show contact cards if data is available from API
 
   return (
     <div className="contact-page">
@@ -54,20 +98,50 @@ export default function Contact() {
 
         <div className="contact-wrapper">
           
-          {/* Contact Info Cards */}
-          <div className="contact-info-grid">
-            {contactInfo.map((item, index) => (
-              <div key={index} className="contact-info-card">
-                <div className="contact-icon">
-                  <item.icon size={24} />
+          {/* Contact Info Cards - Only show if data exists */}
+          {contactInfo && !loadingInfo && (
+            <div className="contact-info-grid">
+              {contactInfo.address && (
+                <div className="contact-info-card">
+                  <div className="contact-icon">
+                    <MapPin size={24} />
+                  </div>
+                  <h3>Address</h3>
+                  <p>{contactInfo.address}</p>
                 </div>
-                <h3>{item.title}</h3>
-                {item.details.map((detail, i) => (
-                  <p key={i}>{detail}</p>
-                ))}
-              </div>
-            ))}
-          </div>
+              )}
+              
+              {contactInfo.phone && (
+                <div className="contact-info-card">
+                  <div className="contact-icon">
+                    <Phone size={24} />
+                  </div>
+                  <h3>Phone</h3>
+                  <p>{contactInfo.phone}</p>
+                </div>
+              )}
+              
+              {contactInfo.email && (
+                <div className="contact-info-card">
+                  <div className="contact-icon">
+                    <Mail size={24} />
+                  </div>
+                  <h3>Email</h3>
+                  <p>{contactInfo.email}</p>
+                </div>
+              )}
+              
+              {contactInfo.businessHours && (
+                <div className="contact-info-card">
+                  <div className="contact-icon">
+                    <Clock size={24} />
+                  </div>
+                  <h3>Business Hours</h3>
+                  <p>{contactInfo.businessHours}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Contact Form */}
           <div className="contact-form-section">
@@ -92,6 +166,13 @@ export default function Contact() {
                 <div className="success-message">
                   <CheckCircle size={20} />
                   Thank you! We'll get back to you soon.
+                </div>
+              )}
+              
+              {error && (
+                <div className="error-message">
+                  <AlertCircle size={20} />
+                  {error}
                 </div>
               )}
               
@@ -127,7 +208,6 @@ export default function Contact() {
                   placeholder="Subject"
                   value={formData.subject}
                   onChange={handleChange}
-                  required
                 />
               </div>
 

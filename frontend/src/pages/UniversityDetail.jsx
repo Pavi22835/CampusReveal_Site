@@ -9,7 +9,7 @@ import {
   DollarSign, Home, Video, Activity, Target,
   Info, XCircle, Coffee, Briefcase, UserCheck, School,
   Verified, Phone, Mail, CalendarDays, AwardIcon,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
@@ -21,24 +21,37 @@ const ImageGallerySlider = ({ images }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   
-  const displayImages = images && images.length > 0 ? images : [
-    'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?q=80&w=2070&auto=format&fit=crop'
-  ];
+  const displayImages = images && images.length > 0 ? images : [];
 
   const nextSlide = () => {
+    if (displayImages.length === 0) return;
     setCurrentIndex((prev) => (prev + 1) % displayImages.length);
   };
 
   const prevSlide = () => {
+    if (displayImages.length === 0) return;
     setCurrentIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
   };
 
   useEffect(() => {
+    if (displayImages.length === 0) return;
     if (!isHovered) {
       const timer = setInterval(nextSlide, 4000);
       return () => clearInterval(timer);
     }
-  }, [isHovered, currentIndex]);
+  }, [isHovered, currentIndex, displayImages.length]);
+
+  if (displayImages.length === 0) {
+    return (
+      <div className="no-images-container">
+        <div className="no-images-icon">
+          <ImageIcon size={48} strokeWidth={1.5} />
+        </div>
+        <p className="no-images-title">No Images Available</p>
+        <p className="no-images-message">No campus images have been uploaded for this institution.</p>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -56,6 +69,13 @@ const ImageGallerySlider = ({ images }) => {
           transition={{ duration: 0.5 }}
           className="gallery-slide-image"
           alt="Campus view"
+          onError={(e) => {
+            e.target.style.display = 'none';
+            const parent = e.target.parentElement;
+            if (parent) {
+              parent.innerHTML = '<div class="image-load-error">Image failed to load</div>';
+            }
+          }}
         />
       </AnimatePresence>
       
@@ -84,7 +104,11 @@ const ImageGallerySlider = ({ images }) => {
 
 // Helper function to render stars
 const renderStars = (rating) => {
-  const numericRating = typeof rating === 'number' ? rating : parseFloat(rating) || 0;
+  if (!rating || rating === 0) {
+    return <span className="no-rating">No ratings yet</span>;
+  }
+  
+  const numericRating = typeof rating === 'number' ? rating : parseFloat(rating);
   const fullStars = Math.floor(numericRating);
   const hasHalfStar = numericRating - fullStars >= 0.5;
   const stars = [];
@@ -108,25 +132,16 @@ const renderStars = (rating) => {
 // ==================== LOCATION HELPER FUNCTIONS ====================
 const hasValidLocation = (university) => {
   if (!university) return false;
-  
-  // Check multiple possible location fields
   const hasLocation = university.location && university.location.trim() !== '';
   const hasCity = university.city && university.city.trim() !== '';
   const hasState = university.state && university.state.trim() !== '';
-  const hasAddress = university.address && university.address.trim() !== '';
-  const hasCoordinates = (university.latitude && university.longitude);
-  
-  return hasLocation || hasCity || hasState || hasAddress || hasCoordinates;
+  return hasLocation || hasCity || hasState;
 };
 
 const getLocationText = (university) => {
   if (!university) return null;
-  
   if (university.location && university.location.trim() !== '') {
     return university.location;
-  }
-  if (university.address && university.address.trim() !== '') {
-    return university.address;
   }
   if (university.city && university.city.trim() !== '') {
     if (university.state && university.state.trim() !== '') {
@@ -136,9 +151,6 @@ const getLocationText = (university) => {
   }
   if (university.state && university.state.trim() !== '') {
     return university.state;
-  }
-  if (university.latitude && university.longitude) {
-    return `${university.latitude},${university.longitude}`;
   }
   return null;
 };
@@ -184,13 +196,7 @@ export default function UniversityDetail() {
           facultyCount: uniResult.data.facultyCount,
           studentCount: uniResult.data.studentCount,
           offeredCourses: uniResult.data.offeredCourses,
-          specializations: uniResult.data.specializations,
-          location: uniResult.data.location,
-          city: uniResult.data.city,
-          state: uniResult.data.state,
-          address: uniResult.data.address,
-          latitude: uniResult.data.latitude,
-          longitude: uniResult.data.longitude
+          specializations: uniResult.data.specializations
         });
       } else {
         setError(uniResult.message || 'University not found');
@@ -226,14 +232,14 @@ export default function UniversityDetail() {
 
     reviewsData.forEach(review => {
       if (review.ratings && typeof review.ratings === 'object') {
-        academicsSum += review.ratings.academicRigor || review.ratings.teachingQuality || 0;
+        academicsSum += review.ratings.academicRigor || 0;
         facultySum += review.ratings.facultySupport || 0;
-        infrastructureSum += review.ratings.campusInfrastructure || review.ratings.classrooms || 0;
-        campusLifeSum += review.ratings.socialLife || review.ratings.eventsFests || 0;
-        transportSum += review.ratings.transportFacilities || review.ratings.busAvailability || 0;
-        placementsSum += review.ratings.placementSupport || review.ratings.internshipOpportunities || 0;
-        studentLifeSum += review.ratings.clubsActivities || review.ratings.eventsFests || 0;
-        sportsSum += review.ratings.sportsFacilities || review.ratings.gymFacilities || 0;
+        infrastructureSum += review.ratings.campusInfrastructure || 0;
+        campusLifeSum += review.ratings.socialLife || 0;
+        transportSum += review.ratings.transportFacilities || 0;
+        placementsSum += review.ratings.placementSupport || 0;
+        studentLifeSum += review.ratings.clubsActivities || 0;
+        sportsSum += review.ratings.sportsFacilities || 0;
         count++;
       } else if (review.rating) {
         academicsSum += review.rating;
@@ -327,47 +333,54 @@ export default function UniversityDetail() {
   const hasLocation = hasValidLocation(university);
   const locationText = hasLocation ? getLocationText(university) : null;
   
-  const galleryImages = university.images && university.images.length > 0 ? university.images : [university.imageUrl, university.image].filter(Boolean);
+  const galleryImages = university.images || [];
   const activeFacilities = university.campusFacilities || [];
   const reviewCountDisplay = reviews.length >= 1000 ? `${(reviews.length / 1000).toFixed(1)}k` : `${reviews.length}`;
   const ratingValue = university.rating ? Number(university.rating).toFixed(1) : '0.0';
 
-  const memberSince = university.established || (university.createdAt ? new Date(university.createdAt).getFullYear() : '2024');
+  const memberSince = university.established || (university.createdAt ? new Date(university.createdAt).getFullYear() : null);
 
   const verdictCategories = [
-    { label: "Academics", score: averageRatings.academics || 4.0, color: "#3b82f6" },
-    { label: "Faculty", score: averageRatings.faculty || 4.0, color: "#8b5cf6" },
-    { label: "Infrastructure", score: averageRatings.infrastructure || 4.0, color: "#10b981" },
-    { label: "Campus Life", score: averageRatings.campusLife || 4.0, color: "#f59e0b" },
-    { label: "Transport", score: averageRatings.transport || 4.0, color: "#06b6d4" },
-    { label: "Placements", score: averageRatings.placements || 4.0, color: "#ef4444" },
-    { label: "Student Life", score: averageRatings.studentLife || 4.0, color: "#ec4899" },
-    { label: "Sports", score: averageRatings.sports || 4.0, color: "#f97316" }
-  ];
+    { label: "Academics", score: averageRatings.academics, color: "#3b82f6" },
+    { label: "Faculty", score: averageRatings.faculty, color: "#8b5cf6" },
+    { label: "Infrastructure", score: averageRatings.infrastructure, color: "#10b981" },
+    { label: "Campus Life", score: averageRatings.campusLife, color: "#f59e0b" },
+    { label: "Transport", score: averageRatings.transport, color: "#06b6d4" },
+    { label: "Placements", score: averageRatings.placements, color: "#ef4444" },
+    { label: "Student Life", score: averageRatings.studentLife, color: "#ec4899" },
+    { label: "Sports", score: averageRatings.sports, color: "#f97316" }
+  ].filter(cat => cat.score > 0);
 
-  // Dynamic stats from API data
-  const heroStats = [
-    { 
-      icon: TrendingUp, 
-      value: university.placementRate ? `${university.placementRate}%` : (university.placementStats || '85%'), 
-      label: 'PLACEMENTS'
-    },
-    { 
-      icon: UserCheck, 
-      value: university.facultyCount ? `${university.facultyCount.toLocaleString()}+` : (university.facultyStrength || '300+'), 
-      label: 'FACULTY'
-    },
-    { 
-      icon: Users, 
-      value: university.studentCount ? `${Math.floor(university.studentCount / 1000)}k+` : (university.totalStudents ? `${Math.floor(university.totalStudents / 1000)}k+` : '6k+'), 
-      label: 'STUDENTS'
+  const getPlacementValue = () => {
+    if (university.placementRate) return `${university.placementRate}%`;
+    return null;
+  };
+
+  const getFacultyValue = () => {
+    if (university.facultyCount) return `${university.facultyCount.toLocaleString()}+`;
+    return null;
+  };
+
+  const getStudentValue = () => {
+    if (university.studentCount) {
+      const students = parseInt(university.studentCount);
+      if (students >= 1000) {
+        return `${Math.floor(students / 1000)}k+`;
+      }
+      return `${students}+`;
     }
-  ];
+    return null;
+  };
+
+  const heroStats = [
+    { icon: TrendingUp, value: getPlacementValue(), label: 'PLACEMENTS' },
+    { icon: UserCheck, value: getFacultyValue(), label: 'FACULTY' },
+    { icon: Users, value: getStudentValue(), label: 'STUDENTS' }
+  ].filter(stat => stat.value !== null);
 
   return (
     <div className="university-detail-page">
       <div className="container">
-        {/* Breadcrumbs */}
         <div className="breadcrumbs">
           <Link to="/">Home</Link>
           <span>/</span>
@@ -376,16 +389,14 @@ export default function UniversityDetail() {
           <span className="current">{university.name}</span>
         </div>
 
-        {/* SPLIT HERO SECTION - Left Text + Right Gallery */}
         <div className="split-hero-section">
           <div className="hero-left-content">
             <div className="hero-badge-top">
               <AwardIcon size={14} />
-              <span>Top Ranked Institution</span>
+              <span>{university.type || 'Institution'}</span>
             </div>
             <h1 className="hero-college-name">{university.name}</h1>
             
-            {/* Location - Only show if exists */}
             {hasLocation && locationText && (
               <div className="hero-location">
                 <MapPin size={16} />
@@ -394,25 +405,34 @@ export default function UniversityDetail() {
             )}
             
             <div className="hero-meta">
-              <div className="member-since">
-                <CalendarDays size={14} />
-                <span>Member since: {memberSince}</span>
-              </div>
+              {memberSince && (
+                <div className="member-since">
+                  <CalendarDays size={14} />
+                  <span>Member since: {memberSince}</span>
+                </div>
+              )}
               <div className="hero-rating">
                 <div className="rating-stars">{renderStars(ratingValue)}</div>
-                <span className="rating-value">{ratingValue}/5</span>
-                <span className="review-count">({reviewCountDisplay} Reviews)</span>
+                {ratingValue !== '0.0' && (
+                  <>
+                    <span className="rating-value">{ratingValue}/5</span>
+                    <span className="review-count">({reviewCountDisplay} Reviews)</span>
+                  </>
+                )}
               </div>
             </div>
-            <div className="hero-stats">
-              {heroStats.map((stat, index) => (
-                <div key={index} className="hero-stat">
-                  <stat.icon size={24} />
-                  <div className="stat-value">{stat.value}</div>
-                  <div className="stat-label">{stat.label}</div>
-                </div>
-              ))}
-            </div>
+            
+            {heroStats.length > 0 && (
+              <div className="hero-stats">
+                {heroStats.map((stat, index) => (
+                  <div key={index} className="hero-stat">
+                    <stat.icon size={24} />
+                    <div className="stat-value">{stat.value}</div>
+                    <div className="stat-label">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="hero-right-gallery">
             <ImageGallerySlider images={galleryImages} />
@@ -469,22 +489,24 @@ export default function UniversityDetail() {
               </div>
             )}
 
-            {activeTab === 'Student Verdict' && (
+            {activeTab === 'Student Verdict' && verdictCategories.length > 0 && (
               <div className="verdict-card info-card">
                 <div className="verdict-header">
                   <div className="verdict-title-box">
                     <h3>Student Verdict</h3>
                     <p>Based on {reviews.length} verified student {reviews.length === 1 ? 'review' : 'reviews'}.</p>
                   </div>
-                  <div className="verdict-score-box">
-                    <div className="score-main">
-                      <span className="score-num">{ratingValue}</span>
-                      <span className="score-total">/5</span>
+                  {ratingValue !== '0.0' && (
+                    <div className="verdict-score-box">
+                      <div className="score-main">
+                        <span className="score-num">{ratingValue}</span>
+                        <span className="score-total">/5</span>
+                      </div>
+                      <div className="score-stars">
+                        {renderStars(ratingValue)}
+                      </div>
                     </div>
-                    <div className="score-stars">
-                      {renderStars(ratingValue)}
-                    </div>
-                  </div>
+                  )}
                 </div>
                 <div className="verdict-grid">
                   {verdictCategories.map((item, idx) => (
@@ -516,8 +538,8 @@ export default function UniversityDetail() {
                   { label: "NAAC Grade", value: university.naacGrade, icon: Award, color: "violet" },
                   { label: "Avg. Package", value: university.averagePackage, icon: TrendingUp, color: "blue" },
                   { label: "Highest Package", value: university.highestPackage, icon: AwardIcon, color: "violet" },
-                  { label: "Total Students", value: university.studentCount ? university.studentCount.toLocaleString() : 'N/A', icon: Users, color: "green" },
-                  { label: "Total Faculty", value: university.facultyCount ? university.facultyCount.toLocaleString() : 'N/A', icon: GraduationCap, color: "purple" },
+                  { label: "Total Students", value: university.studentCount ? university.studentCount.toLocaleString() : null, icon: Users, color: "green" },
+                  { label: "Total Faculty", value: university.facultyCount ? university.facultyCount.toLocaleString() : null, icon: GraduationCap, color: "purple" },
                 ].filter(stat => stat.value).map((stat, idx) => (
                   <motion.div 
                     key={idx} 
@@ -536,7 +558,6 @@ export default function UniversityDetail() {
                   </motion.div>
                 ))}
                 
-                {/* Courses Offered Section */}
                 {university.offeredCourses && university.offeredCourses.length > 0 && (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
@@ -557,7 +578,6 @@ export default function UniversityDetail() {
                   </motion.div>
                 )}
                 
-                {/* Specializations Section */}
                 {university.specializations && university.specializations.length > 0 && (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
@@ -592,7 +612,7 @@ export default function UniversityDetail() {
               <div className="facilities-container-new info-card">
                 <div className="section-header-flex">
                   <h3 className="section-title">Campus Facilities</h3>
-                  <div className="section-subtitle-new">World-class amenities for a holistic campus experience</div>
+                  <div className="section-subtitle-new">Campus amenities and infrastructure</div>
                 </div>
                 <div className="facilities-grid-modern">
                   {activeFacilities.length > 0 ? activeFacilities.map((facility, i) => {
@@ -652,7 +672,7 @@ export default function UniversityDetail() {
               </div>
             )}
 
-            {activeTab === 'Fees' && (
+            {activeTab === 'Fees' && (university.tuitionFee || university.hostelFee) && (
               <div className="fees-container-new info-card">
                 <div className="fees-layout">
                   <div className="fees-info-box">
@@ -672,20 +692,14 @@ export default function UniversityDetail() {
                           <span className="fee-value">{university.hostelFee}</span>
                         </div>
                       )}
-                      {!university.tuitionFee && !university.hostelFee && (
-                        <div className="fee-item">
-                          <span className="fee-label">Fee Information</span>
-                          <span className="fee-value">Not disclosed</span>
-                        </div>
-                      )}
                     </div>
                   </div>
                   <div className="scholarship-info-box">
                     <h4 className="scholarship-title">SCHOLARSHIPS</h4>
                     <p className="scholarship-desc">
                       {university.scholarshipAvailable 
-                        ? 'Merit-cum-means assistance is available for eligible candidates. Various scholarship programs offered by the institution and government.'
-                        : 'Currently no active scholarship programs for this academic cycle.'}
+                        ? 'Scholarship programs are available for eligible candidates.'
+                        : 'Currently no active scholarship programs available.'}
                     </p>
                     {university.scholarshipAvailable && (
                       <button className="scholarship-btn">
@@ -727,7 +741,7 @@ export default function UniversityDetail() {
                       <div className="review-stars-new">
                         {renderStars(review.rating || 0)}
                       </div>
-                      <p className="review-text-new">{review.content || review.comment || 'No review content available.'}</p>
+                      <p className="review-text-new">{review.content || 'No review content available.'}</p>
                       {(review.pros?.length > 0 || review.cons?.length > 0) && (
                         <div className="review-tags-new">
                           {review.pros?.slice(0, 2).map((pro, index) => (
@@ -742,8 +756,8 @@ export default function UniversityDetail() {
                   )) : (
                     <div className="no-reviews-message">
                       <MessageSquare size={48} />
-                      <h3>No verified reviews yet</h3>
-                      <p>Be the first to share your journey with thousands of prospective students.</p>
+                      <h3>No Reviews Yet</h3>
+                      <p>Be the first to share your experience at this institution.</p>
                       <button 
                         onClick={handleWriteReviewClick}
                         className="write-review-btn-new primary"
@@ -758,25 +772,21 @@ export default function UniversityDetail() {
           </div>
 
           <aside className="content-sidebar">
-            {/* Location Card - Only show if location data exists */}
-            {hasLocation && locationText ? (
+            {hasLocation && locationText && university.mapLink ? (
               <div className="location-card info-card">
                 <h3>Campus Location</h3>
                 <div className="map-preview">
                   <iframe 
-                    src={`https://maps.google.com/maps?q=${encodeURIComponent(locationText)}&output=embed`} 
+                    src={university.mapLink}
                     title="University Location Map"
+                    width="100%"
+                    height="300"
+                    style={{ border: 0 }}
                     allowFullScreen=""
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                   />
                 </div>
-                <button 
-                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationText)}`, '_blank')}
-                  className="primary-btn-full"
-                >
-                  Open in Maps <ArrowRight size={16} />
-                </button>
                 <div className="contact-info">
                   <div className="c-row">
                     <div className="c-label-group">
@@ -808,15 +818,14 @@ export default function UniversityDetail() {
                 </div>
               </div>
             ) : (
-              // If no location, show "No location available" message
               <div className="location-card info-card no-location-card">
-                <h3>Campus Location</h3>
+                <h3>Location Information</h3>
                 <div className="no-location-container">
                   <div className="no-location-icon">
                     <MapPin size={48} strokeWidth={1.5} />
                   </div>
-                  <p className="no-location-title">No location available</p>
-                  <p className="no-location-message">Map not available for this institution.</p>
+                  <p className="no-location-title">No Location Data Available</p>
+                  <p className="no-location-message">Location information has not been provided for this institution.</p>
                 </div>
                 <div className="contact-info">
                   <div className="c-row">
