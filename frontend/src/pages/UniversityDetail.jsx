@@ -105,6 +105,44 @@ const renderStars = (rating) => {
   return stars;
 };
 
+// ==================== LOCATION HELPER FUNCTIONS ====================
+const hasValidLocation = (university) => {
+  if (!university) return false;
+  
+  // Check multiple possible location fields
+  const hasLocation = university.location && university.location.trim() !== '';
+  const hasCity = university.city && university.city.trim() !== '';
+  const hasState = university.state && university.state.trim() !== '';
+  const hasAddress = university.address && university.address.trim() !== '';
+  const hasCoordinates = (university.latitude && university.longitude);
+  
+  return hasLocation || hasCity || hasState || hasAddress || hasCoordinates;
+};
+
+const getLocationText = (university) => {
+  if (!university) return null;
+  
+  if (university.location && university.location.trim() !== '') {
+    return university.location;
+  }
+  if (university.address && university.address.trim() !== '') {
+    return university.address;
+  }
+  if (university.city && university.city.trim() !== '') {
+    if (university.state && university.state.trim() !== '') {
+      return `${university.city}, ${university.state}`;
+    }
+    return university.city;
+  }
+  if (university.state && university.state.trim() !== '') {
+    return university.state;
+  }
+  if (university.latitude && university.longitude) {
+    return `${university.latitude},${university.longitude}`;
+  }
+  return null;
+};
+
 // ==================== MAIN COMPONENT ====================
 
 export default function UniversityDetail() {
@@ -146,7 +184,13 @@ export default function UniversityDetail() {
           facultyCount: uniResult.data.facultyCount,
           studentCount: uniResult.data.studentCount,
           offeredCourses: uniResult.data.offeredCourses,
-          specializations: uniResult.data.specializations
+          specializations: uniResult.data.specializations,
+          location: uniResult.data.location,
+          city: uniResult.data.city,
+          state: uniResult.data.state,
+          address: uniResult.data.address,
+          latitude: uniResult.data.latitude,
+          longitude: uniResult.data.longitude
         });
       } else {
         setError(uniResult.message || 'University not found');
@@ -280,7 +324,9 @@ export default function UniversityDetail() {
     </div>
   );
 
-  const addressText = university.location || [university.city, university.state].filter(Boolean).join(', ');
+  const hasLocation = hasValidLocation(university);
+  const locationText = hasLocation ? getLocationText(university) : null;
+  
   const galleryImages = university.images && university.images.length > 0 ? university.images : [university.imageUrl, university.image].filter(Boolean);
   const activeFacilities = university.campusFacilities || [];
   const reviewCountDisplay = reviews.length >= 1000 ? `${(reviews.length / 1000).toFixed(1)}k` : `${reviews.length}`;
@@ -338,10 +384,15 @@ export default function UniversityDetail() {
               <span>Top Ranked Institution</span>
             </div>
             <h1 className="hero-college-name">{university.name}</h1>
-            <div className="hero-location">
-              <MapPin size={16} />
-              <span>{addressText}</span>
-            </div>
+            
+            {/* Location - Only show if exists */}
+            {hasLocation && locationText && (
+              <div className="hero-location">
+                <MapPin size={16} />
+                <span>{locationText}</span>
+              </div>
+            )}
+            
             <div className="hero-meta">
               <div className="member-since">
                 <CalendarDays size={14} />
@@ -485,7 +536,7 @@ export default function UniversityDetail() {
                   </motion.div>
                 ))}
                 
-                {/* ✅ FIXED: Courses Offered Section - Using offeredCourses */}
+                {/* Courses Offered Section */}
                 {university.offeredCourses && university.offeredCourses.length > 0 && (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
@@ -506,7 +557,7 @@ export default function UniversityDetail() {
                   </motion.div>
                 )}
                 
-                {/* ✅ Specializations Section */}
+                {/* Specializations Section */}
                 {university.specializations && university.specializations.length > 0 && (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
@@ -707,50 +758,97 @@ export default function UniversityDetail() {
           </div>
 
           <aside className="content-sidebar">
-            <div className="location-card info-card">
-              <h3>Campus Location</h3>
-              <div className="map-preview">
-                <iframe 
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(addressText)}&output=embed`} 
-                  title="University Location Map"
-                />
+            {/* Location Card - Only show if location data exists */}
+            {hasLocation && locationText ? (
+              <div className="location-card info-card">
+                <h3>Campus Location</h3>
+                <div className="map-preview">
+                  <iframe 
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(locationText)}&output=embed`} 
+                    title="University Location Map"
+                    allowFullScreen=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+                <button 
+                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationText)}`, '_blank')}
+                  className="primary-btn-full"
+                >
+                  Open in Maps <ArrowRight size={16} />
+                </button>
+                <div className="contact-info">
+                  <div className="c-row">
+                    <div className="c-label-group">
+                      <Phone size={14} />
+                      <span>Phone</span>
+                    </div>
+                    <strong>{university.phone || 'Not available'}</strong>
+                  </div>
+                  <div className="c-row">
+                    <div className="c-label-group">
+                      <Mail size={14} />
+                      <span>Email</span>
+                    </div>
+                    <strong>{university.email || 'Not available'}</strong>
+                  </div>
+                  <div className="c-row">
+                    <div className="c-label-group">
+                      <Globe size={14} />
+                      <span>Website</span>
+                    </div>
+                    <strong>
+                      {university.website ? (
+                        <a href={university.website.startsWith('http') ? university.website : `https://${university.website}`} target="_blank" rel="noreferrer">
+                          {university.website.replace(/^https?:\/\//, '')}
+                        </a>
+                      ) : 'Not available'}
+                    </strong>
+                  </div>
+                </div>
               </div>
-              <button 
-                onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressText)}`, '_blank')}
-                className="primary-btn-full"
-              >
-                Open in Maps <ArrowRight size={16} />
-              </button>
-              <div className="contact-info">
-                <div className="c-row">
-                  <div className="c-label-group">
-                    <Phone size={14} />
-                    <span>Phone</span>
+            ) : (
+              // If no location, show "No location available" message
+              <div className="location-card info-card no-location-card">
+                <h3>Campus Location</h3>
+                <div className="no-location-container">
+                  <div className="no-location-icon">
+                    <MapPin size={48} strokeWidth={1.5} />
                   </div>
-                  <strong>{university.phone || 'Not available'}</strong>
+                  <p className="no-location-title">No location available</p>
+                  <p className="no-location-message">Map not available for this institution.</p>
                 </div>
-                <div className="c-row">
-                  <div className="c-label-group">
-                    <Mail size={14} />
-                    <span>Email</span>
+                <div className="contact-info">
+                  <div className="c-row">
+                    <div className="c-label-group">
+                      <Phone size={14} />
+                      <span>Phone</span>
+                    </div>
+                    <strong>{university.phone || 'Not available'}</strong>
                   </div>
-                  <strong>{university.email || 'Not available'}</strong>
-                </div>
-                <div className="c-row">
-                  <div className="c-label-group">
-                    <Globe size={14} />
-                    <span>Website</span>
+                  <div className="c-row">
+                    <div className="c-label-group">
+                      <Mail size={14} />
+                      <span>Email</span>
+                    </div>
+                    <strong>{university.email || 'Not available'}</strong>
                   </div>
-                  <strong>
-                    {university.website ? (
-                      <a href={university.website.startsWith('http') ? university.website : `https://${university.website}`} target="_blank" rel="noreferrer">
-                        {university.website.replace(/^https?:\/\//, '')}
-                      </a>
-                    ) : 'Not available'}
-                  </strong>
+                  <div className="c-row">
+                    <div className="c-label-group">
+                      <Globe size={14} />
+                      <span>Website</span>
+                    </div>
+                    <strong>
+                      {university.website ? (
+                        <a href={university.website.startsWith('http') ? university.website : `https://${university.website}`} target="_blank" rel="noreferrer">
+                          {university.website.replace(/^https?:\/\//, '')}
+                        </a>
+                      ) : 'Not available'}
+                    </strong>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </aside>
         </div>
       </div>

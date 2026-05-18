@@ -743,6 +743,7 @@ const EditUniversity = () => {
               <div className="form-group full-width">
                 <label>Google Maps Link</label>
                 <input type="url" name="googleMapsLink" value={formData.googleMapsLink} onChange={handleChange} placeholder="https://maps.google.com/..." />
+                <small>Optional - Only shown if provided</small>
               </div>
             </div>
           </>
@@ -866,6 +867,11 @@ const EditUniversity = () => {
     }
   };
 
+  // Helper function to check if location data exists
+  const hasLocationData = () => {
+    return formData.city || formData.state || formData.location;
+  };
+
   if (fetching) {
     return <div className="loading-state">Loading university details...</div>;
   }
@@ -935,7 +941,17 @@ const EditUniversity = () => {
               </div>
               <div className="preview-info">
                 <h4>{formData.name || 'University Name'}</h4>
-                <p className="preview-location">{formData.city || 'City'}, {formData.state || 'State'}</p>
+                
+                {/* Location Preview - Only show if data exists */}
+                {hasLocationData() && (
+                  <p className="preview-location">
+                    {[
+                      formData.city,
+                      formData.state
+                    ].filter(Boolean).join(', ') || 'Location not added'}
+                  </p>
+                )}
+                
                 <div className="preview-rating">
                   <span>⭐ {formData.rating || '4.0'}</span>
                   <span className="preview-type">{formData.type || 'University Type'}</span>
