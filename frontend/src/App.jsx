@@ -17,7 +17,6 @@ import Home from './pages/Home';
 import UniversityDetail from './pages/UniversityDetail';
 import SearchResults from './pages/SearchResults';
 import WriteReview from './pages/WriteReview';
-import ProjectsShowcase from './pages/ProjectsShowcase';
 import Compare from './pages/Compare';
 import Community from './pages/Community';
 import Colleges from './pages/Colleges';
@@ -75,7 +74,6 @@ function AppContent() {
         <Route path="/search" element={<SearchResults />} />
         <Route path="/write-review" element={<WriteReview />} />
         <Route path="/write-review/:id" element={<WriteReview />} />
-        <Route path="/university/:id/projects" element={<ProjectsShowcase />} />
         <Route path="/compare" element={<Compare />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/community" element={<Community />} />

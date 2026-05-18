@@ -177,13 +177,24 @@ export const api = {
     }
   },
 
+  // ✅ FIXED: getUniversities with proper null handling
   getUniversities: async (params = {}) => {
     try {
+      // Ensure params is an object (handle case where token is passed as first argument)
+      const safeParams = (params && typeof params === 'object') ? params : {};
+      
       const queryParams = {
-        page: params.page || 1,
-        limit: params.limit || 1000,
-        ...params
+        page: safeParams.page || 1,
+        limit: safeParams.limit || 1000,
+        ...safeParams
       };
+      
+      // Remove undefined values
+      Object.keys(queryParams).forEach(key => {
+        if (queryParams[key] === undefined || queryParams[key] === null || queryParams[key] === '') {
+          delete queryParams[key];
+        }
+      });
       
       const query = new URLSearchParams(queryParams).toString();
       const endpoint = `/universities${query ? `?${query}` : ""}`;
@@ -576,30 +587,6 @@ export const api = {
       headers: authHeader(token),
     }),
 
-  // ================= PROJECTS =================
-
-  getProjects: (universityId, domain) => {
-    const params = new URLSearchParams();
-    params.append('limit', 1000);
-
-    if (universityId) params.append("universityId", universityId);
-    if (domain && domain !== "All Domains") {
-      params.append("domain", domain);
-    }
-
-    return request(`/projects${params.toString() ? `?${params}` : ""}`);
-  },
-
-  getProjectById: (id) =>
-    request(`/projects/${id}`),
-
-  createProject: (data, token) =>
-    request("/projects", {
-      method: "POST",
-      headers: authHeader(token),
-      body: JSON.stringify(data),
-    }),
-
   // ================= ADMIN =================
 
   getAdminStats: (token) =>
@@ -683,14 +670,12 @@ export const api = {
       body: JSON.stringify({ content }),
     }),
 
-  // ✅ ADDED: Like a discussion
   likeDiscussion: (id, token) =>
     request(`/community/discussions/${id}/like`, {
       method: "PUT",
       headers: authHeader(token),
     }),
 
-  // ✅ ADDED: Like a comment
   likeComment: (id, token) =>
     request(`/community/comments/${id}/like`, {
       method: "PUT",
@@ -751,24 +736,8 @@ export const api = {
       headers: authHeader(token),
     }),
 
-  getMentors: () =>
-    request("/community/mentors"),
-
-  getMentorById: (id) =>
-    request(`/community/mentors/${id}`),
-
-  bookMentorSession: (id, token) =>
-    request(`/community/mentors/${id}/book`, {
-      method: "POST",
-      headers: authHeader(token),
-    }),
-
-  getEvents: () =>
-    request("/community/events"),
-
-  registerForEvent: (id, token) =>
-    request(`/community/events/${id}/register`, {
-      method: "POST",
+  getTrashedComments: (token) =>
+    request("/community/comments/trashed", {
       headers: authHeader(token),
     }),
 
@@ -819,9 +788,6 @@ export const {
   permanentDeleteReview,
   updateReview,
   deleteReview,
-  getProjects,
-  getProjectById,
-  createProject,
   getAdminStats,
   deleteUniversity,
   getAdminUsers,
@@ -847,11 +813,7 @@ export const {
   softDeleteComment,
   restoreComment,
   permanentDeleteComment,
-  getMentors,
-  getMentorById,
-  bookMentorSession,
-  getEvents,
-  registerForEvent,
+  getTrashedComments,
   compareUniversities,
   healthCheck,
 } = api;
