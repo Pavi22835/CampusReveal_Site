@@ -12,12 +12,12 @@ const buildSearchWhere = (query) => {
       { state: { contains: term, mode: 'insensitive' } },
       { category: { contains: term, mode: 'insensitive' } },
       { type: { contains: term, mode: 'insensitive' } },
-      { offeredCourses: { has: term } },  // ✅ FIXED: changed from 'courses' to 'offeredCourses'
+      { offeredCourses: { has: term } },
       { shortName: { contains: term, mode: 'insensitive' } },
       { description: { contains: term, mode: 'insensitive' } },
-      { academicStreams: { has: term } },  // ✅ FIXED: changed from 'academicStream' to 'academicStreams'
-      { academicLevels: { has: term } },   // ✅ FIXED: changed from 'academicLevel' to 'academicLevels'
-      { departments: { has: term } }       // ✅ FIXED: changed from 'department' to 'departments'
+      { academicStreams: { has: term } },
+      { academicLevels: { has: term } },
+      { departments: { has: term } }
     ]
   };
 };
@@ -46,13 +46,11 @@ const getUniversities = async (req, res) => {
     
     let where = { isTrashed: false };
     
-    // Apply search filter
     if (search) {
       const searchWhere = buildSearchWhere(search);
       if (searchWhere) where = { ...where, ...searchWhere };
     }
     
-    // Apply location filters
     if (city) {
       where.city = { contains: city, mode: 'insensitive' };
     }
@@ -61,7 +59,6 @@ const getUniversities = async (req, res) => {
       where.state = { contains: state, mode: 'insensitive' };
     }
     
-    // Apply advanced filters - ✅ FIXED: use plural field names
     if (academicStream) where.academicStreams = { has: academicStream };
     if (academicLevel) where.academicLevels = { has: academicLevel };
     if (department) where.departments = { has: department };
@@ -110,6 +107,7 @@ const getUniversities = async (req, res) => {
           transportAvailable: true,
           scholarshipAvailable: true,
           campusFacilities: true,
+          mapLink: true, // ✅ ADDED: Google Maps Embed URL
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -166,7 +164,6 @@ const filterUniversities = async (req, res) => {
       if (searchWhere) where = { ...where, ...searchWhere };
     }
     
-    // ✅ FIXED: use plural field names
     if (academicStream) where.academicStreams = { has: academicStream };
     if (academicLevel) where.academicLevels = { has: academicLevel };
     if (department) where.departments = { has: department };
@@ -261,6 +258,7 @@ const getTrashedUniversities = async (req, res) => {
           rating: true,
           isTrashed: true,
           trashedAt: true,
+          mapLink: true, // ✅ ADDED: Google Maps Embed URL
           _count: {
             select: { reviews: true }
           }
@@ -370,7 +368,6 @@ const permanentDeleteUniversity = async (req, res) => {
       return res.status(404).json({ success: false, message: 'University not found' });
     }
     
-    // Delete related records first
     await prisma.review.deleteMany({ where: { universityId: id } });
     await prisma.universityCourse.deleteMany({ where: { universityId: id } });
     
@@ -382,6 +379,311 @@ const permanentDeleteUniversity = async (req, res) => {
     });
   } catch (error) {
     console.error('Permanent delete university error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ==================== CREATE UNIVERSITY ====================
+// @desc    Create a new university
+// @route   POST /api/universities
+// @access  Admin
+const createUniversity = async (req, res) => {
+  try {
+    const {
+      name,
+      shortName,
+      established,
+      type,
+      category,
+      naacGrade,
+      logoUrl,
+      campusVideoUrl,
+      images,
+      academicStreams,
+      academicLevels,
+      departments,
+      offeredCourses,
+      specializations,
+      affiliation,
+      approvedBy,
+      mission,
+      vision,
+      hostelAvailable,
+      hostelType,
+      transportAvailable,
+      campusFacilities,
+      country,
+      state,
+      city,
+      pincode,
+      location,
+      googleMapsLink,
+      mapLink, // ✅ ADDED: Google Maps Embed URL
+      rating,
+      studentCount,
+      facultyCount,
+      placementRate,
+      highestPackage,
+      averagePackage,
+      topRecruiters,
+      tuitionFee,
+      hostelFee,
+      scholarshipAvailable,
+      website,
+      phone,
+      email,
+      instagram,
+      linkedin,
+      facebook,
+      youtube,
+      description,
+      keywords
+    } = req.body;
+
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ success: false, message: 'University name is required' });
+    }
+
+    // Check for duplicate name
+    const existingUniversity = await prisma.university.findFirst({
+      where: { name: name.trim() }
+    });
+
+    if (existingUniversity) {
+      return res.status(400).json({ success: false, message: 'University with this name already exists' });
+    }
+
+    const university = await prisma.university.create({
+      data: {
+        name: name.trim(),
+        shortName: shortName || null,
+        established: established || null,
+        type: type || null,
+        category: category || null,
+        naacGrade: naacGrade || null,
+        logoUrl: logoUrl || null,
+        campusVideoUrl: campusVideoUrl || null,
+        images: images || [],
+        academicStreams: academicStreams || [],
+        academicLevels: academicLevels || [],
+        departments: departments || [],
+        offeredCourses: offeredCourses || [],
+        specializations: specializations || null,
+        affiliation: affiliation || null,
+        approvedBy: approvedBy || null,
+        mission: mission || null,
+        vision: vision || null,
+        hostelAvailable: hostelAvailable || false,
+        hostelType: hostelType || null,
+        transportAvailable: transportAvailable || false,
+        campusFacilities: campusFacilities || [],
+        country: country || 'India',
+        state: state || null,
+        city: city || null,
+        pincode: pincode || null,
+        location: location || null,
+        googleMapsLink: googleMapsLink || null,
+        mapLink: mapLink || null, // ✅ ADDED: Save mapLink
+        rating: rating ? parseFloat(rating) : 0,
+        studentCount: studentCount ? parseInt(studentCount) : null,
+        facultyCount: facultyCount ? parseInt(facultyCount) : null,
+        placementRate: placementRate || null,
+        highestPackage: highestPackage || null,
+        averagePackage: averagePackage || null,
+        topRecruiters: topRecruiters || null,
+        tuitionFee: tuitionFee || null,
+        hostelFee: hostelFee || null,
+        scholarshipAvailable: scholarshipAvailable || false,
+        website: website || null,
+        phone: phone || null,
+        email: email || null,
+        instagram: instagram || null,
+        linkedin: linkedin || null,
+        facebook: facebook || null,
+        youtube: youtube || null,
+        description: description || null,
+        keywords: keywords || null
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'University created successfully',
+      data: university
+    });
+  } catch (error) {
+    console.error('Create university error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ==================== UPDATE UNIVERSITY ====================
+// @desc    Update a university
+// @route   PUT /api/universities/:id
+// @access  Admin
+const updateUniversity = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      shortName,
+      established,
+      type,
+      category,
+      naacGrade,
+      logoUrl,
+      campusVideoUrl,
+      images,
+      academicStreams,
+      academicLevels,
+      departments,
+      offeredCourses,
+      specializations,
+      affiliation,
+      approvedBy,
+      mission,
+      vision,
+      hostelAvailable,
+      hostelType,
+      transportAvailable,
+      campusFacilities,
+      country,
+      state,
+      city,
+      pincode,
+      location,
+      googleMapsLink,
+      mapLink, // ✅ ADDED: Google Maps Embed URL
+      rating,
+      studentCount,
+      facultyCount,
+      placementRate,
+      highestPackage,
+      averagePackage,
+      topRecruiters,
+      tuitionFee,
+      hostelFee,
+      scholarshipAvailable,
+      website,
+      phone,
+      email,
+      instagram,
+      linkedin,
+      facebook,
+      youtube,
+      description,
+      keywords
+    } = req.body;
+
+    const existingUniversity = await prisma.university.findUnique({
+      where: { id }
+    });
+
+    if (!existingUniversity) {
+      return res.status(404).json({ success: false, message: 'University not found' });
+    }
+
+    // Check for duplicate name (excluding current university)
+    if (name && name !== existingUniversity.name) {
+      const duplicate = await prisma.university.findFirst({
+        where: { name: name.trim(), id: { not: id } }
+      });
+      if (duplicate) {
+        return res.status(400).json({ success: false, message: 'University with this name already exists' });
+      }
+    }
+
+    const updatedUniversity = await prisma.university.update({
+      where: { id },
+      data: {
+        name: name !== undefined ? name.trim() : existingUniversity.name,
+        shortName: shortName !== undefined ? shortName : existingUniversity.shortName,
+        established: established !== undefined ? established : existingUniversity.established,
+        type: type !== undefined ? type : existingUniversity.type,
+        category: category !== undefined ? category : existingUniversity.category,
+        naacGrade: naacGrade !== undefined ? naacGrade : existingUniversity.naacGrade,
+        logoUrl: logoUrl !== undefined ? logoUrl : existingUniversity.logoUrl,
+        campusVideoUrl: campusVideoUrl !== undefined ? campusVideoUrl : existingUniversity.campusVideoUrl,
+        images: images !== undefined ? images : existingUniversity.images,
+        academicStreams: academicStreams !== undefined ? academicStreams : existingUniversity.academicStreams,
+        academicLevels: academicLevels !== undefined ? academicLevels : existingUniversity.academicLevels,
+        departments: departments !== undefined ? departments : existingUniversity.departments,
+        offeredCourses: offeredCourses !== undefined ? offeredCourses : existingUniversity.offeredCourses,
+        specializations: specializations !== undefined ? specializations : existingUniversity.specializations,
+        affiliation: affiliation !== undefined ? affiliation : existingUniversity.affiliation,
+        approvedBy: approvedBy !== undefined ? approvedBy : existingUniversity.approvedBy,
+        mission: mission !== undefined ? mission : existingUniversity.mission,
+        vision: vision !== undefined ? vision : existingUniversity.vision,
+        hostelAvailable: hostelAvailable !== undefined ? hostelAvailable : existingUniversity.hostelAvailable,
+        hostelType: hostelType !== undefined ? hostelType : existingUniversity.hostelType,
+        transportAvailable: transportAvailable !== undefined ? transportAvailable : existingUniversity.transportAvailable,
+        campusFacilities: campusFacilities !== undefined ? campusFacilities : existingUniversity.campusFacilities,
+        country: country !== undefined ? country : existingUniversity.country,
+        state: state !== undefined ? state : existingUniversity.state,
+        city: city !== undefined ? city : existingUniversity.city,
+        pincode: pincode !== undefined ? pincode : existingUniversity.pincode,
+        location: location !== undefined ? location : existingUniversity.location,
+        googleMapsLink: googleMapsLink !== undefined ? googleMapsLink : existingUniversity.googleMapsLink,
+        mapLink: mapLink !== undefined ? mapLink : existingUniversity.mapLink, // ✅ ADDED: Update mapLink
+        rating: rating !== undefined ? parseFloat(rating) : existingUniversity.rating,
+        studentCount: studentCount !== undefined ? (studentCount ? parseInt(studentCount) : null) : existingUniversity.studentCount,
+        facultyCount: facultyCount !== undefined ? (facultyCount ? parseInt(facultyCount) : null) : existingUniversity.facultyCount,
+        placementRate: placementRate !== undefined ? placementRate : existingUniversity.placementRate,
+        highestPackage: highestPackage !== undefined ? highestPackage : existingUniversity.highestPackage,
+        averagePackage: averagePackage !== undefined ? averagePackage : existingUniversity.averagePackage,
+        topRecruiters: topRecruiters !== undefined ? topRecruiters : existingUniversity.topRecruiters,
+        tuitionFee: tuitionFee !== undefined ? tuitionFee : existingUniversity.tuitionFee,
+        hostelFee: hostelFee !== undefined ? hostelFee : existingUniversity.hostelFee,
+        scholarshipAvailable: scholarshipAvailable !== undefined ? scholarshipAvailable : existingUniversity.scholarshipAvailable,
+        website: website !== undefined ? website : existingUniversity.website,
+        phone: phone !== undefined ? phone : existingUniversity.phone,
+        email: email !== undefined ? email : existingUniversity.email,
+        instagram: instagram !== undefined ? instagram : existingUniversity.instagram,
+        linkedin: linkedin !== undefined ? linkedin : existingUniversity.linkedin,
+        facebook: facebook !== undefined ? facebook : existingUniversity.facebook,
+        youtube: youtube !== undefined ? youtube : existingUniversity.youtube,
+        description: description !== undefined ? description : existingUniversity.description,
+        keywords: keywords !== undefined ? keywords : existingUniversity.keywords
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'University updated successfully',
+      data: updatedUniversity
+    });
+  } catch (error) {
+    console.error('Update university error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ==================== DELETE UNIVERSITY (Hard Delete) ====================
+// @desc    Hard delete a university
+// @route   DELETE /api/universities/:id
+// @access  Admin
+const deleteUniversity = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const university = await prisma.university.findUnique({
+      where: { id }
+    });
+    
+    if (!university) {
+      return res.status(404).json({ success: false, message: 'University not found' });
+    }
+    
+    await prisma.review.deleteMany({ where: { universityId: id } });
+    await prisma.universityCourse.deleteMany({ where: { universityId: id } });
+    await prisma.university.delete({ where: { id } });
+    
+    res.json({
+      success: true,
+      message: 'University deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete university error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -451,6 +753,7 @@ const getTrendingUniversities = async (req, res) => {
         logoUrl: true,
         studentCount: true,
         category: true,
+        mapLink: true, // ✅ ADDED: Google Maps Embed URL
         _count: {
           select: { reviews: true }
         }
@@ -493,6 +796,7 @@ const searchUniversities = async (req, res) => {
         imageUrl: true,
         images: true,
         logoUrl: true,
+        mapLink: true, // ✅ ADDED: Google Maps Embed URL
         _count: {
           select: { reviews: true }
         }
@@ -559,6 +863,7 @@ const searchUniversitiesAdvanced = async (req, res) => {
         academicStreams: true,
         academicLevels: true,
         hostelAvailable: true,
+        mapLink: true, // ✅ ADDED: Google Maps Embed URL
         _count: {
           select: { reviews: true }
         }
@@ -591,7 +896,6 @@ const getFilterOptions = async (req, res) => {
       }
     });
     
-    // Extract unique values from arrays
     const academicStreams = [...new Set(universities.flatMap(u => u.academicStreams || []))];
     const academicLevels = [...new Set(universities.flatMap(u => u.academicLevels || []))];
     const departments = [...new Set(universities.flatMap(u => u.departments || []))];
@@ -621,10 +925,13 @@ module.exports = {
   getUniversityById, 
   getTrendingUniversities,
   searchUniversities,
-  searchUniversitiesAdvanced,  // ✅ ADDED: Now defined
+  searchUniversitiesAdvanced,
   getTrashedUniversities,
   softDeleteUniversity,
   restoreUniversity,
   permanentDeleteUniversity,
+  createUniversity,
+  updateUniversity,
+  deleteUniversity,
   getFilterOptions
 };

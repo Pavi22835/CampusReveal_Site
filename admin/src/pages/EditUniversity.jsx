@@ -122,6 +122,7 @@ const EditUniversity = () => {
     pincode: '',
     location: '',
     googleMapsLink: '',
+    mapLink: '', // ✅ NEW FIELD - Google Maps Embed URL
     
     // 6. Placement & Statistics
     rating: 4.0,
@@ -311,6 +312,7 @@ const EditUniversity = () => {
           pincode: uni.pincode || '',
           location: uni.location || '',
           googleMapsLink: uni.googleMapsLink || '',
+          mapLink: uni.mapLink || '', // ✅ Fetch mapLink from API
           
           // 6. Placement & Statistics
           rating: uni.rating || 4.0,
@@ -461,7 +463,8 @@ const EditUniversity = () => {
         academicStreams: formData.academicStreams || [],
         academicLevels: formData.academicLevels || [],
         departments: formData.departments || [],
-        images: [...existingImages, ...previewImages]
+        images: [...existingImages, ...previewImages],
+        mapLink: formData.mapLink || null, // ✅ Send mapLink to backend
       };
       
       const result = await api.updateUniversity(id, submitData, token);
@@ -743,7 +746,24 @@ const EditUniversity = () => {
               <div className="form-group full-width">
                 <label>Google Maps Link</label>
                 <input type="url" name="googleMapsLink" value={formData.googleMapsLink} onChange={handleChange} placeholder="https://maps.google.com/..." />
-                <small>Optional - Only shown if provided</small>
+                <small>Regular Google Maps link for redirection</small>
+              </div>
+              
+              {/* ✅ NEW: Google Maps Embed Link */}
+              <div className="form-group full-width">
+                <label>Google Maps Embed Link</label>
+                <input 
+                  type="url" 
+                  name="mapLink" 
+                  value={formData.mapLink} 
+                  onChange={handleChange} 
+                  placeholder="https://www.google.com/maps/embed?pb=..."
+                />
+                <small>
+                  Paste the embed URL from Google Maps for iframe display.
+                  How to get: Go to Google Maps → Share → Embed a map → Copy the src URL.
+                  Leave empty to show "No Maps Available" on frontend.
+                </small>
               </div>
             </div>
           </>

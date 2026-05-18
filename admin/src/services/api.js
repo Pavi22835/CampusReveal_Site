@@ -73,22 +73,35 @@ export const api = {
     console.log('University name being sent:', data?.name);
     console.log('Full data:', JSON.stringify(data, null, 2));
     
+    // ✅ Ensure mapLink is included
+    const submitData = {
+      ...data,
+      mapLink: data.mapLink || null,
+    };
+    
     const result = await request('/universities', { 
       method: 'POST', 
       headers: authHeader(token), 
-      body: JSON.stringify(data) 
+      body: JSON.stringify(submitData) 
     });
     
     console.log('createUniversity result:', result);
     return result;
   },
   
-  updateUniversity: (id, data, token) => 
-    request(`/universities/${id}`, { 
+  updateUniversity: async (id, data, token) => {
+    // ✅ Ensure mapLink is included
+    const submitData = {
+      ...data,
+      mapLink: data.mapLink !== undefined ? data.mapLink : null,
+    };
+    
+    return request(`/universities/${id}`, { 
       method: 'PUT', 
       headers: authHeader(token), 
-      body: JSON.stringify(data) 
-    }),
+      body: JSON.stringify(submitData) 
+    });
+  },
   
   // ============================================
   // UNIVERSITIES - SOFT DELETE / TRASH APIs

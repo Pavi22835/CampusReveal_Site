@@ -123,6 +123,7 @@ const AddUniversity = () => {
     pincode: '',
     location: '',
     googleMapsLink: '',
+    mapLink: '', // ✅ NEW FIELD - Google Maps Embed URL
     
     // 6. Placement & Statistics
     rating: 4.0,
@@ -378,7 +379,8 @@ const AddUniversity = () => {
         academicStreams: formData.academicStreams || [],
         academicLevels: formData.academicLevels || [],
         departments: formData.departments || [],
-        images: previewImages || []
+        images: previewImages || [],
+        mapLink: formData.mapLink || null, // ✅ Send mapLink to backend
       };
       
       const result = await api.createUniversity(submitData, token);
@@ -660,6 +662,24 @@ const AddUniversity = () => {
               <div className="form-group full-width">
                 <label>Google Maps Link</label>
                 <input type="url" name="googleMapsLink" value={formData.googleMapsLink} onChange={handleChange} placeholder="https://maps.google.com/..." />
+                <small>Regular Google Maps link for redirection</small>
+              </div>
+              
+              {/* ✅ NEW: Google Maps Embed Link */}
+              <div className="form-group full-width">
+                <label>Google Maps Embed Link</label>
+                <input 
+                  type="url" 
+                  name="mapLink" 
+                  value={formData.mapLink} 
+                  onChange={handleChange} 
+                  placeholder="https://www.google.com/maps/embed?pb=..."
+                />
+                <small>
+                  Paste the embed URL from Google Maps for iframe display.
+                  How to get: Go to Google Maps → Share → Embed a map → Copy the src URL.
+                  Leave empty to show "No Maps Available" on frontend.
+                </small>
               </div>
             </div>
           </>
