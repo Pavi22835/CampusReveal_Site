@@ -1,5 +1,27 @@
 /* navbar.css - Dark Theme */
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+body {
+  padding-top: 80px; /* Space for fixed navbar */
+}
+
+#root, .app-container {
+  min-height: 100vh;
+  background: transparent;
+}
+
 .navbar {
   position: fixed;
   top: 0;
@@ -366,7 +388,10 @@
   background: #818cf8;
 }
 
-/* Responsive */
+/* ============================================ */
+/* MOBILE FIXES - Remove White Space */
+/* ============================================ */
+
 @media (max-width: 1024px) {
   .search-container {
     display: none;
@@ -374,11 +399,23 @@
 }
 
 @media (max-width: 768px) {
+  /* Body padding for fixed navbar */
+  body {
+    padding-top: 64px;
+  }
+  
   .nav-links {
     display: none;
   }
   
   .navbar {
+    height: 64px;
+    background: #0f172a; /* Solid color instead of transparent */
+    backdrop-filter: none;
+  }
+  
+  .navbar.scrolled {
+    background: #0f172a;
     height: 64px;
   }
   
@@ -397,5 +434,56 @@
   .icon-btn {
     width: 36px;
     height: 36px;
+  }
+  
+  /* Fix for mobile menu panel */
+  .fixed.inset-0 {
+    position: fixed;
+  }
+  
+  /* Ensure proper z-index */
+  .z-50, .z-100, .z-\[100\], .z-\[105\], .z-\[110\] {
+    z-index: 9999;
+  }
+}
+
+/* Mobile landscape mode fix */
+@media (max-width: 768px) and (orientation: landscape) {
+  body {
+    padding-top: 56px;
+  }
+  
+  .navbar {
+    height: 56px;
+  }
+  
+  .navbar-content {
+    height: 56px;
+  }
+}
+
+/* Ensure smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Fix for any white background appearing on scroll */
+section, .section, div:not(.bg-white):not(.bg-slate-50) {
+  background: transparent;
+}
+
+/* Specific white backgrounds */
+.bg-white, 
+.bg-slate-50, 
+.bg-gray-50,
+#university-explorer,
+.relative.z-20 {
+  background-color: white !important;
+}
+
+/* Mobile menu backdrop fix */
+@media (max-width: 768px) {
+  .bg-black\/60 {
+    background-color: rgba(0, 0, 0, 0.6) !important;
   }
 }
