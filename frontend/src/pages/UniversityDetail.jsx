@@ -160,7 +160,7 @@ const getLocationText = (university) => {
 export default function UniversityDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { requireAuth, isAuthenticated, openOtpModal } = useAuth();
+  const { requireAuth, isAuthenticated } = useAuth();
   const [university, setUniversity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -282,23 +282,21 @@ export default function UniversityDetail() {
   };
 
   const handleWriteReviewClick = () => {
-    if (!isAuthenticated) {
-      openOtpModal();
-      return;
-    }
-    
-    localStorage.removeItem('reviewUniversityId');
-    localStorage.removeItem('reviewUniversityName');
-    localStorage.removeItem('userDepartment');
-    localStorage.removeItem('userGraduationYear');
-    localStorage.removeItem('userCollegeName');
-    
-    if (university) {
-      localStorage.setItem('reviewUniversityId', university.id);
-      localStorage.setItem('reviewUniversityName', university.name);
-    }
-    
-    setShowProfileModal(true);
+    const writeReviewAction = () => {
+      localStorage.removeItem('reviewUniversityId');
+      localStorage.removeItem('reviewUniversityName');
+      localStorage.removeItem('userDepartment');
+      localStorage.removeItem('userGraduationYear');
+      localStorage.removeItem('userCollegeName');
+      
+      if (university) {
+        localStorage.setItem('reviewUniversityId', university.id);
+        localStorage.setItem('reviewUniversityName', university.name);
+      }
+      navigate(`/write-review/${id}`);
+    };
+
+    requireAuth(writeReviewAction);
   };
 
   const handleProfileSuccess = () => {

@@ -16,10 +16,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [showOtpModal, setShowOtpModal] = useState(false);
+  const [showOtpSuggestion, setShowOtpSuggestion] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [isOtpAuthenticated, setIsOtpAuthenticated] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
   const toastTimer = useRef(null);
+  const suggestionTimer = useRef(null);
 
   useEffect(() => {
     const authStatus = localStorage.getItem('isAuthenticated');
@@ -41,6 +43,29 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
+
+  // Show soft OTP suggestion modal after 20 seconds for unauthenticated users
+  useEffect(() => {
+    if (loading) return;
+    
+    // Only show if user is not authenticated and hasn't already seen the suggestion
+    if (!isOtpAuthenticated && !user) {
+      const hasSeenSuggestion = sessionStorage.getItem('hasSeenOtpSuggestion');
+      
+      if (!hasSeenSuggestion) {
+        suggestionTimer.current = setTimeout(() => {
+          setShowOtpSuggestion(true);
+          sessionStorage.setItem('hasSeenOtpSuggestion', 'true');
+        }, 20000); // 20 seconds
+      }
+    }
+
+    return () => {
+      if (suggestionTimer.current) {
+        clearTimeout(suggestionTimer.current);
+      }
+    };
+  }, [loading, isOtpAuthenticated, user]);
 
   const loadUser = async () => {
     try {
@@ -144,6 +169,9 @@ export const AuthProvider = ({ children }) => {
       if (toastTimer.current) {
         clearTimeout(toastTimer.current);
       }
+      if (suggestionTimer.current) {
+        clearTimeout(suggestionTimer.current);
+      }
     };
   }, []);
 
@@ -190,6 +218,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsOtpAuthenticated(false);
     setShowOtpModal(false);
+    setShowOtpSuggestion(false);
   };
 
   const requireAuth = (callback) => {
@@ -209,6 +238,15 @@ export const AuthProvider = ({ children }) => {
     setShowOtpModal(false);
   };
 
+  const closeSuggestionModal = () => {
+    setShowOtpSuggestion(false);
+  };
+
+  const convertSuggestionToModal = () => {
+    setShowOtpSuggestion(false);
+    setShowOtpModal(true);
+  };
+
   const isAuthenticated = !!((token && user) || isOtpAuthenticated);
 
   return (
@@ -222,8 +260,11 @@ export const AuthProvider = ({ children }) => {
       otpLogin,
       requireAuth,
       showOtpModal,
+      showOtpSuggestion,
       openOtpModal,
       closeOtpModal,
+      closeSuggestionModal,
+      convertSuggestionToModal,
       isAuthenticated,
       toast,
       hideToast,

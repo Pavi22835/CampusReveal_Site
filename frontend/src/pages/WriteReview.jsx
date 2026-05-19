@@ -17,7 +17,7 @@ import './WriteReview.css';
 export default function WriteReview() {
   const { id: routeId } = useParams();
   const navigate = useNavigate();
-  const { token, isAuthenticated, openOtpModal, user } = useAuth();
+  const { token, isAuthenticated, requireAuth, user } = useAuth();
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -67,12 +67,6 @@ export default function WriteReview() {
     cons: '',
     tips: ''
   });
-
-  useEffect(() => {
-    if (!isAuthenticated && !token) {
-      openOtpModal();
-    }
-  }, [isAuthenticated, token, openOtpModal]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -129,6 +123,21 @@ export default function WriteReview() {
   }, [routeId, user]);
 
   const handleSubmit = async () => {
+    // Check authentication first
+    if (!isAuthenticated) {
+      // If not authenticated, use requireAuth to open the OTP modal
+      // The callback will be called after successful authentication
+      requireAuth(() => {
+        submitReview();
+      });
+      return;
+    }
+    
+    // If already authenticated, submit directly
+    submitReview();
+  };
+
+  const submitReview = async () => {
     // Validate required fields
     if (!formData.universityId) {
       setError('Please select a university');

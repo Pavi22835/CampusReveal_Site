@@ -76,7 +76,9 @@ function AppContent() {
       <Footer />
       
       {/* OTP Login Modal */}
-      <OtpLoginModal />
+      <AnimatePresence mode="wait">
+        <OtpLoginModal />
+      </AnimatePresence>
     </div>
   );
 }

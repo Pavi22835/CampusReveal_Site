@@ -1,14 +1,12 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { X, Phone, User, CheckCircle, AlertCircle, RefreshCcw } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { X, Phone, User, CheckCircle, AlertCircle, RefreshCcw, ChevronRight, Lock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import './OtpLoginModal.css';
 
-const DEMO_OTP = '1234';
-
 const OtpLoginModal = () => {
-  const { showOtpModal, closeOtpModal, otpLogin } = useAuth();
+  const { showOtpModal, showOtpSuggestion, closeOtpModal, closeSuggestionModal, convertSuggestionToModal, otpLogin } = useAuth();
   const [step, setStep] = useState('details');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -26,7 +24,7 @@ const OtpLoginModal = () => {
   }, [countdown]);
 
   useEffect(() => {
-    if (!showOtpModal) {
+    if (!showOtpModal && !showOtpSuggestion) {
       const reset = window.setTimeout(() => {
         setStep('details');
         setName('');
@@ -38,7 +36,7 @@ const OtpLoginModal = () => {
       return () => window.clearTimeout(reset);
     }
     return undefined;
-  }, [showOtpModal]);
+  }, [showOtpModal, showOtpSuggestion]);
 
   const handleSendOtp = async () => {
     if (!name.trim()) {
@@ -125,14 +123,76 @@ const OtpLoginModal = () => {
     }
   };
 
-  const handleCancel = () => {
+  const handleCancelOtpModal = () => {
     closeOtpModal();
   };
+
+  const handleCloseSuggestion = () => {
+    closeSuggestionModal();
+  };
+
+  const handleContinueFromSuggestion = () => {
+    convertSuggestionToModal();
+  };
+
+  // Render suggestion modal
+  if (showOtpSuggestion && !showOtpModal) {
+    return (
+      <motion.div
+        key="suggestion"
+        initial={{ opacity: 0, y: 20, x: '-50%' }}
+        animate={{ opacity: 1, y: 0, x: '-50%' }}
+        exit={{ opacity: 0, y: 20, x: '-50%' }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="otp-suggestion-container"
+      >
+        <div className="otp-suggestion-card">
+          <button
+            type="button"
+            className="otp-suggestion-close"
+            onClick={handleCloseSuggestion}
+            aria-label="Close suggestion"
+          >
+            <X size={18} />
+          </button>
+
+          <div className="otp-suggestion-content">
+            <div className="otp-suggestion-icon">
+              <Lock size={24} />
+            </div>
+            
+            <div className="otp-suggestion-text">
+              <h3>Want to write reviews?</h3>
+              <p>Quick and secure login via OTP</p>
+            </div>
+
+            <div className="otp-suggestion-actions">
+              <button
+                type="button"
+                className="otp-suggestion-button primary"
+                onClick={handleContinueFromSuggestion}
+              >
+                Continue
+                <ChevronRight size={18} />
+              </button>
+              <button
+                type="button"
+                className="otp-suggestion-button secondary"
+                onClick={handleCloseSuggestion}
+              >
+                Maybe later
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   if (!showOtpModal) return null;
 
   return (
-    <div className="otp-modal-overlay" onClick={closeOtpModal}>
+    <div className="otp-modal-overlay" onClick={handleCancelOtpModal}>
       <motion.div
         initial={{ opacity: 0, scale: 0.94 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -144,7 +204,7 @@ const OtpLoginModal = () => {
         <button
           type="button"
           className="otp-modal-close"
-          onClick={closeOtpModal}
+          onClick={handleCancelOtpModal}
           aria-label="Close OTP login"
         >
           <X size={20} />
@@ -192,12 +252,6 @@ const OtpLoginModal = () => {
                   </div>
                 </div>
 
-                <div className="otp-note-card">
-                  <p>
-                    For this demo, enter <strong>{DEMO_OTP}</strong> when prompted. This code is valid for 10 minutes.
-                  </p>
-                </div>
-
                 {error && (
                   <div className="otp-error">
                     <AlertCircle size={16} />
@@ -216,7 +270,7 @@ const OtpLoginModal = () => {
                 <button
                   type="button"
                   className="otp-button secondary"
-                  onClick={handleCancel}
+                  onClick={handleCancelOtpModal}
                   disabled={loading}
                 >
                   Cancel & continue browsing
@@ -224,16 +278,6 @@ const OtpLoginModal = () => {
               </>
             ) : (
               <>
-                <div className="otp-status">
-                  <div className="otp-status-icon">
-                    <CheckCircle size={20} />
-                  </div>
-                  <div>
-                    <p className="otp-status-title">OTP sent to</p>
-                    <p className="otp-status-detail">+91 {phone}</p>
-                  </div>
-                </div>
-
                 <div className="field-group">
                   <label htmlFor="otp-code">Enter OTP</label>
                   <input
@@ -255,12 +299,6 @@ const OtpLoginModal = () => {
                   </div>
                 )}
 
-                <div className="otp-note-card">
-                  <p>
-                    Use <strong>{DEMO_OTP}</strong> for demo access. If needed, resend the OTP.
-                  </p>
-                </div>
-
                 <button
                   type="button"
                   className="otp-button primary"
@@ -272,7 +310,7 @@ const OtpLoginModal = () => {
                 <button
                   type="button"
                   className="otp-button secondary"
-                  onClick={handleCancel}
+                  onClick={handleCancelOtpModal}
                   disabled={loading}
                 >
                   Cancel & continue browsing

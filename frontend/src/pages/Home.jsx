@@ -53,7 +53,7 @@ const getCollegeImage = (college) => {
 const defaultLocationOptions = ['All Regions'];
 
 export default function Home() {
-  const { requireAuth, isAuthenticated, openOtpModal, token } = useAuth();
+  const { requireAuth, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedCollegeId, setSelectedCollegeId] = useState(null);
@@ -266,26 +266,25 @@ export default function Home() {
   const selectedFilters = getSelectedFiltersArray();
 
   const handleWriteReviewClick = () => {
-    if (!isAuthenticated) {
-      openOtpModal();
-      return;
-    }
+    const writeReviewAction = () => {
+      localStorage.removeItem('reviewUniversityId');
+      localStorage.removeItem('reviewUniversityName');
+      localStorage.removeItem('userDepartment');
+      localStorage.removeItem('userGraduationYear');
+      localStorage.removeItem('userCollegeName');
 
-    localStorage.removeItem('reviewUniversityId');
-    localStorage.removeItem('reviewUniversityName');
-    localStorage.removeItem('userDepartment');
-    localStorage.removeItem('userGraduationYear');
-    localStorage.removeItem('userCollegeName');
-
-    if (selectedCollegeId) {
-      const selectedCollege = allColleges.find((college) => String(college.id) === String(selectedCollegeId));
-      if (selectedCollege) {
-        localStorage.setItem('reviewUniversityId', selectedCollegeId);
-        localStorage.setItem('reviewUniversityName', selectedCollege.name);
+      if (selectedCollegeId) {
+        const selectedCollege = allColleges.find((college) => String(college.id) === String(selectedCollegeId));
+        if (selectedCollege) {
+          localStorage.setItem('reviewUniversityId', selectedCollegeId);
+          localStorage.setItem('reviewUniversityName', selectedCollege.name);
+        }
       }
-    }
 
-    setShowProfileModal(true);
+      setShowProfileModal(true);
+    };
+
+    requireAuth(writeReviewAction);
   };
 
   const handleProfileSuccess = () => {
@@ -303,7 +302,7 @@ export default function Home() {
       try {
         console.log('Fetching universities data...');
 
-        const universitiesResult = await api.getUniversities(token);
+        const universitiesResult = await api.getUniversities();
         console.log('Universities Response:', universitiesResult);
 
         let filterResult = { success: false, data: {} };
@@ -392,7 +391,7 @@ export default function Home() {
       }
     };
     fetchData();
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (!statsRef.current || statsAnimated) return;
