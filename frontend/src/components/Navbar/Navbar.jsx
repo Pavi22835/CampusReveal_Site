@@ -18,7 +18,7 @@ import ProfileDetailsModal from '../ProfileDetailsModal/ProfileDetailsModal';
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAuthenticated, logout, openOtpModal } = useAuth();
+  const { user, isAuthenticated, logout, requireAuth, openOtpModal } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -79,26 +79,22 @@ export default function Navbar() {
 
   // Handle Write Review click with proper flow
   const handleWriteReview = () => {
-    if (!isAuthenticated) {
-      // Step 1: Not logged in - Open OTP login modal
-      openOtpModal();
-      // Store that user wants to write review after login
-      localStorage.setItem('redirectAfterLogin', '/write-review');
-      return;
-    }
-    
-    // Step 2: Logged in - Check if profile is complete
-    const hasCollegeName = localStorage.getItem('userCollegeName');
-    const hasDepartment = localStorage.getItem('userDepartment');
-    const hasGraduationYear = localStorage.getItem('userGraduationYear');
-    
-    if (!hasCollegeName || !hasDepartment || !hasGraduationYear) {
-      // Profile incomplete - Show profile details modal
-      setShowProfileModal(true);
-    } else {
-      // Profile complete - Directly go to write review
-      navigate('/write-review');
-    }
+    const writeReviewAction = () => {
+      // Check if profile is complete
+      const hasCollegeName = localStorage.getItem('userCollegeName');
+      const hasDepartment = localStorage.getItem('userDepartment');
+      const hasGraduationYear = localStorage.getItem('userGraduationYear');
+      
+      if (!hasCollegeName || !hasDepartment || !hasGraduationYear) {
+        // Profile incomplete - Show profile details modal
+        setShowProfileModal(true);
+      } else {
+        // Profile complete - Directly go to write review
+        navigate('/write-review');
+      }
+    };
+
+    requireAuth(writeReviewAction);
   };
 
   // Handle profile modal success

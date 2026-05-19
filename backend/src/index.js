@@ -66,6 +66,7 @@ app.get('/api/health', async (req, res) => {
 
 // ==================== ROUTES ====================
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/colleges', require('./routes/colleges'));
 app.use('/api/universities', require('./routes/universities'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/community', require('./routes/community'));

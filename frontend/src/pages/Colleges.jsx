@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
+import { CollegeFilters } from '../components/CollegeFilters/CollegeFilters';
 import './Colleges.css';
 
 const Colleges = () => {
@@ -14,19 +15,20 @@ const Colleges = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(9);
+  const [pagination, setPagination] = useState({ page: 1, limit: 9, pages: 1, total: 0 });
   
-  // Filter states
+  // Filter states for server-side query
   const [filters, setFilters] = useState({
-    sector: 'All',
-    transport: 'All',
-    category: 'Any',
-    level: 'Any',
-    department: 'Any',
-    course: 'Any',
-    quality: 'Any',
+    academicStream: '',
+    academicLevel: '',
+    department: '',
+    course: '',
     location: '',
-    sortBy: 'best'
+    transport: '',
+    minRating: '',
+    maxRating: ''
   });
+  const [sortBy, setSortBy] = useState('best');
 
   // Helper function to get logo URL - NO HARDCODED FALLBACKS
   const getLogoUrl = (college) => {
@@ -38,90 +40,89 @@ const Colleges = () => {
   };
 
   useEffect(() => {
-    const fetchUniversities = async () => {
+    let mounted = true;
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get('search');
+
+    if (searchParam) {
+      setSearchTerm(searchParam);
+    }
+
+    const fetchColleges = async () => {
       setLoading(true);
       setApiError(null);
 
-      const params = new URLSearchParams(location.search);
-      const searchParam = params.get('search');
-      if (searchParam) {
-        setSearchTerm(searchParam);
-      }
+      const apiParams = {
+        page: currentPage,
+        limit: itemsPerPage,
+        collegeName: searchParam || searchTerm || undefined,
+        location: filters.location || undefined,
+        academicStream: filters.academicStream || undefined,
+        academicLevel: filters.academicLevel || undefined,
+        department: filters.department || undefined,
+        course: filters.course || undefined,
+        transport: filters.transport || undefined,
+        minRating: filters.minRating || undefined,
+        maxRating: filters.maxRating || undefined,
+      };
 
       try {
-        const apiParams = { limit: 1000 };
-        if (searchParam) {
-          apiParams.search = searchParam;
-        }
-        const result = await api.getUniversities(apiParams);
-        
+        const result = await api.getColleges(apiParams);
+        if (!mounted) return;
+
         if (result.success && Array.isArray(result.data)) {
           const transformed = result.data.map((college) => ({
             ...college,
             id: college.id,
             name: college.name,
             logoUrl: getLogoUrl(college),
-            location: college.location || college.city,
+            location: college.location || college.city || college.state,
             description: college.description,
             students: college.studentCount ? `${college.studentCount.toLocaleString()}+` : null,
             reviews: college._count?.reviews ?? 0,
             netPrice: college.tuitionFee || null,
             acceptanceRate: college.acceptanceRate || null,
-            rating: college.rating || null
+            rating: college.rating || null,
           }));
           setColleges(transformed);
+          setPagination(result.pagination || { page: currentPage, limit: itemsPerPage, pages: 1, total: result.total || transformed.length });
           console.log(`✅ Loaded ${transformed.length} colleges`);
         } else {
           setApiError(result.error || 'Unable to fetch colleges.');
           setColleges([]);
+          setPagination({ page: currentPage, limit: itemsPerPage, pages: 1, total: 0 });
         }
       } catch (error) {
         console.error('Error fetching colleges:', error);
         setApiError(error.message || 'Connection error.');
         setColleges([]);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchUniversities();
-  }, [location.search]);
+    fetchColleges();
+    return () => {
+      mounted = false;
+    };
+  }, [location.search, searchTerm, filters, currentPage]);
 
-  // Reset page when search changes
+  // Reset page when filters or search change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filters]);
 
-  // Filter colleges
-  const getFilteredColleges = () => {
-    let filtered = [...colleges];
-
-    if (searchTerm) {
-      const normalized = searchTerm.toLowerCase();
-      filtered = filtered.filter(college =>
-        college.name?.toLowerCase().includes(normalized) ||
-        college.location?.toLowerCase().includes(normalized)
-      );
+  const sortedColleges = useMemo(() => {
+    if (sortBy === 'rating') {
+      return [...colleges].sort((a, b) => (b.rating || 0) - (a.rating || 0));
     }
+    return colleges;
+  }, [colleges, sortBy]);
 
-    if (filters.sector !== 'All') {
-      filtered = filtered.filter(college => college.type === filters.sector);
-    }
-
-    if (filters.sortBy === 'rating') {
-      filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    }
-
-    return filtered;
-  };
-
-  const filteredColleges = getFilteredColleges();
-  
-  // Pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentColleges = filteredColleges.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredColleges.length / itemsPerPage);
+  const currentColleges = sortedColleges;
+  const totalPages = pagination.pages || 1;
 
   const goToNextPage = () => {
     if (currentPage < totalPages) {
@@ -142,24 +143,26 @@ const Colleges = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({ ...prev, [filterType]: value }));
+  const handleFilterChange = (nextFilters) => {
+    setFilters(nextFilters);
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
     setFilters({
-      sector: 'All',
-      transport: 'All',
-      category: 'Any',
-      level: 'Any',
-      department: 'Any',
-      course: 'Any',
-      quality: 'Any',
+      academicStream: '',
+      academicLevel: '',
+      department: '',
+      course: '',
       location: '',
-      sortBy: 'best'
+      transport: '',
+      minRating: '',
+      maxRating: ''
     });
     setSearchTerm('');
+    setSortBy('best');
     setCurrentPage(1);
+    navigate({ pathname: location.pathname, search: '' }, { replace: true });
   };
 
   const renderPaginationButtons = () => {
@@ -246,6 +249,11 @@ const Colleges = () => {
           </div>
         </div>
 
+        <CollegeFilters
+          initialFilters={filters}
+          onFilterChange={handleFilterChange}
+        />
+
         {/* Sort Bar */}
         <div className="sort-bar">
           <div className="results-info">
@@ -256,8 +264,8 @@ const Colleges = () => {
           <div className="sort-options">
             <label>Sort by:</label>
             <select
-              value={filters.sortBy}
-              onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
             >
               <option value="best">Best Match</option>
               <option value="rating">Highest Rated</option>

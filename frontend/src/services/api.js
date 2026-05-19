@@ -233,6 +233,66 @@ export const api = {
     }
   },
 
+  getColleges: async (params = {}) => {
+    try {
+      const safeParams = (params && typeof params === 'object') ? params : {};
+      const queryParams = { ...safeParams };
+
+      Object.keys(queryParams).forEach((key) => {
+        if (queryParams[key] === undefined || queryParams[key] === null || queryParams[key] === '') {
+          delete queryParams[key];
+        }
+      });
+
+      const query = new URLSearchParams(queryParams).toString();
+      const endpoint = `/colleges${query ? `?${query}` : ''}`;
+      console.log(`📡 GET → ${endpoint}`);
+
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, data: [], error: data?.message || 'Failed to fetch colleges' };
+      }
+
+      return {
+        success: true,
+        data: Array.isArray(data.data) ? data.data : [],
+        total: data.total || 0,
+        pagination: data.pagination || null,
+      };
+    } catch (error) {
+      console.error('❌ Error fetching colleges:', error);
+      return { success: false, error: error.message || 'Unable to fetch colleges.', data: [] };
+    }
+  },
+
+  getCollegeOptions: async () => {
+    try {
+      const res = await fetch(`${API_URL}/colleges/options`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, data: null, error: data?.message || 'Unable to load filter options' };
+      }
+
+      return { success: true, data: data.data || null };
+    } catch (error) {
+      console.error('❌ Error fetching college filter options:', error);
+      return { success: false, error: error.message || 'Unable to load filter options', data: null };
+    }
+  },
+
   getAllUniversities: async () => {
     try {
       console.log("📡 Fetching ALL universities...");

@@ -1,0 +1,79 @@
+.college-filters {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  padding: 22px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.college-filters__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.college-filters__header h2 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+
+.college-filters__header p {
+  margin: 0;
+  color: var(--muted-text);
+  font-size: 0.95rem;
+}
+
+.college-filters__reset,
+.college-filters__submit {
+  border: none;
+  background: var(--primary);
+  color: white;
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.college-filters__reset {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid rgba(148, 163, 184, 0.32);
+}
+
+.college-filters__loading,
+.college-filters__error {
+  padding: 20px 0;
+  color: var(--muted-text);
+}
+
+.college-filters__form {
+  display: grid;
+  gap: 16px;
+}
+
+.college-filters__field {
+  display: grid;
+  gap: 8px;
+}
+
+.college-filters__field span {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.college-filters__field select,
+.college-filters__field input {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.college-filters__actions {
+  display: flex;
+  justify-content: flex-end;
+}
